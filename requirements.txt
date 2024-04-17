@@ -1,0 +1,4 @@
+pyautogui
+requests
+tomllib
+opencv-python #not available on pi
