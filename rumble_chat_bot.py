@@ -18,7 +18,14 @@ BROWSER_ACTION_DELAY = 2
 #Popout chat url. Format with chat_id
 CHAT_URL = "https://rumble.com/chat/popup/{chat_id}"
 
+#Maximum chat message length
+MAX_MESSAGE_LEN = 200
+
+#Prefix to all bot messages
 BOT_MESSAGE_PREFIX = "🤖: "
+
+#How commands always start
+COMMAND_PREFIX = "!"
 
 #Levels of mute to discipline a user with
 MUTE_LEVELS = {
@@ -26,6 +33,52 @@ MUTE_LEVELS = {
     "stream" : "cmi js-btn-mute-current",
     "forever" : "cmi js-btn-mute-for-account",
     }
+
+class RumbleChatCommand():
+    """A chat command, internal use only"""
+    def __init__(self, name, bot, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, whitelist_badges = ["moderator"], target = None):
+        """name: The !name of the command
+    bot: The RumleChatBot host object
+    amount_cents: The minimum cost of the command. Defaults to free
+    whitelist_badges: Badges which if borne give the user free-of-charge command access
+    target: The function to call on successful command usage. Defaults to self.run"""
+        self.name = name
+        self.bot = bot
+        assert cooldown >= BROWSER_ACTION_DELAY, f"Cannot set a cooldown shorter than {BROWSER_ACTION_DELAY}"
+        self.cooldown = cooldown
+        self.amount_cents = amount_cents #Cost of the command
+        self.whitelist_badges = ["admin"] + whitelist_badges #Admin always has free-of-charge usage
+        self.last_use_time = 0 #Last time the command was called
+        if target:
+            self.target = target
+        else:
+            self.target = self.run
+
+    def call(self, message):
+        """The command was called"""
+
+        #The command is still on cooldown
+        if (curtime := time.time()) - self.last_use_time < self.cooldown:
+            try:
+                self.bot.send_message(f"@{message.user.username} That command is still on cooldown. Try again in {int(self.last_use_time + self.cooldown - curtime + 0.5)} seconds.")
+
+            #Message was too long
+            except AssertionError:
+                self.bot.send_message(f"The !{self.name} command is still on cooldown.")
+
+            return
+
+        #the user did not pay enough for the command and they do not have a free pass
+        if message.amount_cents < self.amount_cents and not (True in [badge.slug in self.whitelist_badges for badge in message.user.badges]):
+            self.bot.send_message(f"@{message.user.username} That command costs ${self.amount_cents/100:.2f}.")
+            return
+
+        #the command was called successfully
+        self.target(message)
+
+    def run(self, message):
+        """Dummy run method"""
+        self.bot.send_message(f"@{message.user.username} Hello, this command never had a target defined. :-)")
 
 class RumbleChatBot():
     """Bot that interacts with Rumble chat"""
@@ -114,6 +167,15 @@ class RumbleChatBot():
 
         assert "moderator" in m.user.badges or "admin" in m.user.badges, "Bot cannot function without being a moderator"
 
+        #Functions that are to be called on each message, must return False if the message was deleted
+        self.message_actions = []
+
+        #Instances of RumbleChatCommand, by name
+        self.chat_commands = {}
+
+        #Loop condition of the mainloop() method
+        self.keep_running = True
+
     def get_sign_in_button(self):
         """Look for the sign in button"""
         try:
@@ -124,9 +186,11 @@ class RumbleChatBot():
 
     def send_message(self, text):
         """Send a message in chat"""
-        if "\n" in text:
-            raise ValueError("Message cannot contain newlines")
-        self.browser.find_element(By.ID, "chat-message-text-input").send_keys(BOT_MESSAGE_PREFIX + text + Keys.RETURN)
+        assert "\n" not in text, "Message cannot contain newlines"
+        text = BOT_MESSAGE_PREFIX + text
+        assert len(text) < MAX_MESSAGE_LEN, f"Message with prefix cannot be longer than {MAX_MESSAGE_LEN} characters"
+        self.browser.find_element(By.ID, "chat-message-text-input").send_keys(text + Keys.RETURN)
+        time.sleep(BROWSER_ACTION_DELAY)
 
     def hover_element(self, element):
         """Hover over a selenium element"""
@@ -202,3 +266,47 @@ class RumbleChatBot():
         self.browser.quit()
         # TODO how to close an SSEClient?
         # self.ssechat.client.close()
+
+    def __run_if_command(self, message):
+        """Check if a message is a command, and run it if so"""
+        #Not a command
+        if not message.text.startswith(COMMAND_PREFIX):
+            return
+
+        #Get command name
+        name = message.text.split()[0].removeprefix(COMMAND_PREFIX)
+
+        #Is not a valid command
+        if name not in self.chat_commands:
+            self.send_message(f"@{message.user.username} That is not a registered command.")
+
+        self.chat_commands[name].call(message)
+
+    def register_command(self, command, name = None):
+        """Register a command"""
+        #Is a RumbleChatCommand instance
+        if isinstance(command, RumbleChatCommand):
+            assert not name or name == command.name, "RumbleChatCommand instance has different name than one passed"
+            self.chat_commands[command.name] = command
+
+        #Is a callable
+        elif callable(command):
+            assert name, "Name cannot be None if command is a callable"
+            self.chat_commands[name] = RumbleChatCommand(name = name, bot = self, target = command)
+
+    def __process_message(self, message):
+        """Process a single SSE Chat message"""
+        for action in self.message_actions:
+            if not action(message): #The message got deleted by an action
+                return
+
+        self.__run_if_command(message)
+
+    def mainloop(self):
+        """Run the bot forever"""
+        while self.keep_running:
+            m = self.ssechat.next_chat_message()
+            if not m: #Chat has closed
+                self.keep_running = False
+                return
+            self.__process_message(m)
