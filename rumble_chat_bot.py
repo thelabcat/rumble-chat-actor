@@ -20,18 +20,11 @@ CHAT_URL = "https://rumble.com/chat/popup/{chat_id}"
 
 BOT_MESSAGE_PREFIX = "🤖: "
 
-#Load credentials and API URL
-CREDENTIALS_FILE = "rumble_credentials.txt"
-API_URL_FILE = "api_url.txt"
-
 with open(CREDENTIALS_FILE) as f:
     USERNAME, PASSWORD = f.read().strip().splitlines()
 
 with open(API_URL_FILE) as f:
     API_URL = f.read().strip()
-
-#Profile directory to use
-PROFILE_DIR = "/home/wilbur/.mozilla/firefox/z4gntk86.Selenium"
 
 #Levels of mute to discipline a user with
 MUTE_LEVELS = {
@@ -42,16 +35,22 @@ MUTE_LEVELS = {
 
 class RumbleChatBot():
     """Bot that interacts with Rumble chat"""
-    def __init__(self, stream_id = None, init_message = "Hello, Rumble world!", profile_dir = None):
-        """Pass the stream ID you want to connect to. Defaults to latest livestream"""
+    def __init__(self, stream_id = None, init_message = "Hello, Rumble world!", profile_dir = None, credentials = None, api_url = None):
+        """stream_id: The stream ID you want to connect to. Defaults to latest livestream
+    init_message: What to say when the bot starts up.
+    profile_dir: The Firefox profile directory to use. Defaults to temp (sign-in not saved)
+    credentials: The (username, password) to log in with. Defaults to manual log in"""
 
         #Get Live Stream API
-        self.rum_api = RumbleAPI(API_URL)
+        if api_url:
+            self.rum_api = RumbleAPI(api_url)
+        else:
+            self.rum_api = None
 
         #A stream ID was passed
         if stream_id:
-            #It is not our livestream, Live Stream API functions are not available
-            if stream_id not in self.rum_api.livestreams.keys():
+            #It is not our livestream or we have no Live Stream API, LS API functions are not available
+            if not self.rum_api or stream_id not in self.rum_api.livestreams.keys():
                 self.api_stream = None
 
             #It is our livestream, we can use the Live Stream API
@@ -61,11 +60,11 @@ class RumbleChatBot():
 
         #A stream ID was not passed
         else:
+            assert self.rum_api, "Cannot auto-find stream ID without a Live Stream API url"
             self.api_stream = self.rum_api.latest_livestream
 
-            #No streams are live shown on the API
-            if not self.api_stream:
-                raise ValueError("No stream ID was passed and you are not live")
+            #At least one live stream must be shown on the API
+            assert self.api_stream, "No stream ID was passed and you are not live"
 
             self.stream_id = self.api_stream.stream_id
 
@@ -85,16 +84,22 @@ class RumbleChatBot():
         self.browser.get(CHAT_URL.format(chat_id = self.ssechat.chat_id))
         assert "Chat" in self.browser.title
 
-        #Sign in to chat, unless we are already
-        try:
-            self.browser.find_element(By.CLASS_NAME, "chat--sign-in").click()
-        except selenium.common.exceptions.NoSuchElementException:
-            print("Could not find sign-in button, already signed in.")
-        else:
+        #Sign in to chat, unless we are already. While there is a sign-in button...
+        while sign_in_buttn := self.get_sign_in_button():
+            #We have credentials
+            if credentials:
+                time.sleep(BROWSER_ACTION_DELAY)
+                self.browser.find_element(By.ID, "login-username").send_keys(credentials[0] + Keys.RETURN)
+                self.browser.find_element(By.ID, "login-password").send_keys(credentials[1] + Keys.RETURN)
+                break #We only need to do that once
+
+            #We do not have credentials, ask for manual sign in
+            else:
+                self.browser.maximize_window()
+                input("Please log in at the browser, then press enter here.")
+
+            #Wait for signed in loading to complete
             time.sleep(BROWSER_ACTION_DELAY)
-            self.browser.find_element(By.ID, "login-username").send_keys(USERNAME + Keys.RETURN)
-            self.browser.find_element(By.ID, "login-password").send_keys(PASSWORD + Keys.RETURN)
-        time.sleep(BROWSER_ACTION_DELAY)
 
         #Send an initialization message to get wether we are moderator or not
         self.send_message(init_message)
@@ -103,7 +108,14 @@ class RumbleChatBot():
         while (m := self.ssechat.next_chat_message()).user.username != USERNAME:
             pass
 
-        assert "moderator" in m.user.badges or "admin" in m.user.badges
+        assert "moderator" in m.user.badges or "admin" in m.user.badges, "Bot cannot function without being a moderator"
+
+    def get_sign_in_button(self):
+        """Look for the sign in button"""
+        try:
+            return self.browser.find_element(By.CLASS_NAME, "chat--sign-in")
+        except selenium.common.exceptions.NoSuchElementException:
+            print("Could not find sign-in button, already signed in.")
 
     def send_message(self, text):
         """Send a message in chat"""
