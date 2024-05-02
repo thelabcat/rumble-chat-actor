@@ -4,7 +4,7 @@
 S.D.G."""
 
 import time
-from cocorum import RumbleAPI, utils
+from cocorum import RumbleAPI #, utils
 from cocorum.ssechat import SSEChatAPI
 import selenium
 from selenium import webdriver
@@ -19,12 +19,6 @@ BROWSER_ACTION_DELAY = 2
 CHAT_URL = "https://rumble.com/chat/popup/{chat_id}"
 
 BOT_MESSAGE_PREFIX = "🤖: "
-
-with open(CREDENTIALS_FILE) as f:
-    USERNAME, PASSWORD = f.read().strip().splitlines()
-
-with open(API_URL_FILE) as f:
-    API_URL = f.read().strip()
 
 #Levels of mute to discipline a user with
 MUTE_LEVELS = {
@@ -50,7 +44,7 @@ class RumbleChatBot():
         #A stream ID was passed
         if stream_id:
             #It is not our livestream or we have no Live Stream API, LS API functions are not available
-            if not self.rum_api or stream_id not in self.rum_api.livestreams.keys():
+            if not self.rum_api or stream_id not in self.rum_api.livestreams:
                 self.api_stream = None
 
             #It is our livestream, we can use the Live Stream API
@@ -88,24 +82,34 @@ class RumbleChatBot():
         while sign_in_buttn := self.get_sign_in_button():
             #We have credentials
             if credentials:
+                sign_in_buttn.click()
                 time.sleep(BROWSER_ACTION_DELAY)
                 self.browser.find_element(By.ID, "login-username").send_keys(credentials[0] + Keys.RETURN)
                 self.browser.find_element(By.ID, "login-password").send_keys(credentials[1] + Keys.RETURN)
                 break #We only need to do that once
 
             #We do not have credentials, ask for manual sign in
-            else:
-                self.browser.maximize_window()
-                input("Please log in at the browser, then press enter here.")
+            self.browser.maximize_window()
+            input("Please log in at the browser, then press enter here.")
 
             #Wait for signed in loading to complete
             time.sleep(BROWSER_ACTION_DELAY)
+
+        #Find our username
+        if credentials:
+            self.username = credentials[0]
+        elif self.rum_api:
+            self.username = self.rum_api.username
+        else:
+            self.username = None
+            while not self.username:
+                self.username = input("Enter the username the bot is using: ")
 
         #Send an initialization message to get wether we are moderator or not
         self.send_message(init_message)
 
         #Wait until we get that message
-        while (m := self.ssechat.next_chat_message()).user.username != USERNAME:
+        while (m := self.ssechat.next_chat_message()).user.username != self.username:
             pass
 
         assert "moderator" in m.user.badges or "admin" in m.user.badges, "Bot cannot function without being a moderator"
@@ -116,6 +120,7 @@ class RumbleChatBot():
             return self.browser.find_element(By.CLASS_NAME, "chat--sign-in")
         except selenium.common.exceptions.NoSuchElementException:
             print("Could not find sign-in button, already signed in.")
+            return None
 
     def send_message(self, text):
         """Send a message in chat"""
@@ -148,7 +153,7 @@ class RumbleChatBot():
         #Not a valid message type
         else:
             raise TypeError("Message must be ID, li element, or have message_id attribute")
-            
+
         #Hover over the message
         self.hover_element(message_li)
         #Find the moderation menu
@@ -163,7 +168,7 @@ class RumbleChatBot():
         m_id = self.open_moderation_menu(message)
         del_bttn = self.browser.find_element(By.XPATH, f"//button[@class='cmi js-btn-delete-current'][@data-message-id='{m_id}']")
         del_bttn.click()
-        
+
     def mute_by_message(self, message, mute_level = "5"):
         """Mute a user by message"""
         self.open_moderation_menu(message)
@@ -174,22 +179,23 @@ class RumbleChatBot():
         """Mute a user by the name they are appearing with"""
         #Find any chat message by this user
         message_li = self.browser.find_element(By.XPATH, f"//li[@class='chat-history--row js-chat-history-item'][@data-username='{name}']")
-        self.mute_by_message(message_li = message_li, mute_level = mute_level)
+        self.mute_by_message(message = message_li, mute_level = mute_level)
 
     def pin_message(self, message):
         """Pin a message by ID or li element"""
         self.open_moderation_menu(message)
-        pin_bttn = self.browser.find_element(By.XPATH, f"//button[@class='cmi js-btn-pin-current']")
+        pin_bttn = self.browser.find_element(By.XPATH, "//button[@class='cmi js-btn-pin-current']")
         pin_bttn.click()
 
-    def unpin_message(self, message):
+    def unpin_message(self):
         """Unpin the currently pinned message"""
         try:
-            unpin_bttn = self.browser.find_element(By.XPATH, f"//button[@data-js='remove_pinned_message_button']")
+            unpin_bttn = self.browser.find_element(By.XPATH, "//button[@data-js='remove_pinned_message_button']")
         except selenium.common.exceptions.NoSuchElementException:
             return False #No message was pinned
-        else:
-            unpin_bttn.click()
+
+        unpin_bttn.click()
+        return True
 
     def quit(self):
         """Shut down everything"""
