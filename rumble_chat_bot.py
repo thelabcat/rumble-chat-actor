@@ -4,7 +4,7 @@
 S.D.G."""
 
 import time
-from cocorum import RumbleAPI #, utils
+from cocorum import RumbleAPI, utils
 from cocorum.ssechat import SSEChatAPI
 import selenium
 from selenium import webdriver
@@ -15,8 +15,8 @@ from selenium.webdriver.common.keys import Keys
 #How long to wait after performing any browser action, for the webpage to load its response
 BROWSER_ACTION_DELAY = 2
 
-#Popout chat url. Format with chat_id
-CHAT_URL = "https://rumble.com/chat/popup/{chat_id}"
+#Popout chat url. Format with stream_id_b10
+CHAT_URL = "https://rumble.com/chat/popup/{stream_id_b10}"
 
 #Maximum chat message length
 MAX_MESSAGE_LEN = 200
@@ -96,14 +96,15 @@ class RumbleChatBot():
 
         #A stream ID was passed
         if stream_id:
+            self.stream_id, self.stream_id_b10 = utils.stream_id_36_and_10(stream_id)
+
             #It is not our livestream or we have no Live Stream API, LS API functions are not available
-            if not self.rum_api or stream_id not in self.rum_api.livestreams:
+            if not self.rum_api or self.stream_id not in self.rum_api.livestreams:
                 self.api_stream = None
 
             #It is our livestream, we can use the Live Stream API
             else:
                 self.api_stream = self.rum_api.livestreams[stream_id]
-            self.stream_id = stream_id
 
         #A stream ID was not passed
         else:
@@ -114,6 +115,7 @@ class RumbleChatBot():
             assert self.api_stream, "No stream ID was passed and you are not live"
 
             self.stream_id = self.api_stream.stream_id
+            self.stream_id_b10 = utils.stream_id_36_to_10(self.stream_id)
 
         #Get SSE chat and empty the mailbox
         self.ssechat = SSEChatAPI(stream_id = self.stream_id)
@@ -128,7 +130,7 @@ class RumbleChatBot():
         #Get browser
         self.browser = webdriver.Firefox(options = options)
         self.browser.minimize_window()
-        self.browser.get(CHAT_URL.format(chat_id = self.ssechat.chat_id))
+        self.browser.get(CHAT_URL.format(stream_id_b10 = self.ssechat.stream_id_b10))
         assert "Chat" in self.browser.title
 
         #Sign in to chat, unless we are already. While there is a sign-in button...
