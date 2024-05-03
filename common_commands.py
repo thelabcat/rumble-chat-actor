@@ -7,10 +7,10 @@ from . import RumbleChatCommand
 import talkey
 
 class TTSCommand(RumbleChatCommand):
-    def __init__(self, *args, **kwargs, voices = {}):
+    def __init__(self, *args, name = "tts", voices = {}, **kwargs):
         """Pass the same args and kwargs as RumbleChatCommand, plus:
     voices: Dict of voice : say(text) callable"""
-        super().__init__(*args, **kwargs)
+        super().__init__(*args, name = name, **kwargs)
         self.voices = voices
         self.default_voice = talkey.Takley()
 
@@ -46,3 +46,16 @@ class TTSCommand(RumbleChatCommand):
 
         #No voice was selected
         self.speak(" ".join(segs[1:]))
+
+class LurkCommand(RumbleChatCommand):
+    def __init__(self, bot, name = "lurk", text = "@{username} is now lurking. Enjoy!"):
+        """bot: The Rumble chat bot host
+    name = lurk: the command name
+    text: A message to format with a username and post
+    user_cooldown: How long before a user can lurk again"""
+        super().__init__(name = name, bot = bot)
+        self.text = text
+
+    def run(self, message):
+        """Run the lurk"""
+        self.bot.send_message(self.text.format(username = message.user.username))
