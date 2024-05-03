@@ -11,6 +11,7 @@ from cocorum.ssechat import SSEChat
 import selenium
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.alert import Alert
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 
@@ -276,7 +277,7 @@ class RumbleChatActor():
         time.sleep(BROWSER_ACTION_DELAY)
 
         #Confirm the confirmation dialog
-        selenium.Alert(self.browser).accept()
+        Alert(self.browser).accept()
 
     def mute_by_message(self, message, mute_level = "5"):
         """Mute a user by message"""
