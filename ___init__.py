@@ -12,6 +12,7 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+import common_commands
 
 #How long to wait after performing any browser action, for the webpage to load its response
 BROWSER_ACTION_DELAY = 2
@@ -326,6 +327,14 @@ class RumbleChatActor():
             assert name, "Name cannot be None if command is a callable"
             assert " " not in name, "Name cannot contain spaces"
             self.chat_commands[name] = ChatCommand(name = name, bot = self, target = command)
+
+    def register_message_action(self, action):
+        """Register an action callable to be run on every message
+    - Action will be passed cocorum.ssechat.SSEChatMessage() and this actor
+    - Action should return True if the message survived the action
+    - Action should return False if the message was deleted by the action"""
+        assert callable(action), "Action must be a callable"
+        self.message_actions.append(action)
 
     def __process_message(self, message):
         """Process a single SSE Chat message"""
