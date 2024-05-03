@@ -13,7 +13,6 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-from . import common_commands
 
 #How long to wait after performing any browser action, for the webpage to load its response
 BROWSER_ACTION_DELAY = 2
@@ -68,7 +67,7 @@ class ChatCommand():
             return
 
         #the user did not pay enough for the command and they do not have a free pass
-        if message.amount_cents < self.amount_cents and not (True in [badge.slug in self.whitelist_badges for badge in message.user.badges]):
+        if message.rant_price_cents < self.amount_cents and not (True in [badge.slug in self.whitelist_badges for badge in message.user.badges]):
             self.actor.send_message(f"@{message.user.username} That command costs ${self.amount_cents/100:.2f}.")
             return
 
@@ -146,7 +145,7 @@ class RumbleChatActor():
 
         #Get SSE chat and empty the mailbox
         self.ssechat = SSEChat(stream_id = self.stream_id)
-        self.ssechat.mailbox = []
+        self.ssechat.clear_mailbox()
 
         #Set browser profile directory of we have one
         options = webdriver.FirefoxOptions()
@@ -187,6 +186,12 @@ class RumbleChatActor():
             while not self.username:
                 self.username = input("Enter the username the actor is using: ")
 
+        #Wait for potential further page load?
+        time.sleep(BROWSER_ACTION_DELAY)
+
+        #History of the bot's messages so they do not get loop processed
+        self.sent_messages = []
+
         #Send an initialization message to get wether we are moderator or not
         self.send_message(init_message)
 
@@ -224,6 +229,7 @@ class RumbleChatActor():
     def __send_message(self, text):
         """Send a message in chat"""
         assert len(text) < MAX_MESSAGE_LEN, f"Message with prefix cannot be longer than {MAX_MESSAGE_LEN} characters"
+        self.sent_messages.append(text)
         self.browser.find_element(By.ID, "chat-message-text-input").send_keys(text + Keys.RETURN)
         time.sleep(BROWSER_ACTION_DELAY)
 
@@ -318,6 +324,7 @@ class RumbleChatActor():
         #Is not a valid command
         if name not in self.chat_commands:
             self.send_message(f"@{message.user.username} That is not a registered command.")
+            return
 
         self.chat_commands[name].call(message)
 
@@ -344,8 +351,12 @@ class RumbleChatActor():
 
     def __process_message(self, message):
         """Process a single SSE Chat message"""
+        #Do not do anything with the message if it matches one we sent before
+        if message.text in self.sent_messages:
+            return
+
         for action in self.message_actions:
-            if not action(message): #The message got deleted by an action
+            if not action(message, self): #The message got deleted by an action
                 return
 
         self.__run_if_command(message)
