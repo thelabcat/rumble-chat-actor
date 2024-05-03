@@ -3,12 +3,12 @@
 
 S.D.G."""
 
-from . import RumbleChatCommand
+from . import ChatCommand, ExclusiveChatCommand
 import talkey
 
-class TTSCommand(RumbleChatCommand):
+class TTSCommand(ChatCommand):
     def __init__(self, *args, name = "tts", voices = {}, **kwargs):
-        """Pass the same args and kwargs as RumbleChatCommand, plus:
+        """Pass the same args and kwargs as ChatCommand, plus:
     voices: Dict of voice : say(text) callable"""
         super().__init__(*args, name = name, **kwargs)
         self.voices = voices
@@ -47,15 +47,25 @@ class TTSCommand(RumbleChatCommand):
         #No voice was selected
         self.speak(" ".join(segs[1:]))
 
-class LurkCommand(RumbleChatCommand):
+class LurkCommand(ChatCommand):
     def __init__(self, bot, name = "lurk", text = "@{username} is now lurking. Enjoy!"):
         """bot: The Rumble chat bot host
     name = lurk: the command name
-    text: A message to format with a username and post
-    user_cooldown: How long before a user can lurk again"""
+    text: A message to format with a username and post"""
         super().__init__(name = name, bot = bot)
         self.text = text
 
     def run(self, message):
         """Run the lurk"""
         self.bot.send_message(self.text.format(username = message.user.username))
+
+class HelpCommand(ChatCommand):
+    """List available commands"""
+    def __init__(self, bot, name = "help"):
+        """bot: The Rumble chat bot host
+    name = help: the command name"""
+        super().__init__(name = name, bot = bot)
+
+    def run(self, message):
+        """Run the help command"""
+        self.bot.send_message("The following commands are registered: " + ", ".join(self.bot.chat_commands))
