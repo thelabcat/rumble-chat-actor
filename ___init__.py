@@ -3,6 +3,7 @@
 
 S.D.G."""
 
+import textwrap
 import time
 from cocorum import RumbleAPI, utils
 from cocorum.ssechat import SSEChatAPI
@@ -21,6 +22,9 @@ CHAT_URL = "https://rumble.com/chat/popup/{stream_id_b10}"
 #Maximum chat message length
 MAX_MESSAGE_LEN = 200
 
+#Message split across multiple lines must not be longer than this
+MAX_MULTIMESSAGE_LEN = 1000
+
 #Prefix to all bot messages
 BOT_MESSAGE_PREFIX = "🤖: "
 
@@ -34,7 +38,7 @@ MUTE_LEVELS = {
     "forever" : "cmi js-btn-mute-for-account",
     }
 
-class RumbleChatCommand():
+class ChatCommand():
     """A chat command, internal use only"""
     def __init__(self, name, bot, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, whitelist_badges = ["moderator"], target = None):
         """name: The !name of the command
@@ -57,12 +61,7 @@ class RumbleChatCommand():
 
         #The command is still on cooldown
         if (curtime := time.time()) - self.last_use_time < self.cooldown:
-            try:
-                self.bot.send_message(f"@{message.user.username} That command is still on cooldown. Try again in {int(self.last_use_time + self.cooldown - curtime + 0.5)} seconds.")
-
-            #Message was too long
-            except AssertionError:
-                self.bot.send_message(f"The !{self.name} command is still on cooldown.")
+            self.bot.send_message(f"@{message.user.username} That command is still on cooldown. Try again in {int(self.last_use_time + self.cooldown - curtime + 0.5)} seconds.")
 
             return
 
@@ -82,6 +81,24 @@ class RumbleChatCommand():
 
         #Run method was never defined
         self.bot.send_message(f"@{message.user.username} Hello, this command never had a target defined. :-)")
+
+class ExclusiveChatCommand(ChatCommand):
+    """Chat command that only certain badges can use"""
+    def __init__(self, *args, *kwargs, allowed_badges = ["subscriber"]):
+        """Pass same args as ChatCommand, plus allowed_badges = [slugs]"""
+        super().__init__(*args, **kwargs)
+        #Admin can always call any command
+        self.allowed_badges = ["admin"] + allowed_badges
+
+    def call(self, message):
+        """The command was called"""
+        #the user does not have the required badge
+        if not (True in [badge.slug in self.allowed_badges for badge in message.user.badges]):
+            self.bot.send_message(f"@{message.user.username} That command is exclusive to: " + ", ".join(self.allowed_badges))
+            return
+
+        #Proceed with normal command processing
+        super().call(message)
 
 class RumbleChatBot():
     """Bot that interacts with Rumble chat"""
@@ -190,9 +207,15 @@ class RumbleChatBot():
             return None
 
     def send_message(self, text):
-        """Send a message in chat"""
-        assert "\n" not in text, "Message cannot contain newlines"
+        """Send a message in chat (splits across lines if necessary)"""
         text = BOT_MESSAGE_PREFIX + text
+        assert "\n" not in text, "Message cannot contain newlines"
+        assert len(text) < MAX_MULTIMESSAGE_LEN, "Message is too long"
+        for subtext in textwrap.wrap(text, width = MAX_MESSAGE_LEN):
+            self.__send_message(subtext)
+
+    def __send_message(self, text):
+        """Send a message in chat"""
         assert len(text) < MAX_MESSAGE_LEN, f"Message with prefix cannot be longer than {MAX_MESSAGE_LEN} characters"
         self.browser.find_element(By.ID, "chat-message-text-input").send_keys(text + Keys.RETURN)
         time.sleep(BROWSER_ACTION_DELAY)
@@ -293,16 +316,16 @@ class RumbleChatBot():
 
     def register_command(self, command, name = None):
         """Register a command"""
-        #Is a RumbleChatCommand instance
-        if isinstance(command, RumbleChatCommand):
-            assert not name or name == command.name, "RumbleChatCommand instance has different name than one passed"
+        #Is a ChatCommand instance
+        if isinstance(command, ChatCommand):
+            assert not name or name == command.name, "ChatCommand instance has different name than one passed"
             self.chat_commands[command.name] = command
 
         #Is a callable
         elif callable(command):
             assert name, "Name cannot be None if command is a callable"
             assert " " not in name, "Name cannot contain spaces"
-            self.chat_commands[name] = RumbleChatCommand(name = name, bot = self, target = command)
+            self.chat_commands[name] = ChatCommand(name = name, bot = self, target = command)
 
     def __process_message(self, message):
         """Process a single SSE Chat message"""
