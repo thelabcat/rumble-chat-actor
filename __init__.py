@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Rumble Chat Actor
 
+Automatically interact with your Rumble livestream chats.
 S.D.G."""
 
 import textwrap
