@@ -41,7 +41,7 @@ class RumbleChatCommand():
     bot: The RumleChatBot host object
     amount_cents: The minimum cost of the command. Defaults to free
     whitelist_badges: Badges which if borne give the user free-of-charge command access
-    target: The function to call on successful command usage. Defaults to self.run"""
+    target: The function(message, bot) to call on successful command usage. Defaults to self.run"""
         self.name = name
         self.bot = bot
         assert cooldown >= BROWSER_ACTION_DELAY, f"Cannot set a cooldown shorter than {BROWSER_ACTION_DELAY}"
@@ -49,10 +49,7 @@ class RumbleChatCommand():
         self.amount_cents = amount_cents #Cost of the command
         self.whitelist_badges = ["admin"] + whitelist_badges #Admin always has free-of-charge usage
         self.last_use_time = 0 #Last time the command was called
-        if target:
-            self.target = target
-        else:
-            self.target = self.run
+        self.target = target
 
     def call(self, message):
         """The command was called"""
@@ -74,10 +71,15 @@ class RumbleChatCommand():
             return
 
         #the command was called successfully
-        self.target(message)
+        self.run(message)
 
     def run(self, message):
         """Dummy run method"""
+        if self.target:
+            self.target(message, self.bot)
+            return
+
+        #Run method was never defined
         self.bot.send_message(f"@{message.user.username} Hello, this command never had a target defined. :-)")
 
 class RumbleChatBot():
