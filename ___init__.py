@@ -42,6 +42,7 @@ class RumbleChatCommand():
     amount_cents: The minimum cost of the command. Defaults to free
     whitelist_badges: Badges which if borne give the user free-of-charge command access
     target: The function(message, bot) to call on successful command usage. Defaults to self.run"""
+        assert " " not in name, "Name cannot contain spaces"
         self.name = name
         self.bot = bot
         assert cooldown >= BROWSER_ACTION_DELAY, f"Cannot set a cooldown shorter than {BROWSER_ACTION_DELAY}"
@@ -236,6 +237,10 @@ class RumbleChatBot():
         m_id = self.open_moderation_menu(message)
         del_bttn = self.browser.find_element(By.XPATH, f"//button[@class='cmi js-btn-delete-current'][@data-message-id='{m_id}']")
         del_bttn.click()
+        time.sleep(BROWSER_ACTION_DELAY)
+
+        #Confirm the confirmation dialog
+        Alert(self.browser).accept()
 
     def mute_by_message(self, message, mute_level = "5"):
         """Mute a user by message"""
@@ -296,6 +301,7 @@ class RumbleChatBot():
         #Is a callable
         elif callable(command):
             assert name, "Name cannot be None if command is a callable"
+            assert " " not in name, "Name cannot contain spaces"
             self.chat_commands[name] = RumbleChatCommand(name = name, bot = self, target = command)
 
     def __process_message(self, message):
