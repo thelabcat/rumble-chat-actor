@@ -41,3 +41,8 @@ actor.mainloop()
 ```
 
 You would write this script, and run it as your local Rumble Chat Actor instance. Note that it currently does not exit on its own when a livestream ends.
+Hope this helps!
+
+I, Wilbur Jaywright, and my brand, Marswide BGL, have no official association with Rumble Corp. beyond that of a normal user and/or channel on the Rumble Video platform. This wrapper is not officially endorsed by Rumble Corp. or its subsidiaries.
+
+S.D.G.
