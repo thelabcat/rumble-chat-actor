@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Rumble Chat Bot
+"""Rumble Chat Actor
 
 S.D.G."""
 
 import textwrap
 import time
 from cocorum import RumbleAPI, utils
-from cocorum.ssechat import SSEChatAPI
+from cocorum.ssechat import SSEChat
 import selenium
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
@@ -42,7 +42,7 @@ class ChatCommand():
     """A chat command, internal use only"""
     def __init__(self, name, bot, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, whitelist_badges = ["moderator"], target = None):
         """name: The !name of the command
-    bot: The RumleChatBot host object
+    bot: The RumleChatActor host object
     amount_cents: The minimum cost of the command. Defaults to free
     whitelist_badges: Badges which if borne give the user free-of-charge command access
     target: The function(message, bot) to call on successful command usage. Defaults to self.run"""
@@ -100,8 +100,8 @@ class ExclusiveChatCommand(ChatCommand):
         #Proceed with normal command processing
         super().call(message)
 
-class RumbleChatBot():
-    """Bot that interacts with Rumble chat"""
+class RumbleChatActor():
+    """Actor that interacts with Rumble chat"""
     def __init__(self, stream_id = None, init_message = "Hello, Rumble world!", profile_dir = None, credentials = None, api_url = None):
         """stream_id: The stream ID you want to connect to. Defaults to latest livestream
     init_message: What to say when the bot starts up.
@@ -138,7 +138,7 @@ class RumbleChatBot():
             self.stream_id_b10 = utils.stream_id_36_to_10(self.stream_id)
 
         #Get SSE chat and empty the mailbox
-        self.ssechat = SSEChatAPI(stream_id = self.stream_id)
+        self.ssechat = SSEChat(stream_id = self.stream_id)
         self.ssechat.mailbox = []
 
         #Set browser profile directory of we have one
@@ -187,7 +187,7 @@ class RumbleChatBot():
         while (m := self.ssechat.next_chat_message()).user.username != self.username:
             pass
 
-        assert "moderator" in m.user.badges or "admin" in m.user.badges, "Bot cannot function without being a moderator"
+        assert "moderator" in m.user.badges or "admin" in m.user.badges, "Actor cannot function without being a moderator"
 
         #Functions that are to be called on each message, must return False if the message was deleted
         self.message_actions = []

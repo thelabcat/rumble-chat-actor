@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rumble chat bot common commands
+"""Rumble chat actor common commands
 
 S.D.G."""
 
@@ -48,24 +48,24 @@ class TTSCommand(ChatCommand):
         self.speak(" ".join(segs[1:]))
 
 class LurkCommand(ChatCommand):
-    def __init__(self, bot, name = "lurk", text = "@{username} is now lurking. Enjoy!"):
-        """bot: The Rumble chat bot host
+    def __init__(self, actor, name = "lurk", text = "@{username} is now lurking. Enjoy!"):
+        """actor: The Rumble chat actor host
     name = lurk: the command name
     text: A message to format with a username and post"""
-        super().__init__(name = name, bot = bot)
+        super().__init__(name = name, actor = actor)
         self.text = text
 
     def run(self, message):
         """Run the lurk"""
-        self.bot.send_message(self.text.format(username = message.user.username))
+        self.actor.send_message(self.text.format(username = message.user.username))
 
 class HelpCommand(ChatCommand):
     """List available commands"""
-    def __init__(self, bot, name = "help"):
-        """bot: The Rumble chat bot host
+    def __init__(self, actor, name = "help"):
+        """actor: The Rumble chat actor host
     name = help: the command name"""
-        super().__init__(name = name, bot = bot)
+        super().__init__(name = name, actor = actor)
 
     def run(self, message):
         """Run the help command"""
-        self.bot.send_message("The following commands are registered: " + ", ".join(self.bot.chat_commands))
+        self.actor.send_message("The following commands are registered: " + ", ".join(self.actor.chat_commands))
