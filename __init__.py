@@ -13,7 +13,7 @@ from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
-import common_commands
+from . import common_commands
 
 #How long to wait after performing any browser action, for the webpage to load its response
 BROWSER_ACTION_DELAY = 2
@@ -27,7 +27,7 @@ MAX_MESSAGE_LEN = 200
 #Message split across multiple lines must not be longer than this
 MAX_MULTIMESSAGE_LEN = 1000
 
-#Prefix to all bot messages
+#Prefix to all actor messages
 BOT_MESSAGE_PREFIX = "🤖: "
 
 #How commands always start
@@ -42,15 +42,15 @@ MUTE_LEVELS = {
 
 class ChatCommand():
     """A chat command, internal use only"""
-    def __init__(self, name, bot, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, whitelist_badges = ["moderator"], target = None):
+    def __init__(self, name, actor, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, whitelist_badges = ["moderator"], target = None):
         """name: The !name of the command
-    bot: The RumleChatActor host object
+    actor: The RumleChatActor host object
     amount_cents: The minimum cost of the command. Defaults to free
     whitelist_badges: Badges which if borne give the user free-of-charge command access
-    target: The function(message, bot) to call on successful command usage. Defaults to self.run"""
+    target: The function(message, actor) to call on successful command usage. Defaults to self.run"""
         assert " " not in name, "Name cannot contain spaces"
         self.name = name
-        self.bot = bot
+        self.actor = actor
         assert cooldown >= BROWSER_ACTION_DELAY, f"Cannot set a cooldown shorter than {BROWSER_ACTION_DELAY}"
         self.cooldown = cooldown
         self.amount_cents = amount_cents #Cost of the command
@@ -63,13 +63,13 @@ class ChatCommand():
 
         #The command is still on cooldown
         if (curtime := time.time()) - self.last_use_time < self.cooldown:
-            self.bot.send_message(f"@{message.user.username} That command is still on cooldown. Try again in {int(self.last_use_time + self.cooldown - curtime + 0.5)} seconds.")
+            self.actor.send_message(f"@{message.user.username} That command is still on cooldown. Try again in {int(self.last_use_time + self.cooldown - curtime + 0.5)} seconds.")
 
             return
 
         #the user did not pay enough for the command and they do not have a free pass
         if message.amount_cents < self.amount_cents and not (True in [badge.slug in self.whitelist_badges for badge in message.user.badges]):
-            self.bot.send_message(f"@{message.user.username} That command costs ${self.amount_cents/100:.2f}.")
+            self.actor.send_message(f"@{message.user.username} That command costs ${self.amount_cents/100:.2f}.")
             return
 
         #the command was called successfully
@@ -78,17 +78,22 @@ class ChatCommand():
     def run(self, message):
         """Dummy run method"""
         if self.target:
-            self.target(message, self.bot)
+            self.target(message, self.actor)
             return
 
         #Run method was never defined
-        self.bot.send_message(f"@{message.user.username} Hello, this command never had a target defined. :-)")
+        self.actor.send_message(f"@{message.user.username} Hello, this command never had a target defined. :-)")
 
 class ExclusiveChatCommand(ChatCommand):
     """Chat command that only certain badges can use"""
-    def __init__(self, *args, *kwargs, allowed_badges = ["subscriber"]):
-        """Pass same args as ChatCommand, plus allowed_badges = [slugs]"""
-        super().__init__(*args, **kwargs)
+    def __init__(self, name, actor, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, allowed_badges = ["subscriber"], whitelist_badges = ["moderator"], target = None):
+        """name: The !name of the command
+    actor: The RumleChatActor host object
+    amount_cents: The minimum cost of the command. Defaults to free
+    allowed_badges: Badges which must be borne to use the command at all
+    whitelist_badges: Badges which if borne give the user free-of-charge command access
+    target: The function(message, actor) to call on successful command usage. Defaults to self.run"""
+        super().__init__(name, actor, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, whitelist_badges = ["moderator"], target = None)
         #Admin can always call any command
         self.allowed_badges = ["admin"] + allowed_badges
 
@@ -96,7 +101,7 @@ class ExclusiveChatCommand(ChatCommand):
         """The command was called"""
         #the user does not have the required badge
         if not (True in [badge.slug in self.allowed_badges for badge in message.user.badges]):
-            self.bot.send_message(f"@{message.user.username} That command is exclusive to: " + ", ".join(self.allowed_badges))
+            self.actor.send_message(f"@{message.user.username} That command is exclusive to: " + ", ".join(self.allowed_badges))
             return
 
         #Proceed with normal command processing
@@ -106,7 +111,7 @@ class RumbleChatActor():
     """Actor that interacts with Rumble chat"""
     def __init__(self, stream_id = None, init_message = "Hello, Rumble world!", profile_dir = None, credentials = None, api_url = None):
         """stream_id: The stream ID you want to connect to. Defaults to latest livestream
-    init_message: What to say when the bot starts up.
+    init_message: What to say when the actor starts up.
     profile_dir: The Firefox profile directory to use. Defaults to temp (sign-in not saved)
     credentials: The (username, password) to log in with. Defaults to manual log in"""
 
@@ -180,7 +185,7 @@ class RumbleChatActor():
         else:
             self.username = None
             while not self.username:
-                self.username = input("Enter the username the bot is using: ")
+                self.username = input("Enter the username the actor is using: ")
 
         #Send an initialization message to get wether we are moderator or not
         self.send_message(init_message)
@@ -265,7 +270,7 @@ class RumbleChatActor():
         time.sleep(BROWSER_ACTION_DELAY)
 
         #Confirm the confirmation dialog
-        Alert(self.browser).accept()
+        selenium.Alert(self.browser).accept()
 
     def mute_by_message(self, message, mute_level = "5"):
         """Mute a user by message"""
@@ -327,7 +332,7 @@ class RumbleChatActor():
         elif callable(command):
             assert name, "Name cannot be None if command is a callable"
             assert " " not in name, "Name cannot contain spaces"
-            self.chat_commands[name] = ChatCommand(name = name, bot = self, target = command)
+            self.chat_commands[name] = ChatCommand(name = name, actor = self, target = command)
 
     def register_message_action(self, action):
         """Register an action callable to be run on every message
@@ -346,7 +351,7 @@ class RumbleChatActor():
         self.__run_if_command(message)
 
     def mainloop(self):
-        """Run the bot forever"""
+        """Run the actor forever"""
         while self.keep_running:
             m = self.ssechat.next_chat_message()
             if not m: #Chat has closed

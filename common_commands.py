@@ -4,16 +4,17 @@
 Derivative classes for common chat commands.
 S.D.G."""
 
-from . import ChatCommand, ExclusiveChatCommand
 import talkey
+from . import ChatCommand, ExclusiveChatCommand
 
 class TTSCommand(ChatCommand):
+    """Text-to-speech command"""
     def __init__(self, *args, name = "tts", voices = {}, **kwargs):
         """Pass the same args and kwargs as ChatCommand, plus:
     voices: Dict of voice : say(text) callable"""
         super().__init__(*args, name = name, **kwargs)
         self.voices = voices
-        self.default_voice = talkey.Takley()
+        self.default_voice = talkey.Talkey()
 
     def speak(self, text, voice = None):
         """Speak text with voice"""
