@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Rumble chat actor common commands
 
+Derivative classes for common chat commands.
 S.D.G."""
 
 from . import ChatCommand, ExclusiveChatCommand
