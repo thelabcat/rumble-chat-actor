@@ -75,6 +75,9 @@ class ChatCommand():
         #the command was called successfully
         self.run(message)
 
+        #Mark the last use time for cooldown
+        self.last_use_time = time.time()
+
     def run(self, message):
         """Dummy run method"""
         if self.target:
