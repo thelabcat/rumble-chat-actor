@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rumchat_actor"
-version = "0.1.0"
+version = "1.0.0"
 keywords = ["rumble", "chat", "livestream", "bot"]
 authors = [
   { name="Wilbur Jaywright", email="zargulthewizard@outlook.com" },
@@ -13,14 +13,14 @@ description = "Automatically interact with your Rumble livestream chats."
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
-  "cocorum",
+  "cocorum>=1.0.0",
   "selenium",
   ]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU Affero General Public License v3",
     "Operating System :: OS Independent",
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
 ]
 
 [project.urls]

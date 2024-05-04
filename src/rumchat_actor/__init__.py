@@ -93,7 +93,7 @@ class ExclusiveChatCommand(ChatCommand):
     allowed_badges: Badges which must be borne to use the command at all
     whitelist_badges: Badges which if borne give the user free-of-charge command access
     target: The function(message, actor) to call on successful command usage. Defaults to self.run"""
-        super().__init__(name, actor, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, whitelist_badges = ["moderator"], target = None)
+        super().__init__(name, actor, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, whitelist_badges = ["moderator"], target = target)
         #Admin can always call any command
         self.allowed_badges = ["admin"] + allowed_badges
 
@@ -197,7 +197,7 @@ class RumbleChatActor():
         self.send_message(init_message)
 
         #Wait until we get that message
-        while (m := self.ssechat.next_chat_message()).user.username != self.username:
+        while (m := self.ssechat.get_message()).user.username != self.username:
             pass
 
         assert "moderator" in m.user.badges or "admin" in m.user.badges, "Actor cannot function without being a moderator"
@@ -357,7 +357,7 @@ class RumbleChatActor():
             return
 
         for action in self.message_actions:
-            if not action(message, self): #The message got deleted by an action
+            if message.message_id in self.ssechat.deleted_message_ids or not action(message, self): #The message got deleted, possibly by this action
                 return
 
         self.__run_if_command(message)
@@ -365,7 +365,7 @@ class RumbleChatActor():
     def mainloop(self):
         """Run the actor forever"""
         while self.keep_running:
-            m = self.ssechat.next_chat_message()
+            m = self.ssechat.get_message()
             if not m: #Chat has closed
                 self.keep_running = False
                 return
