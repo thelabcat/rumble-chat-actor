@@ -21,6 +21,12 @@ BROWSER_ACTION_DELAY = 2
 #Popout chat url. Format with stream_id_b10
 CHAT_URL = "https://rumble.com/chat/popup/{stream_id_b10}"
 
+#Rumble user URL. Format with username
+USER_URL = "https://rumble.com/user/{username}"
+
+#Rumble channel URL. Format with channel_name
+CHANNEL_URL = "https://rumble.com/c/{channel_name}"
+
 #Maximum chat message length
 MAX_MESSAGE_LEN = 200
 
@@ -112,11 +118,20 @@ class ExclusiveChatCommand(ChatCommand):
 
 class RumbleChatActor():
     """Actor that interacts with Rumble chat"""
-    def __init__(self, stream_id = None, init_message = "Hello, Rumble world!", profile_dir = None, credentials = None, api_url = None):
+    def __init__(self, stream_id = None, init_message = "Hello, Rumble world!", profile_dir = None, credentials = None, api_url = None, streamer_username = None, streamer_channel = None, is_channel_stream = None):
         """stream_id: The stream ID you want to connect to. Defaults to latest livestream
     init_message: What to say when the actor starts up.
     profile_dir: The Firefox profile directory to use. Defaults to temp (sign-in not saved)
-    credentials: The (username, password) to log in with. Defaults to manual log in"""
+    credentials: The (username, password) to log in with. Defaults to manual log in
+    api_url: The Rumble Live Stream API URL with your key
+    streamer_username: The username of the person streaming
+    streamer_channel: The channel doing the livestream
+    is_channel_stream: If the livestream is on a channel or not"""
+
+        #The info of the person streaming
+        self.__streamer_username = streamer_username
+        self.__streamer_channel = streamer_channel
+        self.__is_channel_stream = is_channel_stream
 
         #Get Live Stream API
         if api_url:
@@ -213,6 +228,55 @@ class RumbleChatActor():
 
         #Loop condition of the mainloop() method
         self.keep_running = True
+
+    @property
+    def streamer_username(self):
+        """The username of the streamer"""
+        if not self.__streamer_username:
+            #We are the ones streaming
+            if self.api_stream:
+                self.__streamer_username = self.rum_api.username
+            else:
+                self.__streamer_username = input("Enter the username of the person streaming: ")
+
+        return self.__streamer_username
+
+    @property
+    def streamer_channel(self):
+        """The channel of the streamer"""
+        #We don't yet have the streamer channel, and this is a channel stream
+        if not self.__streamer_channel and self.is_channel_stream:
+            #We are the ones streaming, and the API URL is under the channel
+            if self.api_stream and self.rum_api.channel_name:
+                self.__streamer_channel = self.rum_api.channel_name
+            #We are not the ones streaming, or the API URL was not under our channel, and we can confirm this is a channel stream
+            else:
+                self.__streamer_channel = input("Enter the channel of the person streaming: ")
+
+        return self.__streamer_channel
+
+    @property
+    def is_channel_stream(self):
+        """Is the stream under a channel?"""
+        #We do not know yet
+        if self.__is_channel_stream == None:
+            #We know that this is a channel stream because it showed up in the channel-specific API
+            if self.api_stream and self.rum_api.channel_name:
+                self.__is_channel_stream = True
+
+            #We will ask the user
+            else:
+                self.__is_channel_stream = "y" in input("Is this a channel stream? y/[N]:")
+
+        return self.__is_channel_stream
+
+    @property
+    def streamer_main_page_url(self):
+        """The URL of the main page of the streamer"""
+        if self.is_channel_stream:
+            return CHANNEL_URL.format(channel_name = self.streamer_channel)
+
+        return USER_URL.format(username = self.streamer_username)
 
     def get_sign_in_button(self):
         """Look for the sign in button"""
