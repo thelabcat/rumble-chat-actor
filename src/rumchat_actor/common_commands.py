@@ -71,3 +71,17 @@ class HelpCommand(ChatCommand):
     def run(self, message):
         """Run the help command"""
         self.actor.send_message("The following commands are registered: " + ", ".join(self.actor.chat_commands))
+
+class KillswitchCommand(ExclusiveChatCommand):
+    """A killswitch for Rumchat Actor if moderators or admin need to shut it down from the chat"""
+        def __init__(self, actor, name = "killswitch", allowed_badges = ["moderator"]):
+            """Pass the Rumchat Actor, the command name, and the badges allowed to use it"""
+            super().__init__(name = name, actor = actor, allowed_badges = allowed_badges)
+
+        def run(self, message):
+            """Shut down Rumchat Actor"""
+            try:
+                self.actor.send_message("Shutting down.")
+                self.actor.quit()
+            finally:
+                quit()
