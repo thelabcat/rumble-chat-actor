@@ -118,7 +118,7 @@ class ExclusiveChatCommand(ChatCommand):
 
 class RumbleChatActor():
     """Actor that interacts with Rumble chat"""
-    def __init__(self, stream_id = None, init_message = "Hello, Rumble world!", profile_dir = None, credentials = None, api_url = None, streamer_username = None, streamer_channel = None, is_channel_stream = None, ignore_users = ["TheRumbleBot"]):
+    def __init__(self, stream_id = None, init_message = "Hello, Rumble world!", profile_dir = None, username = None, password = None, api_url = None, streamer_username = None, streamer_channel = None, is_channel_stream = None, ignore_users = ["TheRumbleBot"]):
         """stream_id: The stream ID you want to connect to. Defaults to latest livestream
     init_message: What to say when the actor starts up.
     profile_dir: The Firefox profile directory to use. Defaults to temp (sign-in not saved)
@@ -182,11 +182,11 @@ class RumbleChatActor():
         #Sign in to chat, unless we are already. While there is a sign-in button...
         while sign_in_buttn := self.get_sign_in_button():
             #We have credentials
-            if credentials:
+            if username and password:
                 sign_in_buttn.click()
                 time.sleep(BROWSER_ACTION_DELAY)
-                self.browser.find_element(By.ID, "login-username").send_keys(credentials[0] + Keys.RETURN)
-                self.browser.find_element(By.ID, "login-password").send_keys(credentials[1] + Keys.RETURN)
+                self.browser.find_element(By.ID, "login-username").send_keys(username + Keys.RETURN)
+                self.browser.find_element(By.ID, "login-password").send_keys(password + Keys.RETURN)
                 break #We only need to do that once
 
             #We do not have credentials, ask for manual sign in
@@ -197,8 +197,8 @@ class RumbleChatActor():
             time.sleep(BROWSER_ACTION_DELAY)
 
         #Find our username
-        if credentials:
-            self.username = credentials[0]
+        if username:
+            self.username = username
         elif self.rum_api:
             self.username = self.rum_api.username
         else:
