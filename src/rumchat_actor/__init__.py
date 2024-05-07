@@ -118,7 +118,7 @@ class ExclusiveChatCommand(ChatCommand):
 
 class RumbleChatActor():
     """Actor that interacts with Rumble chat"""
-    def __init__(self, stream_id = None, init_message = "Hello, Rumble world!", profile_dir = None, credentials = None, api_url = None, streamer_username = None, streamer_channel = None, is_channel_stream = None):
+    def __init__(self, stream_id = None, init_message = "Hello, Rumble world!", profile_dir = None, credentials = None, api_url = None, streamer_username = None, streamer_channel = None, is_channel_stream = None, ignore_users = ["TheRumbleBot"]):
         """stream_id: The stream ID you want to connect to. Defaults to latest livestream
     init_message: What to say when the actor starts up.
     profile_dir: The Firefox profile directory to use. Defaults to temp (sign-in not saved)
@@ -126,7 +126,8 @@ class RumbleChatActor():
     api_url: The Rumble Live Stream API URL with your key
     streamer_username: The username of the person streaming
     streamer_channel: The channel doing the livestream
-    is_channel_stream: If the livestream is on a channel or not"""
+    is_channel_stream: If the livestream is on a channel or not
+    ignore_users: List of usernames, will ignore all their messages, useful if you are using TheRumbleBot"""
 
         #The info of the person streaming
         self.__streamer_username = streamer_username
@@ -205,6 +206,9 @@ class RumbleChatActor():
             while not self.username:
                 self.username = input("Enter the username the actor is using: ")
 
+        #Ignore these users when processing messages
+        self.ignore_users = [self.username] + ignore_users
+
         #Wait for potential further page load?
         time.sleep(BROWSER_ACTION_DELAY)
 
@@ -259,7 +263,7 @@ class RumbleChatActor():
     def is_channel_stream(self):
         """Is the stream under a channel?"""
         #We do not know yet
-        if self.__is_channel_stream == None:
+        if self.__is_channel_stream is None:
             #We know that this is a channel stream because it showed up in the channel-specific API
             if self.api_stream and self.rum_api.channel_name:
                 self.__is_channel_stream = True
@@ -419,8 +423,8 @@ class RumbleChatActor():
 
     def __process_message(self, message):
         """Process a single SSE Chat message"""
-        #Do not do anything with the message if it matches one we sent before
-        if message.text in self.sent_messages:
+        #Ignore messages that are in the ignore_users list (which includes ourself)
+        if message.user.username in self.ignore_users:
             return
 
         for action in self.message_actions:
