@@ -105,7 +105,7 @@ class KillswitchCommand(ExclusiveChatCommand):
 
 class ClipCommand(ChatCommand):
     """Save clips of the livestream (alpha)"""
-    def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, ts_cahce_path = "." + os.sep, clip_save_path = "." + os.sep, browsermob_exe = BROWSERMOB_EXE):
+    def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, ts_cache_path = "." + os.sep, clip_save_path = "." + os.sep, browsermob_exe = BROWSERMOB_EXE):
         """actor: The Rumchat Actor
     name: The name of the command
     default_duration: How long the clip will last with no duration specified
@@ -114,7 +114,7 @@ class ClipCommand(ChatCommand):
         super().__init__(name = name, actor = actor, cooldown = default_duration)
         self.default_duration = default_duration
         self.max_duration = max_duration
-        self.ts_cache_path = ts_cahce_path #Where to cache the TS chunks from the stream
+        self.ts_cache_path = ts_cache_path #Where to cache the TS chunks from the stream
         self.clip_save_path = clip_save_path #Where to save the completed clips
         self.browsermob_exe = browsermob_exe
         self.streamer_main_page_url = self.actor.streamer_main_page_url #Make sure we have this before we try to start recording
@@ -131,7 +131,7 @@ class ClipCommand(ChatCommand):
         """Start and run the recorder system"""
         #Set up the proxy for network capture to find the m3u8 URL
         print("Starting proxy server")
-        proxy_server = Server(BROWSERMOB_EXE)
+        proxy_server = Server(self.browsermob_exe)
         proxy_server.start()
         proxy = proxy_server.create_proxy()
 
@@ -151,7 +151,7 @@ class ClipCommand(ChatCommand):
         #Wait for the stream to go live, and get its URL in the meantime
         browser.get(self.streamer_main_page_url)
         stream_griditem = browser.find_element(By.XPATH, f"//div[@class='videostream thumbnail__grid--item'][@data-video-id='{self.actor.stream_id_b10}']")
-        stream_url = RUMBLE_BASE_URL + "/" + stream_griditem.find_element(By.XPATH, ".//li[@class='videostream__link link']").get_attribute("href")
+        stream_url = RUMBLE_BASE_URL + "/" + stream_griditem.find_element(By.CLASS_NAME, 'videostream__link.link').get_attribute("href")
         print("Waiting for stream to go live before starting clip recorder...")
         while not self.stream_is_live:
             try:
@@ -204,17 +204,22 @@ class ClipCommand(ChatCommand):
             #Get and parse the m3u8 playlist, filtering out TS chunks that we already have / had
             try:
                 m3u8 = requests.get(m3u8_url, timeout = DEFAULT_TIMEOUT).content.decode()
-            except AttributeError:
+            except (AttributeError, requests.exceptions.ReadTimeout):
                 print("Failed to get m3u8 playlist")
                 continue
             ts_list = [line for line in m3u8.splitlines() if (not line.startswith("#")) and line not in self.saved_ts + self.discarded_ts]
+
+            #We just started recording, only download the latest TS
+            if not self.saved_ts + self.discarded_ts:
+                self.discarded_ts = ts_list[:-1]
+                ts_list = ts_list[-1:]
 
             #Save the unsavedTS chunks to disk
             for ts in ts_list:
                 with open(self.ts_cache_path + ts, "wb") as f:
                     try:
                         f.write(requests.get(ts_url_start + ts, timeout = DEFAULT_TIMEOUT).content)
-                    except AttributeError: #The request failed and has no content
+                    except (AttributeError, requests.exceptions.ReadTimeout): #The request failed and has no content
                         print("Failed to save ", ts)
                         continue
                 self.saved_ts.append(ts)
@@ -236,7 +241,7 @@ class ClipCommand(ChatCommand):
             self.actor.send_message(f"@{message.user.username} Not ready for clip saving yet.")
             return
 
-        segs = message.split()
+        segs = message.text.split()
         #Only called clip, no arguments
         if len(segs) == 1:
             self.save_clip(self.default_duration)
@@ -260,7 +265,7 @@ class ClipCommand(ChatCommand):
 
             #The first argument is not a number, treat it as a filename
             else:
-                self.save_clip(self.default_duration, "_".join(segs[2:]))
+                self.save_clip(self.default_duration, "_".join(segs[1:]))
 
     def save_clip(self, duration, filename = None):
         """Save a clip with the given duration to the filename"""
@@ -273,7 +278,7 @@ class ClipCommand(ChatCommand):
 
         #We have enough TS
         else:
-            use_ts = self.saved_ts[- duration // self.ts_duration - 1:]
+            use_ts = self.saved_ts[- int(duration / self.ts_duration + 0.5):]
 
         #No filename specified, construct from time values
         if not filename:
