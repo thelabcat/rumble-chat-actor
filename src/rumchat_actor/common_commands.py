@@ -22,6 +22,7 @@ OP_PATH = __file__[:__file__.rfind(os.sep)] #The path of the script
 BROWSERMOB_EXE = 'browsermob-proxy' #The Browsermob Proxy executable
 WAIT_FOR_LIVE_REFRESH_RATE = 10 #How often to refresh while waiting for a livestream to start
 CLIP_FILENAME_EXTENSION = "mp4" #The filename extension for saved clips
+CLIP_BITRATE = "4.5M" #The bitrate to use when saving clips
 
 class TTSCommand(ChatCommand):
     """Text-to-speech command"""
@@ -292,7 +293,7 @@ class ClipCommand(ChatCommand):
         clip = concatenate_videoclips(chunks)
 
         #Save
-        clip.write_videofile(self.clip_save_path + filename + "." + CLIP_FILENAME_EXTENSION)
+        clip.write_videofile(self.clip_save_path + filename + "." + CLIP_FILENAME_EXTENSION, bitrate = CLIP_BITRATE)
 
         self.do_deletion = True #Resume TS deletion
 
