@@ -207,7 +207,7 @@ class RumbleChatActor():
                 self.username = input("Enter the username the actor is using: ")
 
         #Ignore these users when processing messages
-        self.ignore_users = [self.username] + ignore_users
+        self.ignore_users = ignore_users
 
         #Wait for potential further page load?
         time.sleep(BROWSER_ACTION_DELAY)
@@ -423,7 +423,11 @@ class RumbleChatActor():
 
     def __process_message(self, message):
         """Process a single SSE Chat message"""
-        #Ignore messages that are in the ignore_users list (which includes ourself)
+        #Ignore messages that match ones we sent before
+        if message.text in self.sent_messages:
+            return
+
+        #Ignore messages that are in the ignore_users list
         if message.user.username in self.ignore_users:
             return
 
