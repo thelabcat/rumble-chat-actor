@@ -48,10 +48,12 @@ MUTE_LEVELS = {
 
 class ChatCommand():
     """A chat command, internal use only"""
-    def __init__(self, name, actor, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, whitelist_badges = ["moderator"], target = None):
+    def __init__(self, name, actor, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, exclusive = False, allowed_badges = ["subscriber"], whitelist_badges = ["moderator"], target = None):
         """name: The !name of the command
     actor: The RumleChatActor host object
     amount_cents: The minimum cost of the command. Defaults to free
+    exclusive: If this command can only be run by users with allowed badges. Defaults to False
+    allowed_badges: Badges that are allowed to run this command (if it is exclusive). Defaults to subscribers, admin is added internally.
     whitelist_badges: Badges which if borne give the user free-of-charge command access
     target: The function(message, actor) to call on successful command usage. Defaults to self.run"""
         assert " " not in name, "Name cannot contain spaces"
@@ -60,12 +62,18 @@ class ChatCommand():
         assert cooldown >= BROWSER_ACTION_DELAY, f"Cannot set a cooldown shorter than {BROWSER_ACTION_DELAY}"
         self.cooldown = cooldown
         self.amount_cents = amount_cents #Cost of the command
+        self.exclusive = exclusive
+        self.allowed_badges = ["admin"] + allowed_badges #Admin can always run any command
         self.whitelist_badges = ["admin"] + whitelist_badges #Admin always has free-of-charge usage
         self.last_use_time = 0 #Last time the command was called
         self.target = target
 
     def call(self, message):
         """The command was called"""
+        #this command is exclusive, and the user does not have the required badge
+        if self.exclusive and not (True in [badge.slug in self.allowed_badges for badge in message.user.badges]):
+            self.actor.send_message(f"@{message.user.username} That command is exclusive to: " + ", ".join(self.allowed_badges))
+            return
 
         #The command is still on cooldown
         if (curtime := time.time()) - self.last_use_time < self.cooldown:
@@ -92,29 +100,6 @@ class ChatCommand():
 
         #Run method was never defined
         self.actor.send_message(f"@{message.user.username} Hello, this command never had a target defined. :-)")
-
-class ExclusiveChatCommand(ChatCommand):
-    """Chat command that only certain badges can use"""
-    def __init__(self, name, actor, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, allowed_badges = ["subscriber"], whitelist_badges = ["moderator"], target = None):
-        """name: The !name of the command
-    actor: The RumleChatActor host object
-    amount_cents: The minimum cost of the command. Defaults to free
-    allowed_badges: Badges which must be borne to use the command at all
-    whitelist_badges: Badges which if borne give the user free-of-charge command access
-    target: The function(message, actor) to call on successful command usage. Defaults to self.run"""
-        super().__init__(name, actor, cooldown = BROWSER_ACTION_DELAY, amount_cents = 0, whitelist_badges = ["moderator"], target = target)
-        #Admin can always call any command
-        self.allowed_badges = ["admin"] + allowed_badges
-
-    def call(self, message):
-        """The command was called"""
-        #the user does not have the required badge
-        if not (True in [badge.slug in self.allowed_badges for badge in message.user.badges]):
-            self.actor.send_message(f"@{message.user.username} That command is exclusive to: " + ", ".join(self.allowed_badges))
-            return
-
-        #Proceed with normal command processing
-        super().call(message)
 
 class RumbleChatActor():
     """Actor that interacts with Rumble chat"""

@@ -17,7 +17,7 @@ import selenium
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import talkey
-from . import ChatCommand, ExclusiveChatCommand
+from . import ChatCommand
 
 OP_PATH = __file__[:__file__.rfind(os.sep)] #The path of the script
 BROWSERMOB_EXE = 'browsermob-proxy' #The Browsermob Proxy executable
@@ -94,11 +94,11 @@ class HelpCommand(ChatCommand):
         """Run the help command"""
         self.actor.send_message("The following commands are registered: " + ", ".join(self.actor.chat_commands))
 
-class KillswitchCommand(ExclusiveChatCommand):
+class KillswitchCommand(ChatCommand):
     """A killswitch for Rumchat Actor if moderators or admin need to shut it down from the chat"""
     def __init__(self, actor, name = "killswitch", allowed_badges = ["moderator"]):
         """Pass the Rumchat Actor, the command name, and the badges allowed to use it"""
-        super().__init__(name = name, actor = actor, allowed_badges = allowed_badges)
+        super().__init__(name = name, actor = actor, exclusive = True, allowed_badges = allowed_badges)
 
     def run(self, message):
         """Shut down Rumchat Actor"""
