@@ -194,7 +194,7 @@ class RumbleChatActor():
             if username and password:
                 sign_in_buttn.click()
                 WebDriverWait(self.browser, BROWSER_WAIT_TIMEOUT).until(
-                    EC.visibility_of_element_located(By.ID, "login-username"),
+                    EC.visibility_of_element_located((By.ID, "login-username")),
                     "Timed out waiting for sign-in dialouge"
                     )
 
@@ -208,14 +208,10 @@ class RumbleChatActor():
 
         #Wait for signed in loading to complete
         WebDriverWait(self.browser, BROWSER_WAIT_TIMEOUT).until(
-            EC.invisibility_of_element(uname_field),
-            "Timeout waiting for username field to disappear"
+            EC.element_to_be_clickable((By.ID, "chat-message-text-input")),
+            "Timed out waiting for chat message field to become usable"
             )
 
-        WebDriverWait(self.browser, BROWSER_WAIT_TIMEOUT).until(
-            EC.visibility_of_element_located(By.ID, "chat-message-text-input"),
-            "Timed out waiting for chat message field to appear"
-            )
 
         #Find our username
         if username:
