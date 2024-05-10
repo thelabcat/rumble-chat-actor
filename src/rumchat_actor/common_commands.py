@@ -109,7 +109,7 @@ class KillswitchCommand(ExclusiveChatCommand):
             sys.exit()
 
 class ClipCommand(ChatCommand):
-    """Save clips of the livestream (alpha)"""
+    """Save clips of the livestream"""
     def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, clip_save_path = "." + os.sep, browsermob_exe = BROWSERMOB_EXE):
         """actor: The Rumchat Actor
     name: The name of the command
@@ -124,7 +124,7 @@ class ClipCommand(ChatCommand):
         self.ready_to_clip = False
         self.streamer_main_page_url = self.actor.streamer_main_page_url #Make sure we have this before we try to start recording
         self.stream_is_live = False #Wether or not the stream is live, we find this later
-        self.do_deletion = True #Wether or not to delete TS that are old, use to pause deletion while assembling clips
+        self.running_clipsaves = 0 #How many clip save operations are running
         self.unavailable_qualities = [] #Stream qualities that are not available (cause a 404)
         self.average_ts_download_times = {} #The average time it takes to download a TS chunk of a given stream quality
         self.ts_durations = {} #The duration of a TS chunk of a given stream quality
@@ -228,7 +228,7 @@ class ClipCommand(ChatCommand):
 
         if self.is_dvr:
             self.use_quality = [q for q in STREAM_QUALITIES if q not in self.unavailable_qualities][-1]
-            print("Not using TS cache for clips since stream is DVR")
+            print("Not using TS cache for clips since stream is DVR. Ready to clip.")
             self.run_recorder = False
             self.ready_to_clip = True
             return
@@ -273,7 +273,7 @@ class ClipCommand(ChatCommand):
                 self.saved_ts[ts_name] = f
 
             #We should be deleting old clips, and we have more than enough to fill the max duration
-            while self.do_deletion and (len(self.saved_ts) - 1) * self.ts_durations[self.use_quality] > self.max_duration:
+            while not self.running_clipsaves and (len(self.saved_ts) - 1) * self.ts_durations[self.use_quality] > self.max_duration:
                 oldest_ts = list(self.saved_ts.keys())[0]
                 self.saved_ts[oldest_ts].close() #close the tempfile
                 del self.saved_ts[oldest_ts]
@@ -332,7 +332,7 @@ class ClipCommand(ChatCommand):
             ts.close()
 
             #Calculate average download time
-            self.average_ts_download_times[quality] = (download_times) / len(download_times)
+            self.average_ts_download_times[quality] = sum(download_times) / len(download_times)
 
     def run(self, message):
         """Make a clip"""
@@ -369,7 +369,7 @@ class ClipCommand(ChatCommand):
 
     def save_clip(self, duration, filename = None):
         """Save a clip with the given duration to the filename"""
-        self.do_deletion = False #Pause TS deletion
+        self.running_clipsaves += 1
 
         #This is a DVR stream
         if self.is_dvr:
@@ -393,8 +393,15 @@ class ClipCommand(ChatCommand):
             t = time.time()
             filename = f"{round(t - self.ts_durations[self.use_quality] * len(use_ts))}-{round(t)}"
 
+        self.actor.send_message(f"Saving clip {filename}, duration of {round(self.ts_durations[self.use_quality] * len(use_ts))} seconds.")
+        saveclip_thread = threading.Thread(target = self.form_ts_into_clip, args = (filename, use_ts), daemon = True)
+        saveclip_thread.start()
+
+    def form_ts_into_clip(self, filename, use_ts):
+        """Do the actual TS [down]loading and processing, and save the video clip"""
         #Download the TS chunks if this is a DVR stream
         if self.is_dvr:
+            print("Downloading TS for clip")
             tempfiles = []
             for ts_name in use_ts:
                 try:
@@ -420,13 +427,16 @@ class ClipCommand(ChatCommand):
         clip = concatenate_videoclips(chunks)
 
         #Save
-        clip.write_videofile(self.clip_save_path + filename + "." + CLIP_FILENAME_EXTENSION, bitrate = STREAM_QUALITIES[self.use_quality])
+        print("Saving clip")
+        clip.write_videofile(self.clip_save_path + filename + "." + CLIP_FILENAME_EXTENSION, bitrate = STREAM_QUALITIES[self.use_quality], logger = None)
 
-        self.do_deletion = True #Resume TS deletion
+        self.running_clipsaves -= 1
+        if self.running_clipsaves < 0:
+            print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
+            self.running_clipsaves = 0
 
         #We are responsible for DVR tempfile closing
         if self.is_dvr:
             for tf in tempfiles:
                 tf.close()
-
-        self.actor.send_message(f"Clip {filename} saved, duration of {round(self.ts_durations[self.use_quality] * len(use_ts))} seconds.")
+        print("Complete")
