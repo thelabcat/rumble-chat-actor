@@ -6,6 +6,7 @@ S.D.G."""
 
 import textwrap
 import time
+import threading
 from cocorum import RumbleAPI, utils
 from cocorum.ssechat import SSEChat
 import selenium
@@ -17,6 +18,9 @@ from selenium.webdriver.common.keys import Keys
 
 #How long to wait after performing any browser action, for the webpage to load its response
 BROWSER_ACTION_DELAY = 2
+
+#How long to wait between sending messages
+SEND_MESSAGE_COOLDOWN = 3
 
 #Popout chat url. Format with stream_id_b10
 CHAT_URL = "https://rumble.com/chat/popup/{stream_id_b10}"
@@ -200,6 +204,19 @@ class RumbleChatActor():
         #History of the bot's messages so they do not get loop processed
         self.sent_messages = []
 
+        #Messages waiting to be sent
+        self.outbox = []
+
+        #Time that the last message we sent was sent
+        self.last_message_send_time = 0
+
+        #Loop condition of the mainloop() and sender_loop() methods
+        self.keep_running = True
+
+        #thread to send messages at timed intervals
+        self.sender_thread = threading.Thread(target = self._sender_loop, daemon = True)
+        self.sender_thread.start()
+
         #Send an initialization message to get wether we are moderator or not
         self.send_message(init_message)
 
@@ -214,9 +231,6 @@ class RumbleChatActor():
 
         #Instances of RumbleChatCommand, by name
         self.chat_commands = {}
-
-        #Loop condition of the mainloop() method
-        self.keep_running = True
 
     @property
     def streamer_username(self):
@@ -281,14 +295,22 @@ class RumbleChatActor():
         assert "\n" not in text, "Message cannot contain newlines"
         assert len(text) < MAX_MULTIMESSAGE_LEN, "Message is too long"
         for subtext in textwrap.wrap(text, width = MAX_MESSAGE_LEN):
-            self.__send_message(subtext)
+            self.outbox.append(subtext)
+
+    def _sender_loop(self):
+        """Constantly check our outbox and send any messages in it"""
+        while self.keep_running:
+            #We have messages to send and it is time to send one
+            if self.outbox and time.time() - self.last_message_send_time > SEND_MESSAGE_COOLDOWN:
+                self.__send_message(self.outbox.pop(0))
+            time.sleep(0.1)
 
     def __send_message(self, text):
         """Send a message in chat"""
         assert len(text) < MAX_MESSAGE_LEN, f"Message with prefix cannot be longer than {MAX_MESSAGE_LEN} characters"
         self.sent_messages.append(text)
+        self.last_message_send_time = time.time()
         self.browser.find_element(By.ID, "chat-message-text-input").send_keys(text + Keys.RETURN)
-        time.sleep(BROWSER_ACTION_DELAY)
 
     def hover_element(self, element):
         """Hover over a selenium element"""
@@ -411,6 +433,10 @@ class RumbleChatActor():
         #Ignore messages that match ones we sent before
         if message.text in self.sent_messages:
             return
+
+        #If the message is from the same account as us, reset our message cooldown from the message send time if it is newer
+        if message.user.username == self.username:
+            self.last_message_send_time = max((self.last_message_send_time, message.time))
 
         #Ignore messages that are in the ignore_users list
         if message.user.username in self.ignore_users:
