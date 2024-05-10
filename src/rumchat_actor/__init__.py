@@ -159,7 +159,7 @@ class RumbleChatActor():
 
             #It is our livestream, we can use the Live Stream API
             else:
-                self.api_stream = self.rum_api.livestreams[stream_id]
+                self.api_stream = self.rum_api.livestreams[self.stream_id]
 
         #A stream ID was not passed
         else:

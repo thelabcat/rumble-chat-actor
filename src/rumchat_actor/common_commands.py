@@ -167,7 +167,11 @@ class ClipCommand(ChatCommand):
 
         #Wait for the stream to go live, and get its URL in the meantime
         browser.get(self.streamer_main_page_url)
-        stream_griditem = browser.find_element(By.XPATH, f"//div[@class='videostream thumbnail__grid--item'][@data-video-id='{self.actor.stream_id_b10}']")
+        stream_griditem = browser.find_element(By.XPATH,
+                                                "//div[@class='videostream thumbnail__grid--item']" +
+                                                f"[@data-video-id='{self.actor.stream_id_b10}']"
+                                                )
+
         stream_url = RUMBLE_BASE_URL + "/" + stream_griditem.find_element(By.CLASS_NAME, 'videostream__link.link').get_attribute("href")
         print("Waiting for stream to go live before starting clip recorder...")
         while not self.stream_is_live:
@@ -181,14 +185,18 @@ class ClipCommand(ChatCommand):
 
                 #Stream is not upcoming either
                 except selenium.common.exceptions.NoSuchElementException:
-                    print("Stream is not live or upcoming")
-                    browser.quit()
-                    proxy_server.stop()
-                    return
+                    print("Stream is not live or upcoming...? See rumble-chat-actor issue #5")
+                    # browser.quit()
+                    # proxy_server.stop()
+                    # return
 
                 #Stream is still upcoming
                 time.sleep(WAIT_FOR_LIVE_REFRESH_RATE)
                 browser.refresh()
+                stream_griditem = browser.find_element(By.XPATH,
+                                                        "//div[@class='videostream thumbnail__grid--item']" +
+                                                        f"[@data-video-id='{self.actor.stream_id_b10}']"
+                                                        )
 
             #Stream is live
             else:
