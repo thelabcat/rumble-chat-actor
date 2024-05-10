@@ -387,6 +387,7 @@ class RumbleChatActor():
 
     def quit(self):
         """Shut down everything"""
+        self.keep_running = False
         self.browser.quit()
         # TODO how to close an SSEClient?
         # self.ssechat.client.close()
