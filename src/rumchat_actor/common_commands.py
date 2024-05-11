@@ -30,21 +30,23 @@ TS_DOWNLOAD_SPEEDFACTOR_REQUIREMENT = 2 #TS chunks must be able to download this
 
 class TTSCommand(ChatCommand):
     """Text-to-speech command"""
-    def __init__(self, *args, name = "tts", voices = {}, **kwargs):
+    def __init__(self, *args, name = "tts", voices = {"default" : talkey.Talkey().say}, **kwargs):
         """Pass the same args and kwargs as ChatCommand, plus:
     voices: Dict of voice : say(text) callable"""
         super().__init__(*args, name = name, **kwargs)
         self.voices = voices
-        self.default_voice = talkey.Talkey()
+
+        #Get the default voice
+        self.default_voice = voices["default"]
 
     def speak(self, text, voice = None):
         """Speak text with voice"""
         if not voice:
-            self.default_voice.say(text)
+            self.default_voice(text)
 
         #Voice was not actually in our list of voices
         elif voice not in self.voices:
-            self.default_voice.say(voice + " " + text)
+            self.default_voice(voice + " " + text)
 
         else:
             self.voices[voice](text)
