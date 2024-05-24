@@ -538,9 +538,14 @@ class RumbleChatActor():
 
     def mainloop(self):
         """Run the actor forever"""
-        while self.keep_running:
-            m = self.ssechat.get_message()
-            if not m: #Chat has closed
-                self.keep_running = False
-                return
-            self.__process_message(m)
+        try:
+            while self.keep_running:
+                m = self.ssechat.get_message()
+                if not m: #Chat has closed
+                    self.keep_running = False
+                    return
+                self.__process_message(m)
+
+        except KeyboardInterrupt:
+            print("KeyboardInterrupt shutdown.")
+            self.quit()
