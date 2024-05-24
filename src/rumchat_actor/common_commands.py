@@ -108,6 +108,7 @@ class KillswitchCommand(ChatCommand):
             self.actor.send_message("Shutting down.")
             self.actor.quit()
         finally:
+            print("Killswitch thrown.")
             sys.exit()
 
 class ClipCommand(ChatCommand):
