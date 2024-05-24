@@ -126,31 +126,44 @@ class ChatCommand():
 
 class RumbleChatActor():
     """Actor that interacts with Rumble chat"""
-    def __init__(self, stream_id = None, init_message = "Hello, Rumble world!", profile_dir = None, username = None, password = None, api_url = None, streamer_username = None, streamer_channel = None, is_channel_stream = None, ignore_users = ["TheRumbleBot"]):
+    def __init__(self, init_message = "Hello, Rumble!", ignore_users = ["TheRumbleBot"], **kwargs):
         """stream_id: The stream ID you want to connect to. Defaults to latest livestream
     init_message: What to say when the actor starts up.
     profile_dir: The Firefox profile directory to use. Defaults to temp (sign-in not saved)
     credentials: The (username, password) to log in with. Defaults to manual log in
-    api_url: The Rumble Live Stream API URL with your key
-    streamer_username: The username of the person streaming
-    streamer_channel: The channel doing the livestream
-    is_channel_stream: If the livestream is on a channel or not
-    ignore_users: List of usernames, will ignore all their messages"""
+    api_url: The Rumble Live Stream API URL with your key (or RumBot's passthrough).
+        Defaults to no Live Stream API access
+    streamer_username: The username of the person streaming.
+        Defaults to Live Stream API username or manually requested if needed
+    streamer_channel: The channel doing the livestream, if it is being streamed on a channel.
+        Defaults to Live Stream API channel or manually requested if needed
+    is_channel_stream: Bool, if the livestream is on a channel or not
+    ignore_users: List of usernames, will ignore all their messages
+    invalid_command_respond: Bool, sets if we should post an error message if a command was invalid.
+        Defaults to False."""
 
         #The info of the person streaming
-        self.__streamer_username = streamer_username
-        self.__streamer_channel = streamer_channel
-        self.__is_channel_stream = is_channel_stream
+        self.__streamer_username = kwargs["streamer_username"] if "streamer_username" in kwargs else None
+        assert isinstance(self.__streamer_username, str) or self.__streamer_username is None, \
+            f"Streamer username must be str or None, not {type(self.__streamer_username)}"
+
+        self.__streamer_channel = kwargs["streamer_channel"] if "streamer_channel" in kwargs else None
+        assert isinstance(self.__streamer_channel, str) or self.__streamer_channel is None, \
+            f"Streamer channel name must be str or None, not {type(self.__streamer_channel)}"
+
+        self.__is_channel_stream = kwargs["is_channel_stream"] if "is_channel_stream" in kwargs else None
+        assert isinstance(self.__is_channel_stream, bool) or self.__is_channel_stream is None, \
+            f"Argument is_channel_stream must be bool or None, not {type(self.__is_channel_stream)}"
 
         #Get Live Stream API
-        if api_url:
-            self.rum_api = RumbleAPI(api_url)
+        if "api_url" in kwargs:
+            self.rum_api = RumbleAPI(kwargs["api_url"])
         else:
             self.rum_api = None
 
         #A stream ID was passed
-        if stream_id:
-            self.stream_id, self.stream_id_b10 = utils.stream_id_36_and_10(stream_id)
+        if "stream_id" in kwargs:
+            self.stream_id, self.stream_id_b10 = utils.stream_id_36_and_10(kwargs["stream_id"])
 
             #It is not our livestream or we have no Live Stream API,
             #so LS API functions are not available
@@ -178,9 +191,9 @@ class RumbleChatActor():
 
         #Set browser profile directory if we have one
         options = webdriver.FirefoxOptions()
-        if profile_dir:
+        if "profile_dir" in kwargs:
             options.add_argument("-profile")
-            options.add_argument(profile_dir)
+            options.add_argument(kwargs["profile_dir"])
 
         #Get browser
         self.browser = webdriver.Firefox(options = options)
@@ -191,7 +204,7 @@ class RumbleChatActor():
         #Sign in to chat, unless we are already. While there is a sign-in button...
         while sign_in_buttn := self.get_sign_in_button():
             #We have credentials
-            if username and password:
+            if "username" in kwargs and "password" in kwargs:
                 sign_in_buttn.click()
                 WebDriverWait(self.browser, BROWSER_WAIT_TIMEOUT).until(
                     EC.visibility_of_element_located((By.ID, "login-username")),
@@ -199,8 +212,8 @@ class RumbleChatActor():
                     )
 
                 uname_field = self.browser.find_element(By.ID, "login-username")
-                uname_field.send_keys(username + Keys.RETURN)
-                self.browser.find_element(By.ID, "login-password").send_keys(password + Keys.RETURN)
+                uname_field.send_keys(kwargs["username"] + Keys.RETURN)
+                self.browser.find_element(By.ID, "login-password").send_keys(kwargs["password"] + Keys.RETURN)
 
             #We do not have credentials, ask for manual sign in
             self.browser.maximize_window()
@@ -214,8 +227,8 @@ class RumbleChatActor():
 
 
         #Find our username
-        if username:
-            self.username = username
+        if "username" in kwargs:
+            self.username = kwargs["username"]
         elif self.rum_api:
             self.username = self.rum_api.username
         else:
@@ -258,6 +271,11 @@ class RumbleChatActor():
 
         #Instances of RumbleChatCommand, by name
         self.chat_commands = {}
+
+        #Wether or not to post an error message if an invalid command was called
+        self.invalid_command_respond = kwargs["invalid_command_respond"] if "invalid_command_respond" in kwargs else False
+        assert isinstance(self.invalid_command_respond, bool), \
+            f"Argument invalid_command_respond must be bool, not {type(self.invalid_command_respond)}"
 
     @property
     def streamer_username(self):
@@ -466,7 +484,7 @@ class RumbleChatActor():
         name = message.text.split()[0].removeprefix(COMMAND_PREFIX)
 
         #Is not a valid command
-        if name not in self.chat_commands:
+        if name not in self.chat_commands and self.invalid_command_respond:
             self.send_message(f"@{message.user.username} That is not a registered command.")
             return
 
@@ -485,6 +503,9 @@ class RumbleChatActor():
             assert name, "Name cannot be None if command is a callable"
             assert " " not in name, "Name cannot contain spaces"
             self.chat_commands[name] = ChatCommand(name = name, actor = self, target = command)
+
+        else:
+            raise TypeError(f"Command must be of type ChatCommand or a callable, not {type(command)}.")
 
     def register_message_action(self, action):
         """Register an action callable to be run on every message
