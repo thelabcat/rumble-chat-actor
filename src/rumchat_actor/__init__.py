@@ -176,7 +176,7 @@ class RumbleChatActor():
         self.ssechat = SSEChat(stream_id = self.stream_id)
         self.ssechat.clear_mailbox()
 
-        #Set browser profile directory of we have one
+        #Set browser profile directory if we have one
         options = webdriver.FirefoxOptions()
         if profile_dir:
             options.add_argument("-profile")
@@ -307,7 +307,7 @@ class RumbleChatActor():
     def streamer_main_page_url(self):
         """The URL of the main page of the streamer"""
         if self.is_channel_stream:
-            return CHANNEL_URL.format(channel_name = self.streamer_channel)
+            return CHANNEL_URL.format(channel_name = self.streamer_channel.replace(" ", ""))
 
         return USER_URL.format(username = self.streamer_username)
 
