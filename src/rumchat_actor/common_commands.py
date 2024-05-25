@@ -13,7 +13,7 @@ from cocorum.localvars import RUMBLE_BASE_URL, DEFAULT_TIMEOUT
 from browsermobproxy import Server
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 import requests
-import selenium
+# import selenium
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import talkey
@@ -178,32 +178,34 @@ class ClipCommand(ChatCommand):
         stream_url = RUMBLE_BASE_URL + "/" + stream_griditem.find_element(By.CLASS_NAME, 'videostream__link.link').get_attribute("href")
         print("Waiting for stream to go live before starting clip recorder...")
         while not self.stream_is_live:
-            try:
-                stream_griditem.find_element(By.CLASS_NAME, "videostream__badge.videostream__status.videostream__status--live")
+            self.stream_is_live = bool(stream_griditem.find_elements(By.CLASS_NAME, "videostream__badge.videostream__status.videostream__status--live"))
 
-            #Stream is not live yet
-            except selenium.common.exceptions.NoSuchElementException:
-                try:
-                    stream_griditem.find_element(By.CLASS_NAME, "videostream__badge.videostream__status.videostream__status--upcoming")
+            #Stream is now live, stop the loop by going back to the top to re-evaluate
+            if self.stream_is_live:
+                continue
 
-                #Stream is not upcoming either
-                except selenium.common.exceptions.NoSuchElementException:
-                    print("Stream is not live or upcoming...? See rumble-chat-actor issue #5")
-                    # browser.quit()
-                    # proxy_server.stop()
-                    # return
+            #Stream is upcoming
+            if stream_griditem.find_elements(By.CLASS_NAME, "videostream__badge.videostream__status.videostream__status--upcoming"):
+                # print("Stream is still upcoming.")
+                pass
 
-                #Stream is still upcoming
-                time.sleep(WAIT_FOR_LIVE_REFRESH_RATE)
-                browser.refresh()
-                stream_griditem = browser.find_element(By.XPATH,
-                                                        "//div[@class='videostream thumbnail__grid--item']" +
-                                                        f"[@data-video-id='{self.actor.stream_id_b10}']"
-                                                        )
+            #Stream is showing as DVR
+            elif stream_griditem.find_elements(By.CLASS_NAME, "videostream__badge.videostream__status.videostream__status--dvr"):
+                print("Stream is showing as DVR, but may be starting. See RumChat-Actor issue #5.")
 
-            #Stream is live
+            #Stream is not live or upcoming
             else:
-                self.stream_is_live = True
+                print("Stream is not live or upcoming! Critical error.")
+                self.actor.quit()
+                return
+
+            #Stream is still upcoming
+            time.sleep(WAIT_FOR_LIVE_REFRESH_RATE)
+            browser.refresh()
+            stream_griditem = browser.find_element(By.XPATH,
+                                                    "//div[@class='videostream thumbnail__grid--item']" +
+                                                    f"[@data-video-id='{self.actor.stream_id_b10}']"
+                                                        )
 
         #Watch the network traffic for the m3u8 URL
         print("Starting traffic recorder")
