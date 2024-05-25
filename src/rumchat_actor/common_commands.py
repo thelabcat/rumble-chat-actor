@@ -5,10 +5,12 @@ Derivative classes for common chat commands.
 S.D.G."""
 
 import os
+import shutil
 import sys
 import tempfile
 import time
 import threading
+from tkinter import filedialog, Tk
 from cocorum.localvars import RUMBLE_BASE_URL, DEFAULT_TIMEOUT
 from browsermobproxy import Server
 from moviepy.editor import VideoFileClip, concatenate_videoclips
@@ -25,6 +27,9 @@ WAIT_FOR_LIVE_REFRESH_RATE = 10 #How often to refresh while waiting for a livest
 CLIP_FILENAME_EXTENSION = "mp4" #The filename extension for saved clips
 CLIP_BITRATE = "4.5M" #The bitrate to use when saving clips. Deprecating
 STREAM_QUALITIES = {"360p" : "1.2M", "720p" : "2.8M", "1080p" : "4.5M"} #Valid resolutions of a livestream and the bitrates they use / should be saved with
+DEFAULT_CLIP_BITRATE = STREAM_QUALITIES["1080p"] #The default save quality for clips from a local recording
+VALID_CLIP_RECORDING_CONTAINERS = ("ts") #Formats that the OBS recording can be in if recording-trimmed clips are to work
+TEMP_RECORDING_COPY_FILENAME = ".temp_recording_copy"
 NUM_TS_DOWNLOAD_TIME_CHECKS = 5 #How many times to test a TS chunk download to get its average download time
 TS_DOWNLOAD_SPEEDFACTOR_REQUIREMENT = 2 #TS chunks must be able to download this many times faster than their duration to be usable in a cache. Cannot be less than 1
 
@@ -118,6 +123,7 @@ class ClipDownloaderCommand(ChatCommand):
     name: The name of the command
     default_duration: How long the clip will last with no duration specified
     max_duration: How long the clip can possibly be (i.e. how much of the livestream to save)
+    clip_save_path: Where to save clips to when they are made
     browsermob_exe: The path to the Browsermob Proxy executable"""
         super().__init__(name = name, actor = actor, cooldown = default_duration)
         self.default_duration = default_duration
@@ -453,3 +459,103 @@ class ClipDownloaderCommand(ChatCommand):
             for tf in tempfiles:
                 tf.close()
         print("Complete")
+
+class ClipRecordingCommand(ChatCommand):
+    """Save clips of the livestream by duplicating then trimming an in-progress TS recording by OBS"""
+    def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, recording_load_path = ".", clip_save_path = "." + os.sep):
+        """actor: The Rumchat Actor
+    name: The name of the command
+    default_duration: How long the clip will last with no duration specified
+    max_duration: How long the clip can possibly be
+    recording_load_path: Where recordings from OBS are stored, used for filedialog init
+    clip_save_path: Where to save clips to when they are made"""
+        super().__init__(name = name, actor = actor, cooldown = default_duration)
+        self.default_duration = default_duration
+        self.max_duration = max_duration
+        self.recording_load_path = recording_load_path
+        self.clip_save_path = clip_save_path #Where to save the completed clips
+        self.__recording_filename = None #The filename of the running OBS recording, asked later
+        print(self.recording_filename) #...now is later
+
+    @property
+    def recording_filename(self):
+        """The filename of the running OBS recording"""
+        #We do not know the filename yet
+        while not self.__recording_filename:
+            #Make and hide a background Tk window to allow filedialogs to appear
+            root = Tk()
+            root.withdraw()
+
+            #Ask for the OBS recording in progress
+            self.__recording_filename = filedialog.askopenfilename(
+                title = "Select OBS recording in progress",
+                initialdir = self.recording_load_path,
+                filetypes=(("Freezable video files", ";".join("*." + container for container in VALID_CLIP_RECORDING_CONTAINERS)),
+                                       ("All files", "*.*") ),
+                )
+
+            #Destroy the background window
+            root.destroy()
+
+        return self.__recording_filename
+
+    @property
+    def recording_container(self):
+        """The container format of the recording"""
+        return self.recording_filename.split(".")[-1]
+
+    @property
+    def recording_copy_fn(self):
+        """The filename of the temporary recording copy"""
+        return TEMP_RECORDING_COPY_FILENAME + "." + self.recording_container
+
+    def run(self, message):
+        """Make a clip. TODO mostly identical to ClipDownloaderCommand().run()"""
+        segs = message.text.split()
+        #Only called clip, no arguments
+        if len(segs) == 1:
+            self.save_clip(self.default_duration)
+
+        #Arguments were passed
+        else:
+            #The first argument is a number
+            if segs[1].isnumeric():
+                #Invalid length passed
+                if not 0 < int(segs[1]) <= self.max_duration:
+                    self.actor.send_message(f"@{message.user.username} Invalid clip length.")
+                    return
+
+                #Only length was specified
+                if len(segs) == 2:
+                    self.save_clip(int(segs[1]))
+
+                #A name was also specified
+                else:
+                    self.save_clip(int(segs[1]), "_".join(segs[2:]))
+
+            #The first argument is not a number, treat it as a filename
+            else:
+                self.save_clip(self.default_duration, "_".join(segs[1:]))
+
+    def save_clip(self, duration, filename = None):
+        """Save a clip with the given duration to the filename"""
+        #No filename specified, construct from time values
+        if not filename:
+            t = time.time()
+            filename = f"{round(t - duration)}-{round(t)}"
+
+        #Report clip save
+        self.actor.send_message(f"Saving clip {filename}, duration of {duration} seconds.")
+
+        print("Making frozen copy of recording")
+        shutil.copy(self.recording_filename, self.recording_copy_fn)
+        print("Loading copy")
+        recording = VideoFileClip(self.recording_copy_fn)
+        print("Trimming")
+        clip = recording.subclip(max((recording.duration - duration, 0)), recording.duration)
+        print("Saving clip")
+        clip.write_videofile(filename + "." + CLIP_FILENAME_EXTENSION, logger = None)
+        print("Closing and deleting frozen copy")
+        recording.close()
+        os.system("rm " + self.recording_copy_fn)
+        print("Done.")
