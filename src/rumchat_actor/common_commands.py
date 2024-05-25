@@ -111,8 +111,8 @@ class KillswitchCommand(ChatCommand):
             print("Killswitch thrown.")
             sys.exit()
 
-class ClipCommand(ChatCommand):
-    """Save clips of the livestream"""
+class ClipDownloaderCommand(ChatCommand):
+    """Save clips of the livestream by downloading stream chunks from Rumble, works remotely"""
     def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, clip_save_path = "." + os.sep, browsermob_exe = BROWSERMOB_EXE):
         """actor: The Rumchat Actor
     name: The name of the command
@@ -191,7 +191,7 @@ class ClipCommand(ChatCommand):
 
             #Stream is showing as DVR
             elif stream_griditem.find_elements(By.CLASS_NAME, "videostream__badge.videostream__status.videostream__status--dvr"):
-                print("Stream is showing as DVR, but may be starting. See RumChat-Actor issue #5.")
+                print("Stream is showing as DVR, but may be starting. See https://github.com/thelabcat/rumble-chat-actor/issues/5.")
 
             #Stream is not live or upcoming
             else:
