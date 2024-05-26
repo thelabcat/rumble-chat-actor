@@ -14,7 +14,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
   "browsermobproxy",
-  "cocorum>=1.0.0",
+  "cocorum",
   "moviepy",
   "requests",
   "selenium",
