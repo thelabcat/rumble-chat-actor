@@ -19,7 +19,7 @@ import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import talkey
-from . import ChatCommand
+from . import ChatCommand, COMMAND_PREFIX
 
 OP_PATH = __file__[:__file__.rfind(os.sep)] #The path of the script
 BROWSERMOB_EXE = 'browsermob-proxy' #The Browsermob Proxy executable
@@ -35,14 +35,26 @@ TS_DOWNLOAD_SPEEDFACTOR_REQUIREMENT = 2 #TS chunks must be able to download this
 
 class TTSCommand(ChatCommand):
     """Text-to-speech command"""
-    def __init__(self, *args, name = "tts", voices = {"default" : talkey.Talkey().say}, **kwargs):
+    def __init__(self, *args, name = "tts", voices = {}, **kwargs):
         """Pass the same args and kwargs as ChatCommand, plus:
     voices: Dict of voice : say(text) callable"""
         super().__init__(*args, name = name, **kwargs)
         self.voices = voices
 
-        #Get the default voice
-        self.default_voice = voices["default"]
+        #Make sure we have a default voice
+        if "default" not in self.voices:
+            self.voices["default"] = talkey.Talkey().say
+
+    @property
+    def help_message(self):
+        """The help message for this command"""
+        return f"Speak your message{f" for ${self.amount_cents/100: .2%}" if self.amount_cents else ""}." + \
+            f"Use {COMMAND_PREFIX + self.name} [voice] Your message. Available voices are: " + ", ".join(self.voices)
+
+    @property
+    def default_voice(self):
+        """The default TTS voice as a say(text) callable"""
+        return self.voices["default"]
 
     def speak(self, text, voice = None):
         """Speak text with voice"""
@@ -86,6 +98,11 @@ class LurkCommand(ChatCommand):
         super().__init__(name = name, actor = actor)
         self.text = text
 
+    @property
+    def help_message(self):
+        """The help message for this command"""
+        return "Notify the chat that you are lurking."
+
     def run(self, message):
         """Run the lurk"""
         self.actor.send_message(self.text.format(username = message.user.username))
@@ -97,15 +114,43 @@ class HelpCommand(ChatCommand):
     name = help: the command name"""
         super().__init__(name = name, actor = actor)
 
+    @property
+    def help_message(self):
+        """The help message for this command"""
+        return f"Get help on a specific command with {COMMAND_PREFIX + self.name} [command_name] or run alone to list all available commands."
+
     def run(self, message):
         """Run the help command"""
-        self.actor.send_message("The following commands are registered: " + ", ".join(self.actor.chat_commands))
+        segs = message.split()
+
+        #Command was run without arguments
+        if len(segs) == 1:
+            self.actor.send_message("The following commands are registered: " + ", ".join(self.actor.chat_commands))
+
+        #Command had one argument
+        elif len(segs) == 2:
+            #Argument is a valid command
+            if segs[-1] in self.actor.chat_commands:
+                self.actor.send_message(segs[-1] + " command: " + self.actor.chat_commands[segs[-1]].help_message)
+
+            #Argument is something else
+            else:
+                self.actor.send_message(f"Cannot provide help for '{segs[-1]}' as it is not a registered command.")
+
+        #Command has more than one argument
+        else:
+            self.actor.send_message("Invalid number of arguments for help command.")
 
 class KillswitchCommand(ChatCommand):
     """A killswitch for Rumchat Actor if moderators or admin need to shut it down from the chat"""
     def __init__(self, actor, name = "killswitch", allowed_badges = ["moderator"]):
         """Pass the Rumchat Actor, the command name, and the badges allowed to use it"""
         super().__init__(name = name, actor = actor, exclusive = True, allowed_badges = allowed_badges)
+
+    @property
+    def help_message(self):
+        """The help message for this command"""
+        return "Shut down RumChat Actor."
 
     def run(self, message):
         """Shut down Rumchat Actor"""
@@ -146,6 +191,12 @@ class ClipDownloaderCommand(ChatCommand):
         self.recorder_thread = threading.Thread(target = self.record_loop, daemon = True)
         self.run_recorder = True
         self.recorder_thread.start()
+
+    @property
+    def help_message(self):
+        """The help message for this command"""
+        return f"Save a clip from the livestream. Use {COMMAND_PREFIX + self.name} [duration] [custom clip name]." + \
+            f"Default duration is {self.default_duration}, max duration is {self.max_duration}."
 
     def get_ts_list(self, quality):
         """Download an m3u8 playlist and parse it for TS filenames"""
@@ -477,6 +528,12 @@ class ClipRecordingCommand(ChatCommand):
         self.running_clipsaves = 0 #How many clip save operations are running
         self.__recording_filename = None #The filename of the running OBS recording, asked later
         print(self.recording_filename) #...now is later
+
+    @property
+    def help_message(self):
+        """The help message for this command"""
+        return f"Save a clip from the livestream. Use {COMMAND_PREFIX + self.name} [duration] [custom clip name]." + \
+            f"Default duration is {self.default_duration}, max duration is {self.max_duration}."
 
     @property
     def recording_filename(self):

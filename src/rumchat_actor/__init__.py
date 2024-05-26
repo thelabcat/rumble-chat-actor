@@ -76,6 +76,20 @@ class ChatCommand():
         self.whitelist_badges = ["admin"] + whitelist_badges #Admin always has free-of-charge usage
         self.last_use_time = 0 #Last time the command was called
         self.target = target
+        self.__set_help_message = None
+
+    @property
+    def help_message(self):
+        """The help message for this command"""
+        if self.__set_help_message:
+            return self.__set_help_message
+
+        return "No specific help for this command"
+
+    @help_message.setter
+    def help_message(self, new):
+        """Set the help message for this command externally"""
+        self.__set_help_message = str(new)
 
     def call(self, message):
         """The command was called"""
@@ -491,7 +505,7 @@ class RumbleChatActor():
 
         self.chat_commands[name].call(message)
 
-    def register_command(self, command, name = None):
+    def register_command(self, command, name = None, help_message = None):
         """Register a command"""
         #Is a ChatCommand instance
         if isinstance(command, ChatCommand):
@@ -507,6 +521,11 @@ class RumbleChatActor():
 
         else:
             raise TypeError(f"Command must be of type ChatCommand or a callable, not {type(command)}.")
+
+        #A specific help message was provided
+        if help_message:
+            assert not self.chat_commands[name].help_message, "ChatCommand has internal help message already set, cannot override"
+            self.chat_commands[name].help_message = help_message
 
     def register_message_action(self, action):
         """Register an action callable to be run on every message
