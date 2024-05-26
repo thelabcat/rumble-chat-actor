@@ -484,8 +484,9 @@ class RumbleChatActor():
         name = message.text.split()[0].removeprefix(COMMAND_PREFIX)
 
         #Is not a valid command
-        if name not in self.chat_commands and self.invalid_command_respond:
-            self.send_message(f"@{message.user.username} That is not a registered command.")
+        if name not in self.chat_commands:
+            if self.invalid_command_respond:
+                self.send_message(f"@{message.user.username} That is not a registered command.")
             return
 
         self.chat_commands[name].call(message)
