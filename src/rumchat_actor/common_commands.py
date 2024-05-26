@@ -474,6 +474,7 @@ class ClipRecordingCommand(ChatCommand):
         self.max_duration = max_duration
         self.recording_load_path = recording_load_path
         self.clip_save_path = clip_save_path #Where to save the completed clips
+        self.running_clipsaves = 0 #How many clip save operations are running
         self.__recording_filename = None #The filename of the running OBS recording, asked later
         print(self.recording_filename) #...now is later
 
@@ -547,6 +548,15 @@ class ClipRecordingCommand(ChatCommand):
         #Report clip save
         self.actor.send_message(f"Saving clip {filename}, duration of {duration} seconds.")
 
+        #Run the clip save in a thread
+        saveclip_thread = threading.Thread(target = self.form_recording_into_clip, args = (duration, filename), daemon = True)
+        saveclip_thread.start()
+
+    def form_recording_into_clip(self, duration, filename):
+        """Do the actual file operations to save a clip"""
+        #Keep a counter of running clipsaves, may not be needed
+        self.running_clipsaves += 1
+
         print("Making frozen copy of recording")
         shutil.copy(self.recording_filename, self.recording_copy_fn)
         print("Loading copy")
@@ -559,3 +569,9 @@ class ClipRecordingCommand(ChatCommand):
         recording.close()
         os.system("rm " + self.recording_copy_fn)
         print("Done.")
+
+        #Make note that the clipsave has finished
+        self.running_clipsaves -= 1
+        if self.running_clipsaves < 0:
+            print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
+            self.running_clipsaves = 0
