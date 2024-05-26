@@ -564,7 +564,7 @@ class ClipRecordingCommand(ChatCommand):
         print("Trimming")
         clip = recording.subclip(max((recording.duration - duration, 0)), recording.duration)
         print("Saving clip")
-        clip.write_videofile(filename + "." + CLIP_FILENAME_EXTENSION, logger = None)
+        clip.write_videofile(self.clip_save_path + os.sep + filename + "." + CLIP_FILENAME_EXTENSION, logger = None)
         print("Closing and deleting frozen copy")
         recording.close()
         os.system("rm " + self.recording_copy_fn)
