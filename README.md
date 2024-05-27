@@ -31,7 +31,7 @@ actor = rumchat_actor.RumbleChatActor(stream_id = STREAM_ID)
 actor.register_message_action(eat_some_cheese)
 
 #Register a command via the ChatCommand class
-actor.register_command(rumchat_actor.ChatCommand(name = "hi", actor = actor, target = lambda message, actor: actor.send_message(f"Hello, @{message.user.username}!")))
+actor.register_command(rumchat_actor.commands.ChatCommand(name = "hi", actor = actor, target = lambda message, actor: actor.send_message(f"Hello, @{message.user.username}!")))
 
 #Register a command via a callable
 actor.register_command(name = "tester", command = lambda message, actor: print(f"Test command run by {message.user.username}"))
