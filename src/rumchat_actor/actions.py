@@ -4,6 +4,7 @@
 Actions commonly run on chat messages
 S.D.G"""
 
+import socket
 from .localvars import *
 try:
     import ollama
@@ -54,3 +55,48 @@ def ollama_message_moderate(message, actor):
     print("LLM verdicted as dirty: " + message.text)
     actor.delete_message(message)
     return False
+
+class URLDetector():
+    """System to check if a message contains a valid URL, with memory for previous checks"""
+    def __init__(self):
+        """Not meant to be created by the user. Use actions.block_url_messages() instead"""
+        self.known_urls = [] #Things we know are URLs
+        self.known_non_urls = [] #Things we know are not URLs
+
+    def is_valid_url(self, string):
+        """Determine if a string is a valid URL"""
+        #All URLs must contain a dot
+        if "." not in string:
+            return False
+
+        #Use previous records on the string if we have them
+        if string in self.known_urls:
+            return True
+        if string in self.known_non_urls:
+            return False
+
+        try:
+            socket.gethostbyname(string)
+            self.known_urls.append(string)
+            return True
+        except socket.error:
+            self.known_non_urls.append(string)
+            return False
+
+    def block_url_messages(self, message, actor):
+        """Delete messages that contain valid URLs, unless sent by staff"""
+        #Staff can post URLs
+        if True in [badge in message.user.badges for badge in STAFF_BADGES]:
+            return True
+
+        #If the message contains a URL, delete it
+        for seg in message.text.split():
+            if self.is_valid_url(seg):
+                actor.delete_message(message)
+                return False
+
+        #The message did not contain a URL
+        return True
+
+#Create an instance of URLDetector and provide its block_url_messages() method directly
+block_url_messages = URLDetector().block_url_messages
