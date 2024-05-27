@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Rumble chat actor common commands
+"""Chat commands
 
-Derivative classes for common chat commands.
+The base ChatCommand abstract class, and some commonly used derivatives
 S.D.G."""
 
 import os
@@ -19,19 +19,93 @@ import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import talkey
-from . import ChatCommand, COMMAND_PREFIX
+from .localvars import *
 
-OP_PATH = __file__[:__file__.rfind(os.sep)] #The path of the script
-BROWSERMOB_EXE = 'browsermob-proxy' #The Browsermob Proxy executable
-WAIT_FOR_LIVE_REFRESH_RATE = 10 #How often to refresh while waiting for a livestream to start
-CLIP_FILENAME_EXTENSION = "mp4" #The filename extension for saved clips
-CLIP_BITRATE = "4.5M" #The bitrate to use when saving clips. Deprecating
-STREAM_QUALITIES = {"360p" : "1.2M", "720p" : "2.8M", "1080p" : "4.5M"} #Valid resolutions of a livestream and the bitrates they use / should be saved with
-DEFAULT_CLIP_BITRATE = STREAM_QUALITIES["1080p"] #The default save quality for clips from a local recording
-VALID_CLIP_RECORDING_CONTAINERS = ["ts"] #Formats that the OBS recording can be in if recording-trimmed clips are to work
-TEMP_RECORDING_COPY_FILENAME = ".temp_recording_copy"
-NUM_TS_DOWNLOAD_TIME_CHECKS = 5 #How many times to test a TS chunk download to get its average download time
-TS_DOWNLOAD_SPEEDFACTOR_REQUIREMENT = 2 #TS chunks must be able to download this many times faster than their duration to be usable in a cache. Cannot be less than 1
+class ChatCommand():
+    """Chat command abstract class"""
+    def __init__(self, name, actor, cooldown = SEND_MESSAGE_COOLDOWN, amount_cents = 0, exclusive = False, allowed_badges = ["subscriber"], whitelist_badges = ["moderator"], target = None):
+        """name: The !name of the command
+    actor: The RumleChatActor host object
+    amount_cents: The minimum cost of the command. Defaults to free
+    exclusive: If this command can only be run by users with allowed badges. Defaults to False
+    allowed_badges: Badges that are allowed to run this command (if it is exclusive).
+       ChatCommand,  Defaults to subscribers, admin is added internally.
+    whitelist_badges: Badges which if borne give the user free-of-charge command access
+    target: The command function(message, actor) to call. Defaults to self.run"""
+        assert " " not in name, "Name cannot contain spaces"
+        self.name = name
+        self.actor = actor
+        assert cooldown >= SEND_MESSAGE_COOLDOWN, \
+            f"Cannot set a cooldown shorter than {SEND_MESSAGE_COOLDOWN}"
+
+        self.cooldown = cooldown
+        self.amount_cents = amount_cents #Cost of the command
+        self.exclusive = exclusive
+        self.allowed_badges = ["admin"] + allowed_badges #Admin can always run any command
+        self.whitelist_badges = ["admin"] + whitelist_badges #Admin always has free-of-charge usage
+        self.last_use_time = 0 #Last time the command was called
+        self.target = target
+        self.__set_help_message = None
+
+    @property
+    def help_message(self):
+        """The help message for this command"""
+        if self.__set_help_message:
+            return self.__set_help_message
+
+        return "No specific help for this command"
+
+    @help_message.setter
+    def help_message(self, new):
+        """Set the help message for this command externally"""
+        self.__set_help_message = str(new)
+
+    def call(self, message):
+        """The command was called"""
+        #this command is exclusive, and the user does not have the required badge
+        if self.exclusive and \
+            not (True in [badge.slug in self.allowed_badges for badge in message.user.badges]):
+
+            self.actor.send_message(f"@{message.user.username} That command is exclusive to: " +
+                                    ", ".join(self.allowed_badges)
+                                    )
+
+            return
+
+        #The command is still on cooldown
+        if (curtime := time.time()) - self.last_use_time < self.cooldown:
+            self.actor.send_message(
+                f"@{message.user.username} That command is still on cooldown. " +
+                f"Try again in {int(self.last_use_time + self.cooldown - curtime + 0.5)} seconds."
+                )
+
+            return
+
+        #the user did not pay enough for the command and they do not have a free pass
+        if message.rant_price_cents < self.amount_cents and \
+            not (True in [badge.slug in self.whitelist_badges for badge in message.user.badges]):
+
+            self.actor.send_message("@" + message.user.username +
+                                    f"That command costs ${self.amount_cents/100:.2f}."
+                                    )
+            return
+
+        #the command was called successfully
+        self.run(message)
+
+        #Mark the last use time for cooldown
+        self.last_use_time = time.time()
+
+    def run(self, message):
+        """Dummy run method"""
+        if self.target:
+            self.target(message, self.actor)
+            return
+
+        #Run method was never defined
+        self.actor.send_message("@" + message.user.username +
+                                "Hello, this command never had a target defined. :-)"
+                                )
 
 class TTSCommand(ChatCommand):
     """Text-to-speech command"""
@@ -257,7 +331,7 @@ class ClipDownloaderCommand(ChatCommand):
                 return
 
             #Stream is still upcoming
-            time.sleep(WAIT_FOR_LIVE_REFRESH_RATE)
+            time.sleep(WAIT_FOR_PAGE_CONDITION_REFRESH_RATE)
             browser.refresh()
             stream_griditem = browser.find_element(By.XPATH,
                                                     "//div[@class='videostream thumbnail__grid--item']" +

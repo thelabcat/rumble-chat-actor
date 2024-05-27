@@ -17,126 +17,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-
-#How long to wait maximum for a condition to be true in the browser
-BROWSER_WAIT_TIMEOUT = 30
-
-#How long to wait between sending messages
-SEND_MESSAGE_COOLDOWN = 3
-
-#Popout chat url. Format with stream_id_b10
-CHAT_URL = "https://rumble.com/chat/popup/{stream_id_b10}"
-
-#Rumble user URL. Format with username
-USER_URL = "https://rumble.com/user/{username}"
-
-#Rumble channel URL. Format with channel_name
-CHANNEL_URL = "https://rumble.com/c/{channel_name}"
-
-#Maximum chat message length
-MAX_MESSAGE_LEN = 200
-
-#Message split across multiple lines must not be longer than this
-MAX_MULTIMESSAGE_LEN = 1000
-
-#Prefix to all actor messages
-BOT_MESSAGE_PREFIX = "🤖: "
-
-#How commands always start
-COMMAND_PREFIX = "!"
-
-#Levels of mute to discipline a user with
-MUTE_LEVELS = {
-    "5" : "cmi js-btn-mute-current-5",
-    "stream" : "cmi js-btn-mute-current",
-    "forever" : "cmi js-btn-mute-for-account",
-    }
-
-class ChatCommand():
-    """A chat command, internal use only"""
-    def __init__(self, name, actor, cooldown = SEND_MESSAGE_COOLDOWN, amount_cents = 0, exclusive = False, allowed_badges = ["subscriber"], whitelist_badges = ["moderator"], target = None):
-        """name: The !name of the command
-    actor: The RumleChatActor host object
-    amount_cents: The minimum cost of the command. Defaults to free
-    exclusive: If this command can only be run by users with allowed badges. Defaults to False
-    allowed_badges: Badges that are allowed to run this command (if it is exclusive).
-        Defaults to subscribers, admin is added internally.
-    whitelist_badges: Badges which if borne give the user free-of-charge command access
-    target: The command function(message, actor) to call. Defaults to self.run"""
-        assert " " not in name, "Name cannot contain spaces"
-        self.name = name
-        self.actor = actor
-        assert cooldown >= SEND_MESSAGE_COOLDOWN, \
-            f"Cannot set a cooldown shorter than {SEND_MESSAGE_COOLDOWN}"
-
-        self.cooldown = cooldown
-        self.amount_cents = amount_cents #Cost of the command
-        self.exclusive = exclusive
-        self.allowed_badges = ["admin"] + allowed_badges #Admin can always run any command
-        self.whitelist_badges = ["admin"] + whitelist_badges #Admin always has free-of-charge usage
-        self.last_use_time = 0 #Last time the command was called
-        self.target = target
-        self.__set_help_message = None
-
-    @property
-    def help_message(self):
-        """The help message for this command"""
-        if self.__set_help_message:
-            return self.__set_help_message
-
-        return "No specific help for this command"
-
-    @help_message.setter
-    def help_message(self, new):
-        """Set the help message for this command externally"""
-        self.__set_help_message = str(new)
-
-    def call(self, message):
-        """The command was called"""
-        #this command is exclusive, and the user does not have the required badge
-        if self.exclusive and \
-            not (True in [badge.slug in self.allowed_badges for badge in message.user.badges]):
-
-            self.actor.send_message(f"@{message.user.username} That command is exclusive to: " +
-                                    ", ".join(self.allowed_badges)
-                                    )
-
-            return
-
-        #The command is still on cooldown
-        if (curtime := time.time()) - self.last_use_time < self.cooldown:
-            self.actor.send_message(
-                f"@{message.user.username} That command is still on cooldown. " +
-                f"Try again in {int(self.last_use_time + self.cooldown - curtime + 0.5)} seconds."
-                )
-
-            return
-
-        #the user did not pay enough for the command and they do not have a free pass
-        if message.rant_price_cents < self.amount_cents and \
-            not (True in [badge.slug in self.whitelist_badges for badge in message.user.badges]):
-
-            self.actor.send_message("@" + message.user.username +
-                                    f"That command costs ${self.amount_cents/100:.2f}."
-                                    )
-            return
-
-        #the command was called successfully
-        self.run(message)
-
-        #Mark the last use time for cooldown
-        self.last_use_time = time.time()
-
-    def run(self, message):
-        """Dummy run method"""
-        if self.target:
-            self.target(message, self.actor)
-            return
-
-        #Run method was never defined
-        self.actor.send_message("@" + message.user.username +
-                                "Hello, this command never had a target defined. :-)"
-                                )
+from . import actions, commands
+from .localvars import *
 
 class RumbleChatActor():
     """Actor that interacts with Rumble chat"""
@@ -283,7 +165,7 @@ class RumbleChatActor():
         #must return False if the message was deleted
         self.message_actions = []
 
-        #Instances of RumbleChatCommand, by name
+        #Instances of ChatCommand, by name
         self.chat_commands = {}
 
         #Wether or not to post an error message if an invalid command was called
@@ -508,7 +390,7 @@ class RumbleChatActor():
     def register_command(self, command, name = None, help_message = None):
         """Register a command"""
         #Is a ChatCommand instance
-        if isinstance(command, ChatCommand):
+        if isinstance(command, commands.ChatCommand):
             assert not name or name == command.name, \
                 "ChatCommand instance has different name than one passed"
             self.chat_commands[command.name] = command
@@ -517,7 +399,7 @@ class RumbleChatActor():
         elif callable(command):
             assert name, "Name cannot be None if command is a callable"
             assert " " not in name, "Name cannot contain spaces"
-            self.chat_commands[name] = ChatCommand(name = name, actor = self, target = command)
+            self.chat_commands[name] = commands.ChatCommand(name = name, actor = self, target = command)
 
         else:
             raise TypeError(f"Command must be of type ChatCommand or a callable, not {type(command)}.")
