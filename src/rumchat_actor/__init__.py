@@ -174,6 +174,9 @@ class RumbleChatActor():
         #Messages that we know are actually raid alerts
         self.known_raid_alert_messages = []
 
+        #Action to be taken when raids occur
+        self.__raid_action = lambda message: pass
+
         #Time that the last message we sent was sent
         self.last_message_send_time = 0
 
