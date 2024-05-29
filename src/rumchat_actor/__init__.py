@@ -171,6 +171,9 @@ class RumbleChatActor():
         #Messages waiting to be sent
         self.outbox = []
 
+        #Messages that we know are actually raid alerts
+        self.known_raid_alert_messages = []
+
         #Time that the last message we sent was sent
         self.last_message_send_time = 0
 
@@ -322,13 +325,22 @@ class RumbleChatActor():
         else:
             raise TypeError("Message must be ID, li element, or have message_id attribute")
 
+        if message_id in self.known_raid_alert_messages:
+            print("Cannot open moderation menu: Is a raid message.")
+            return None
+
         #Hover over the message
         self.hover_element(message_li)
         #Find the moderation menu
-        menu_bttn = message_li.find_element(
-            By.XPATH,
-            ".//button[@class='js-moderate-btn chat-history--kebab-button']"
-            )
+        try:
+            menu_bttn = message_li.find_element(
+                By.XPATH,
+                ".//button[@class='js-moderate-btn chat-history--kebab-button']"
+                )
+        except selenium.common.exceptions.NoSuchElementException:
+            print("Cannot open moderation menu: Could not find moderation button.")
+            return None
+
         #Click the moderation menu button
         menu_bttn.click()
 
@@ -337,6 +349,10 @@ class RumbleChatActor():
     def delete_message(self, message):
         """Delete a message in the chat"""
         m_id = self.open_moderation_menu(message)
+        if m_id is None:
+            print("Could not delete message.")
+            return
+
         del_bttn = self.browser.find_element(
             By.XPATH,
             f"//button[@class='cmi js-btn-delete-current'][@data-message-id='{m_id}']"
@@ -355,7 +371,11 @@ class RumbleChatActor():
 
     def mute_by_message(self, message, mute_level = "5"):
         """Mute a user by message"""
-        self.open_moderation_menu(message)
+        m_id = self.open_moderation_menu(message)
+        if m_id is None:
+            print("Could not mute by message.")
+            return
+
         timeout_bttn = self.browser.find_element(
             By.XPATH,
             f"//button[@class='{MUTE_LEVELS[mute_level]}']"
@@ -375,7 +395,11 @@ class RumbleChatActor():
 
     def pin_message(self, message):
         """Pin a message by ID or li element"""
-        self.open_moderation_menu(message)
+        m_id = self.open_moderation_menu(message)
+        if m_id is None:
+            print("Could not pin message.")
+            return
+
         pin_bttn = self.browser.find_element(By.XPATH, "//button[@class='cmi js-btn-pin-current']")
         pin_bttn.click()
 
@@ -447,10 +471,26 @@ class RumbleChatActor():
         assert callable(action), "Action must be a callable"
         self.message_actions.append(action)
 
+    @property
+    def raid_action(self):
+        """The callable we are supposed to run on raids"""
+        return self.__raid_action
+
+    @raid_action.setter
+    def raid_action(self, new_action):
+        assert callable(new_action), "Raid action must be a callable"
+        self.__raid_action = new_action
+
     def __process_message(self, message):
         """Process a single SSE Chat message"""
         #Ignore messages that match ones we sent before
         if message.text in self.sent_messages:
+            return
+
+        #the message is actually a raid alert, take raid action on it, nothing more
+        if message.raid_notification:
+            self.known_raid_alert_messages.append(message)
+            self.raid_action(message)
             return
 
         #If the message is from the same account as us, consider it in message send cooldown
