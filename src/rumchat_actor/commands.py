@@ -4,6 +4,7 @@
 The base ChatCommand abstract class, and some commonly used derivatives
 S.D.G."""
 
+import glob
 import os
 import shutil
 import sys
@@ -537,8 +538,15 @@ class ClipDownloaderCommand(ChatCommand):
             t = time.time()
             filename = f"{round(t - self.ts_durations[self.use_quality] * len(use_ts))}-{round(t)}"
 
-        self.actor.send_message(f"Saving clip {filename}, duration of {round(self.ts_durations[self.use_quality] * len(use_ts))} seconds.")
-        saveclip_thread = threading.Thread(target = self.form_ts_into_clip, args = (filename, use_ts), daemon = True)
+        #Avoid overwriting other clips
+        increment = 0
+        safe_filename = filename
+        while safe_filename + "." + CLIP_FILENAME_EXTENSION in glob.glob("*", root_dir = self.clip_save_path):
+            increment += 1
+            safe_filename = filename + f"({increment})"
+
+        self.actor.send_message(f"Saving clip {safe_filename}, duration of {round(self.ts_durations[self.use_quality] * len(use_ts))} seconds.")
+        saveclip_thread = threading.Thread(target = self.form_ts_into_clip, args = (safe_filename, use_ts), daemon = True)
         saveclip_thread.start()
 
     def form_ts_into_clip(self, filename, use_ts):
@@ -676,11 +684,18 @@ class ClipRecordingCommand(ChatCommand):
             t = time.time()
             filename = f"{round(t - duration)}-{round(t)}"
 
+        #Avoid overwriting other clips
+        increment = 0
+        safe_filename = filename
+        while safe_filename + "." + CLIP_FILENAME_EXTENSION in glob.glob("*", root_dir = self.clip_save_path):
+            increment += 1
+            safe_filename = filename + f"({increment})"
+
         #Report clip save
-        self.actor.send_message(f"Saving clip {filename}, duration of {duration} seconds.")
+        self.actor.send_message(f"Saving clip {safe_filename}, duration of {duration} seconds.")
 
         #Run the clip save in a thread
-        saveclip_thread = threading.Thread(target = self.form_recording_into_clip, args = (duration, filename), daemon = True)
+        saveclip_thread = threading.Thread(target = self.form_recording_into_clip, args = (duration, safe_filename), daemon = True)
         saveclip_thread.start()
 
     def form_recording_into_clip(self, duration, filename):
