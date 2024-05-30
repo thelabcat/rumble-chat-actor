@@ -5,6 +5,7 @@ Actions commonly run on chat messages
 S.D.G"""
 
 import socket
+import talkey
 from .localvars import *
 try:
     import ollama
@@ -56,8 +57,8 @@ def ollama_message_moderate(message, actor):
     actor.delete_message(message)
     return False
 
-class URLDetector():
-    """System to check if a message contains a valid URL, with memory for previous checks"""
+class BlockURLMessagesManager():
+    """System to block messages with valid URLs, with memory for previous checks"""
     def __init__(self):
         """Not meant to be created by the user. Use actions.block_url_messages() instead"""
         self.known_urls = [] #Things we know are URLs
@@ -99,4 +100,41 @@ class URLDetector():
         return True
 
 #Create an instance of URLDetector and provide its block_url_messages() method directly
-block_url_messages = URLDetector().block_url_messages
+block_url_messages = BlockURLMessagesManager().block_url_messages
+
+class RantTTSManager():
+    """System to TTS rant messages, with threshhold settings"""
+    def __init__(self):
+        """Not meant to be instanced by the user. Use actions.rant_tts() instead"""
+
+        #The amount a rant must be to be TTS-ed
+        self.__tts_amount_threshold = 0
+
+        #The TTS callable to use
+        self.__say = talkey.Talkey().say
+
+    def get_tts_amount_threshold(self):
+        """The amount a rant must be to be TTS-ed, 0 means all rants are TTS-ed"""
+        return self.__tts_amount_threshold
+
+    def set_tts_amount_threshold(self, new):
+        """The amount a rant must be to be TTS-ed, 0 means all rants are TTS-ed"""
+        assert isinstance(new, (int, float)) and new >= 0, "Value must be a number greater than zero"
+        self.__tts_amount_threshold = new
+
+    def set_rant_tts_sayer(self, new):
+        """Set the callable to be used on rant TTS"""
+        assert callable(new), "Must be a callable"
+        self.__say = new
+
+    def rant_tts(self, message, actor):
+        """TTS rants above"""
+        if message.is_rant and message.rant_price_cents >= self.__tts_amount_threshold:
+            self.__say(message.text)
+
+#Create a RantTTSManager instance and make its methods available publicly
+_rant_tts_manager = RantTTSManager()
+get_tts_amount_threshold = _rant_tts_manager.get_tts_amount_threshold
+set_tts_amount_threshold = _rant_tts_manager.set_tts_amount_threshold
+set_rant_tts_sayer = _rant_tts_manager.set_rant_tts_sayer
+rant_tts = _rant_tts_manager.rant_tts
