@@ -5,6 +5,8 @@ Absolute variable definitions not uinque to scripts.
 S.D.G.
 """
 
+from cocorum.localvars import RUMBLE_BASE_URL
+
 #How long to wait maximum for a condition to be true in the browser
 BROWSER_WAIT_TIMEOUT = 30
 
@@ -12,13 +14,13 @@ BROWSER_WAIT_TIMEOUT = 30
 SEND_MESSAGE_COOLDOWN = 3
 
 #Popout chat url. Format with stream_id_b10
-CHAT_URL = "https://rumble.com/chat/popup/{stream_id_b10}"
+CHAT_URL = RUMBLE_BASE_URL + "/chat/popup/{stream_id_b10}"
 
 #Rumble user URL. Format with username
-USER_URL = "https://rumble.com/user/{username}"
+USER_URL = RUMBLE_BASE_URL + "/user/{username}"
 
 #Rumble channel URL. Format with channel_name
-CHANNEL_URL = "https://rumble.com/c/{channel_name}"
+CHANNEL_URL = RUMBLE_BASE_URL + "/c/{channel_name}"
 
 #Maximum chat message length
 MAX_MESSAGE_LEN = 200
@@ -75,7 +77,7 @@ TS_DOWNLOAD_SPEEDFACTOR_REQUIREMENT = 2
 LLM_MODERATOR_SYS_MESSAGE = "Analyze the following chat messages for appropriate-ness. Respond with either a 0 or a 1: If a message is appropriate for PG-13 SFW and not spam, or you are not sure, respond with a 1. If it is not appropriate for PG-13 or is NSFW or is spam, respond with a 0. You can only respond with these two values. Do not respond with commentary."
 
 #URL of upload page at Rumble
-RUMBLE_UPLOAD_URL = "https://rumble.com/upload.php"
+RUMBLE_UPLOAD_URL = RUMBLE_BASE_URL + "/upload.php"
 
 #Default primary and secondary category of clips
 CLIP_CATEGORY_1 = "Entertainment"
