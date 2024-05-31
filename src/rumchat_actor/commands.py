@@ -263,6 +263,7 @@ class ClipDownloaderCommand(ChatCommand):
         self.m3u8_filename = "" #The filename of the m3u8 playlist, will be either chunklist.m3u8 or chunklist_DVR.m3u8, detected later
         self.saved_ts = {} #TS filenames : Tempfile objects containing TS chunks
         self.discarded_ts = [] #TS names that were saved then deleted
+        self.clip_uploader = None #An object to upload the clips when they are complete
         self.recorder_thread = threading.Thread(target = self.record_loop, daemon = True)
         self.run_recorder = True
         self.recorder_thread.start()
@@ -591,6 +592,11 @@ class ClipDownloaderCommand(ChatCommand):
         if self.is_dvr:
             for tf in tempfiles:
                 tf.close()
+
+        #Upload the clip
+        if self.clip_uploader:
+            self.clip_uploader.upload_clip(filename)
+
         print("Complete")
 
 class ClipRecordingCommand(ChatCommand):
@@ -610,6 +616,7 @@ class ClipRecordingCommand(ChatCommand):
         self.running_clipsaves = 0 #How many clip save operations are running
         self.__recording_filename = None #The filename of the running OBS recording, asked later
         print(self.recording_filename) #...now is later
+        self.clip_uploader = None #An object to upload the clips when they are complete
 
     @property
     def help_message(self):
@@ -721,3 +728,6 @@ class ClipRecordingCommand(ChatCommand):
         if self.running_clipsaves < 0:
             print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
             self.running_clipsaves = 0
+
+        if self.clip_uploader:
+            self.clip_uploader.upload_clip(filename)

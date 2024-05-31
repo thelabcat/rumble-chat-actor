@@ -73,3 +73,10 @@ TS_DOWNLOAD_SPEEDFACTOR_REQUIREMENT = 2
 
 #LLM system message to moderate messages with
 LLM_MODERATOR_SYS_MESSAGE = "Analyze the following chat messages for appropriate-ness. Respond with either a 0 or a 1: If a message is appropriate for PG-13 SFW and not spam, or you are not sure, respond with a 1. If it is not appropriate for PG-13 or is NSFW or is spam, respond with a 0. You can only respond with these two values. Do not respond with commentary."
+
+#URL of upload page at Rumble
+RUMBLE_UPLOAD_URL = "https://rumble.com/upload.php"
+
+#Default primary and secondary category of clips
+CLIP_CATEGORY_1 = "Entertainment"
+CLIP_CATEGORY_2 = None

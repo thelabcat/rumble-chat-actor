@@ -47,7 +47,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from . import actions, commands
+from . import actions, commands, misc
 from .localvars import *
 
 class RumbleChatActor():
@@ -175,7 +175,7 @@ class RumbleChatActor():
         self.known_raid_alert_messages = []
 
         #Action to be taken when raids occur
-        self.__raid_action = lambda message: pass
+        self.__raid_action = print
 
         #Time that the last message we sent was sent
         self.last_message_send_time = 0
