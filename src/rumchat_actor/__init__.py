@@ -64,6 +64,9 @@ class RumbleChatActor():
     streamer_channel: The channel doing the livestream, if it is being streamed on a channel.
         Defaults to Live Stream API channel or manually requested if needed
     is_channel_stream: Bool, if the livestream is on a channel or not
+        Defaults to automatic determination if possible
+    streamer_main_page_url: The URL of the streamer's main page
+        Defaults to automatic determination if possible
     ignore_users: List of usernames, will ignore all their messages
     invalid_command_respond: Bool, sets if we should post an error message if a command was invalid.
         Defaults to False."""
@@ -80,6 +83,10 @@ class RumbleChatActor():
         self.__is_channel_stream = kwargs["is_channel_stream"] if "is_channel_stream" in kwargs else None
         assert isinstance(self.__is_channel_stream, bool) or self.__is_channel_stream is None, \
             f"Argument is_channel_stream must be bool or None, not {type(self.__is_channel_stream)}"
+
+        self.__streamer_main_page_url = kwargs["streamer_main_page_url"] if "streamer_main_page_url" in kwargs else None
+        assert isinstance(self.__streamer_main_page_url, str) or self.__streamer_main_page_url is None, \
+            f"Argument streamer_main_page_url must be str or None, not {type(self.__is_channel_stream)}"
 
         #Get Live Stream API
         if "api_url" in kwargs:
@@ -256,10 +263,29 @@ class RumbleChatActor():
     @property
     def streamer_main_page_url(self):
         """The URL of the main page of the streamer"""
-        if self.is_channel_stream:
-            return CHANNEL_URL.format(channel_name = self.streamer_channel.replace(" ", ""))
+        #We do not yet know the URL
+        if not self.__streamer_main_page_url:
+            if self.is_channel_stream:
+                #This stream is on the API
+                if self.api_stream:
+                    #We know our channel ID from the API
+                    if self.rum_api.channel_id:
+                        self.__streamer_main_page_url = CHANNEL_URL.format(channel_name = f"c-{self.rum_api.channel_id}")
 
-        return USER_URL.format(username = self.streamer_username)
+                    #Is a channel stream and on the API but API is not for channel, use the user page instead
+                    else:
+                        self.__streamer_main_page_url = USER_URL.format(username = self.streamer_username)
+
+                #Is not an API stream and we don't know the username
+                elif not self.__streamer_username:
+                    while not (self.__streamer_main_page_url := input("Enter streamer main page URL: ")).startswith(RUMBLE_BASE_URL):
+                        pass
+
+            #Not a channel stream, go by username
+            else:
+                self.__streamer_main_page_url = USER_URL.format(username = self.streamer_username)
+
+        return self.__streamer_main_page_url
 
     def get_sign_in_button(self):
         """Look for the sign in button"""
