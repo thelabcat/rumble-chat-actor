@@ -278,8 +278,9 @@ class RumbleChatActor():
 
                 #Is not an API stream and we don't know the username
                 elif not self.__streamer_username:
-                    while not (self.__streamer_main_page_url := input("Enter streamer main page URL: ")).startswith(RUMBLE_BASE_URL):
+                    while not (specified := input("Enter streamer main page URL: ")).startswith(RUMBLE_BASE_URL):
                         pass
+                    self.__streamer_main_page_url = specified
 
             #Not a channel stream, go by username
             else:
