@@ -115,11 +115,8 @@ class ClipUploader():
         vis_options_el = self.driver.find_element(By.ID, "visibility-options")
         vis_options_el.find_element(By.XPATH, "*/label[@for='visibility_unlisted']").click()
 
-        #Scroll all the way to the bottom of the page
-        webdriver.ActionChains(self.driver).scroll_by_amount(0, 10**4).perform()
-        time.sleep(0.1)
-
         #Submit form 1
+        self.scroll_to_bottom()
         self.driver.find_element(By.ID, "submitForm").click()
 
         #Wait for rights checkbox, then click it
@@ -128,11 +125,8 @@ class ClipUploader():
         #Click terms checkbox
         self.driver.find_element(By.XPATH, "//label[@for='cterms']").click()
 
-        #Scroll all the way to the bottom of the page
-        webdriver.ActionChains(self.driver).scroll_by_amount(0, 10**4).perform()
-        time.sleep(0.1)
-
         #Submit form 2
+        self.scroll_to_bottom()
         self.driver.find_element(By.ID, "submitForm2").click()
 
         #Wait for form to submit
@@ -144,9 +138,16 @@ class ClipUploader():
         self.actor.send_message("Clip uploaded to " + video_link)
         print(f"Clip {filename} published.")
 
+    def scroll_to_bottom(self):
+        """Scroll all the way to the bottom of the page"""
+        page = self.driver.find_element(By.TAG_NAME, "html")
+        page.send_keys(Keys.END)
+        #webdriver.ActionChains(self.driver).scroll_to_element(footer).perform()
+
     def clip_upload_loop(self):
         """Keep uploading clips while actor is alive"""
         while self.actor.keep_running:
             if self.clips_to_upload:
                 self.__upload_clip(self.clips_to_upload.pop(0))
             time.sleep(1)
+        self.driver.quit()
