@@ -15,6 +15,7 @@ from tkinter import filedialog, Tk
 from cocorum.localvars import RUMBLE_BASE_URL, DEFAULT_TIMEOUT
 from browsermobproxy import Server
 from moviepy.editor import VideoFileClip, concatenate_videoclips
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import requests
 # import selenium
 from selenium import webdriver
@@ -714,10 +715,8 @@ class ClipRecordingCommand(ChatCommand):
         shutil.copy(self.recording_filename, self.recording_copy_fn)
         print("Loading copy")
         recording = VideoFileClip(self.recording_copy_fn)
-        print("Trimming")
-        clip = recording.subclip(max((recording.duration - duration, 0)), recording.duration)
-        print("Saving clip")
-        clip.write_videofile(self.clip_save_path + os.sep + filename + "." + CLIP_FILENAME_EXTENSION, logger = None)
+        print("Saving trimmed clip")
+        ffmpeg_extract_subclip(self.recording_copy_fn, max((recording.duration - duration, 0)), recording.duration, targetname = self.clip_save_path + os.sep + filename + "." + CLIP_FILENAME_EXTENSION)
         print("Closing and deleting frozen copy")
         recording.close()
         os.system("rm " + self.recording_copy_fn)
