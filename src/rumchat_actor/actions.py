@@ -4,7 +4,9 @@
 Actions commonly run on chat messages
 S.D.G"""
 
-import socket
+# import socket
+import threading
+import time
 import talkey
 from .localvars import *
 try:
@@ -57,55 +59,10 @@ def ollama_message_moderate(message, actor):
     actor.delete_message(message)
     return False
 
-class BlockURLMessagesManager():
-    """System to block messages with valid URLs, with memory for previous checks"""
-    def __init__(self):
-        """Not meant to be created by the user. Use actions.block_url_messages() instead"""
-        self.known_urls = [] #Things we know are URLs
-        self.known_non_urls = [] #Things we know are not URLs
-
-    def is_valid_url(self, string):
-        """Determine if a string is a valid URL"""
-        #All URLs must contain a dot
-        if "." not in string:
-            return False
-
-        #Use previous records on the string if we have them
-        if string in self.known_urls:
-            return True
-        if string in self.known_non_urls:
-            return False
-
-        try:
-            socket.gethostbyname(string)
-            self.known_urls.append(string)
-            return True
-        except socket.error:
-            self.known_non_urls.append(string)
-            return False
-
-    def block_url_messages(self, message, actor):
-        """Delete messages that contain valid URLs, unless sent by staff"""
-        #Staff can post URLs
-        if True in [badge in message.user.badges for badge in STAFF_BADGES]:
-            return True
-
-        #If the message contains a URL, delete it
-        for seg in message.text.split():
-            if self.is_valid_url(seg):
-                actor.delete_message(message)
-                return False
-
-        #The message did not contain a URL
-        return True
-
-#Create an instance of URLDetector and provide its block_url_messages() method directly
-block_url_messages = BlockURLMessagesManager().block_url_messages
-
 class RantTTSManager():
     """System to TTS rant messages, with threshhold settings"""
     def __init__(self):
-        """Not meant to be instanced by the user. Use actions.rant_tts() instead"""
+        """Instance this object, configure it, then pass its action method to the actor"""
 
         #The amount a rant must be to be TTS-ed
         self.__tts_amount_threshold = 0
@@ -113,11 +70,13 @@ class RantTTSManager():
         #The TTS callable to use
         self.__say = talkey.Talkey().say
 
-    def get_tts_amount_threshold(self):
+    @property
+    def tts_amount_threshold(self):
         """The amount a rant must be to be TTS-ed, 0 means all rants are TTS-ed"""
         return self.__tts_amount_threshold
 
-    def set_tts_amount_threshold(self, new):
+    @tts_amount_threshold.setter
+    def tts_amount_threshold(self, new):
         """The amount a rant must be to be TTS-ed, 0 means all rants are TTS-ed"""
         assert isinstance(new, (int, float)) and new >= 0, "Value must be a number greater than zero"
         self.__tts_amount_threshold = new
@@ -127,14 +86,58 @@ class RantTTSManager():
         assert callable(new), "Must be a callable"
         self.__say = new
 
-    def rant_tts(self, message, actor):
-        """TTS rants above"""
+    def action(self, message, actor):
+        """TTS rants above the manager instance's threshhold"""
         if message.is_rant and message.rant_price_cents >= self.__tts_amount_threshold:
             self.__say(message.text)
 
-#Create a RantTTSManager instance and make its methods available publicly
-_rant_tts_manager = RantTTSManager()
-get_tts_amount_threshold = _rant_tts_manager.get_tts_amount_threshold
-set_tts_amount_threshold = _rant_tts_manager.set_tts_amount_threshold
-set_rant_tts_sayer = _rant_tts_manager.set_rant_tts_sayer
-rant_tts = _rant_tts_manager.rant_tts
+class TimedMessagesManager():
+    """System to send messages on a timed basis"""
+    def __init__(self, actor, messages: iter, delay = 60, in_between = 0):
+        """Instance this object, configure it, then pass its action method to the actor
+    actor: The actor, to send the timed messages,
+    messages: List of messages to send
+    delay: Time between messages
+    in_between: Number of messages that must be sent before we send another timed one"""
+
+        self.actor = actor
+        assert len(messages) > 0, "List of messages to send cannot be empty"
+        self.messages = messages
+        assert delay > SEND_MESSAGE_COOLDOWN, "Cannot send timed messages that frequently"
+        self.delay = delay
+        self.in_between = in_between
+
+        #Next message to send
+        self.up_next_index = 0
+
+        #Time of last send
+        self.last_send_time = 0
+
+        #Counter for messages sent since our last announcement
+        self.in_between_counter = 0
+
+        #Start the sender loop thread
+        self.running = True
+        self.sender_thread = threading.Thread(target = self.sender_loop, daemon = True)
+        self.sender_thread.start()
+
+    def action(self, message, actor):
+        """Count the messages sent"""
+        self.in_between_counter += 1
+
+    def sender_loop(self):
+        """Continuously wait till it is time to send another message"""
+        while self.running:
+            #time to send a message?
+            if self.in_between_counter >= self.in_between and time.time() - self.last_send_time >= self.delay:
+                #Send a message
+                self.actor.send_message(self.messages[self.up_next_index])
+
+                #Up the index of the next message, with wrapping
+                self.up_next_index += 1
+                if self.up_next_index >= len(self.messages):
+                    self.up_next_index = 0
+
+                #Reset wait counters
+                self.in_between_counter = 0
+                self.last_send_time = time.time()
