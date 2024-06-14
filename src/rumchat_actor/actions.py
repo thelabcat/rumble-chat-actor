@@ -141,3 +141,5 @@ class TimedMessagesManager():
                 #Reset wait counters
                 self.in_between_counter = 0
                 self.last_send_time = time.time()
+
+            time.sleep(1)
