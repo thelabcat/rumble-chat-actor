@@ -124,6 +124,7 @@ class TimedMessagesManager():
     def action(self, message, actor):
         """Count the messages sent"""
         self.in_between_counter += 1
+        return True
 
     def sender_loop(self):
         """Continuously wait till it is time to send another message"""
