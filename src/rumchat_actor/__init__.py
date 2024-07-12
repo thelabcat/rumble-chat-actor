@@ -201,8 +201,8 @@ class RumbleChatActor():
         while (m := self.ssechat.get_message()).user.username != self.username:
             pass
 
-        assert "moderator" in m.user.badges or "admin" in m.user.badges, \
-            "Actor cannot function without being a moderator"
+        assert misc.is_staff(m.user), \
+            "Actor cannot function without being channel staff"
 
         #Functions that are to be called on each message,
         #must return False if the message was deleted

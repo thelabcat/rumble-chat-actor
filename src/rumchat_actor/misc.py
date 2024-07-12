@@ -151,3 +151,7 @@ class ClipUploader():
                 self.__upload_clip(self.clips_to_upload.pop(0))
             time.sleep(1)
         self.driver.quit()
+
+def is_staff(user):
+    """Check if a user is channel staff"""
+    return True in [badge in user.badges for badge in STAFF_BADGES]
