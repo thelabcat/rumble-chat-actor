@@ -303,6 +303,7 @@ class RumbleChatActor():
         assert len(text) < MAX_MULTIMESSAGE_LEN, "Message is too long"
         for subtext in textwrap.wrap(text, width = MAX_MESSAGE_LEN):
             self.outbox.append(subtext)
+            print("💬:", subtext)
 
     def _sender_loop(self):
         """Constantly check our outbox and send any messages in it"""
