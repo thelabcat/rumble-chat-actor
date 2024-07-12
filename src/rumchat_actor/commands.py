@@ -6,6 +6,7 @@ S.D.G."""
 
 import glob
 import os
+import random
 import shutil
 import sys
 import tempfile
@@ -22,6 +23,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import talkey
 from .localvars import *
+from . import misc
 
 class ChatCommand():
     """Chat command abstract class"""
@@ -730,3 +732,112 @@ class ClipRecordingCommand(ChatCommand):
 
         if self.clip_uploader:
             self.clip_uploader.upload_clip(filename)
+
+class RaffleCommand(ChatCommand):
+    """Create, enter, and draw from raffles"""
+    def __init__(self, actor, name = "raffle"):
+        """actor: The Rumchat Actor
+    name: The name of the command"""
+        super().__init__(name = name, actor = actor)
+
+        #Username entries in the raffle
+        self.entries = []
+
+        #Winner of last raffle
+        self.winner = None
+
+        #Arguments we can take and associated methods
+        self.operations = {
+            "enter" : self.make_entry,
+            "remove" : self.remove_entry,
+            "count" : self.count_entries,
+            "draw" : self.draw_entry,
+            "winner" : self.report_winner,
+            "reset" : self.reset,
+            }
+
+    @property
+    def help_message(self):
+        """The help message for this command"""
+        return f"Do raffles in the chat. Use {COMMAND_PREFIX}{self.name} [argument]. Valid arguments are: {", ".join(self.operations)}"
+
+    def run(self, message):
+        """Run the raffle command"""
+
+        segs = message.text.split()
+        #Only called command, no arguments
+        if len(segs) == 1:
+            #self.actor.send_message(self.help_message)
+            print(f"{message.user.username} called the raffle command but without an argument. No action taken.")
+            return
+
+        #Valid argument
+        if segs[1] in self.operations:
+            self.operations[segs[1]](message)
+
+    def make_entry(self, message):
+        """An entry was made by the sender of the message"""
+        if message.user.username in self.entries:
+            print(f"@{message.user.username} is already in the raffle.")
+            return
+
+        self.entries.append(message.user.username)
+        print(f"@{message.user.username} has entered the raffle.")
+
+    def remove_entry(self, message):
+        """Remove an entry from the raffle"""
+        segs = message.text.split()
+        #No username argument, the user wishes to remove themselves
+        if len(segs) == 2:
+            removal = message.user.username
+        else:
+            removal = segs[2].removesuffix("@")
+
+        #Non-staff is trying to remove someone besides themselves
+        if not misc.is_staff(message.user) and removal != message.user.username:
+            #self.actor.send_message(f"@{message.user.username} You cannot remove another user from the raffle since you are not staff.")
+            print(f"{message.user.username} Tried to remove {removal} from the raffle without the authority to do so.")
+            return
+
+        if removal not in self.entries:
+            self.actor.send_message(f"@{message.user.username} The user {removal} was not entered in the raffle.")
+            return
+
+        self.entries.remove(removal)
+        self.actor.send_message(f"The user {removal} was removed from the raffle.")
+
+    def count_entries(self, message):
+        """Report the number of entries made so far"""
+        count = len(self.entries)
+        self.actor.send_message(f"@{message.user.username} There {("are", "is")[count == 1]} currently {("no", count)[count != 0]} {("entries", "entry")[count == 1]} in the raffle.")
+
+    def draw_entry(self, message):
+        """Draw a winner"""
+        if not misc.is_staff(message.user):
+            print(f"{message.user.username} tried to draw a raffle winner without the authority to do so.")
+            return
+
+        if len(self.entries) < 2:
+            self.actor.send_message(f"@{message.user.username} Cannot draw from raffle yet, need at least two entries.")
+            return
+
+        self.winner = random.choice(self.entries)
+        self.report_winner(message)
+
+    def report_winner(self, message):
+        """Report the current winner"""
+        if not self.winner:
+            self.actor.send_message(f"@{message.user.username} There is no current winner.")
+            return
+
+        self.actor.send_message(f"@{message.user.username} The winner of the raffle is @{self.winner}")
+
+    def reset(self, message):
+        """Reset the raffle"""
+        if not misc.is_staff(message.user):
+            print(f"{message.user.username} tried to reset the raffle without the authority to do so.")
+            return
+
+        self.entries = []
+        self.winner = None
+        self.actor.send_message(f"@{message.user.username} Raffle reset.")
