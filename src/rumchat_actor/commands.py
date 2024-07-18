@@ -775,6 +775,10 @@ class RaffleCommand(ChatCommand):
         if segs[1] in self.operations:
             self.operations[segs[1]](message)
 
+        #Invalid argument
+        else:
+            print(f"{message.user.username} called the raffle command but with invalid argument(s): {", ".join(segs[1:])}. No action taken.")
+
     def make_entry(self, message):
         """An entry was made by the sender of the message"""
         if message.user.username in self.entries:
