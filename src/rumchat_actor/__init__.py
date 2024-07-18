@@ -129,31 +129,42 @@ class RumbleChatActor():
             options.add_argument(kwargs["profile_dir"])
 
         #Get browser
-        self.browser = webdriver.Firefox(options = options)
-        self.browser.minimize_window()
-        self.browser.get(CHAT_URL.format(stream_id_b10 = self.ssechat.stream_id_b10))
-        assert "Chat" in self.browser.title
+        self.driver = webdriver.Firefox(options = options)
+        self.driver.minimize_window()
+        self.driver.get(CHAT_URL.format(stream_id_b10 = self.ssechat.stream_id_b10))
+        assert "Chat" in self.driver.title
 
         #Sign in to chat, unless we are already. While there is a sign-in button...
+        first_time = True
         while sign_in_buttn := self.get_sign_in_button():
-            #We have credentials
-            if "username" in kwargs and "password" in kwargs:
-                sign_in_buttn.click()
-                WebDriverWait(self.browser, BROWSER_WAIT_TIMEOUT).until(
-                    EC.visibility_of_element_located((By.ID, "login-username")),
-                    "Timed out waiting for sign-in dialouge"
-                    )
+            sign_in_buttn.click()
 
-                uname_field = self.browser.find_element(By.ID, "login-username")
-                uname_field.send_keys(kwargs["username"] + Keys.RETURN)
-                self.browser.find_element(By.ID, "login-password").send_keys(kwargs["password"] + Keys.RETURN)
+            #First time going around this loop
+            if first_time:
+                #We have any credentials, wait for the sign in dialouge and enter what wa have
+                if "username" in kwargs or "password" in kwargs:
+                    WebDriverWait(self.driver, BROWSER_WAIT_TIMEOUT).until(
+                        EC.visibility_of_element_located((By.ID, "login-username")),
+                        "Timed out waiting for sign-in dialouge"
+                        )
 
-            #We do not have credentials, ask for manual sign in
-            self.browser.maximize_window()
-            input("Please log in at the browser, then press enter here.")
+                #We have the username
+                if "username" in kwargs:
+                    self.driver.find_element(By.ID, "login-username").send_keys(kwargs["username"] + Keys.RETURN)
+
+                #We have the password
+                if "password" in kwargs:
+                    self.driver.find_element(By.ID, "login-password").send_keys(kwargs["password"] + Keys.RETURN)
+
+                first_time = False
+
+            #We do not have both, ask for manual login
+            if "username" not in kwargs or "password" not in kwargs:
+                self.driver.maximize_window()
+                input("Please log in at the browser, then press enter here.")
 
         #Wait for signed in loading to complete
-        WebDriverWait(self.browser, BROWSER_WAIT_TIMEOUT).until(
+        WebDriverWait(self.driver, BROWSER_WAIT_TIMEOUT).until(
             EC.element_to_be_clickable((By.ID, "chat-message-text-input")),
             "Timed out waiting for chat message field to become usable"
             )
@@ -291,7 +302,7 @@ class RumbleChatActor():
     def get_sign_in_button(self):
         """Look for the sign in button"""
         try:
-            return self.browser.find_element(By.CLASS_NAME, "chat--sign-in")
+            return self.driver.find_element(By.CLASS_NAME, "chat--sign-in")
         except selenium.common.exceptions.NoSuchElementException:
             print("Could not find sign-in button, already signed in.")
             return None
@@ -320,11 +331,11 @@ class RumbleChatActor():
 
         self.sent_messages.append(text)
         self.last_message_send_time = time.time()
-        self.browser.find_element(By.ID, "chat-message-text-input").send_keys(text + Keys.RETURN)
+        self.driver.find_element(By.ID, "chat-message-text-input").send_keys(text + Keys.RETURN)
 
     def hover_element(self, element):
         """Hover over a selenium element"""
-        ActionChains(self.browser).move_to_element(element).perform()
+        ActionChains(self.driver).move_to_element(element).perform()
 
     def open_moderation_menu(self, message):
         """Open the moderation menu of a message"""
@@ -337,7 +348,7 @@ class RumbleChatActor():
         #Find the message by ID
         elif isinstance(message, int):
             message_id = message
-            message_li = self.browser.find_element(
+            message_li = self.driver.find_element(
                 By.XPATH,
                 "//li[@class='chat-history--row js-chat-history-item']" +
                 f"[@data-message-id='{message_id}']"
@@ -346,7 +357,7 @@ class RumbleChatActor():
         #The message has a message ID attribute
         elif hasattr(message, "message_id"):
             message_id = message.message_id
-            message_li = self.browser.find_element(
+            message_li = self.driver.find_element(
                 By.XPATH,
                 "//li[@class='chat-history--row js-chat-history-item']" +
                 f"[@data-message-id='{message_id}']"
@@ -384,7 +395,7 @@ class RumbleChatActor():
             print("Could not delete message.")
             return
 
-        del_bttn = self.browser.find_element(
+        del_bttn = self.driver.find_element(
             By.XPATH,
             f"//button[@class='cmi js-btn-delete-current'][@data-message-id='{m_id}']"
             )
@@ -392,13 +403,13 @@ class RumbleChatActor():
         del_bttn.click()
 
         #Wait for the confirmation to appear
-        WebDriverWait(self.browser, BROWSER_WAIT_TIMEOUT).until(
+        WebDriverWait(self.driver, BROWSER_WAIT_TIMEOUT).until(
             EC.alert_is_present(),
             "Timed out waiting for deletion confirmation dialouge to appear"
             )
 
         #Confirm the confirmation dialog
-        Alert(self.browser).accept()
+        Alert(self.driver).accept()
 
     def mute_by_message(self, message, mute_level = "5"):
         """Mute a user by message"""
@@ -407,7 +418,7 @@ class RumbleChatActor():
             print("Could not mute by message.")
             return
 
-        timeout_bttn = self.browser.find_element(
+        timeout_bttn = self.driver.find_element(
             By.XPATH,
             f"//button[@class='{MUTE_LEVELS[mute_level]}']"
             )
@@ -417,7 +428,7 @@ class RumbleChatActor():
     def mute_by_appearname(self, name, mute_level = "5"):
         """Mute a user by the name they are appearing with"""
         #Find any chat message by this user
-        message_li = self.browser.find_element(
+        message_li = self.driver.find_element(
             By.XPATH,
             f"//li[@class='chat-history--row js-chat-history-item'][@data-username='{name}']"
             )
@@ -431,13 +442,13 @@ class RumbleChatActor():
             print("Could not pin message.")
             return
 
-        pin_bttn = self.browser.find_element(By.XPATH, "//button[@class='cmi js-btn-pin-current']")
+        pin_bttn = self.driver.find_element(By.XPATH, "//button[@class='cmi js-btn-pin-current']")
         pin_bttn.click()
 
     def unpin_message(self):
         """Unpin the currently pinned message"""
         try:
-            unpin_bttn = self.browser.find_element(
+            unpin_bttn = self.driver.find_element(
                 By.XPATH,
                 "//button[@data-js='remove_pinned_message_button']"
                 )
@@ -451,7 +462,7 @@ class RumbleChatActor():
     def quit(self):
         """Shut down everything"""
         self.keep_running = False
-        self.browser.quit()
+        self.driver.quit()
         # TODO how to close an SSEClient?
         # self.ssechat.client.close()
 
