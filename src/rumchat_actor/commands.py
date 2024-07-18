@@ -778,11 +778,11 @@ class RaffleCommand(ChatCommand):
     def make_entry(self, message):
         """An entry was made by the sender of the message"""
         if message.user.username in self.entries:
-            print(f"@{message.user.username} is already in the raffle.")
+            print(f"{message.user.username} is already in the raffle.")
             return
 
         self.entries.append(message.user.username)
-        print(f"@{message.user.username} has entered the raffle.")
+        print(f"{message.user.username} has entered the raffle.")
 
     def remove_entry(self, message):
         """Remove an entry from the raffle"""
@@ -804,7 +804,7 @@ class RaffleCommand(ChatCommand):
             return
 
         self.entries.remove(removal)
-        self.actor.send_message(f"The user {removal} was removed from the raffle.")
+        self.actor.send_message(f"@{message.user.username} The user {removal} was removed from the raffle.")
 
     def count_entries(self, message):
         """Report the number of entries made so far"""
