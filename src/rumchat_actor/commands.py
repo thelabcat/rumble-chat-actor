@@ -640,8 +640,7 @@ class ClipRecordingCommand(ChatCommand):
             self.__recording_filename = filedialog.askopenfilename(
                 title = "Select OBS recording in progress",
                 initialdir = self.recording_load_path,
-                filetypes=(("Freezable video files", ";".join("*." + container for container in VALID_CLIP_RECORDING_CONTAINERS)),
-                                       ("All files", "*.*") ),
+                filetypes = CLIPPABLE_RECORDING_FILE_OPTIONS,
                 )
 
             #Destroy the background window

@@ -61,7 +61,12 @@ DEFAULT_CLIP_BITRATE = STREAM_QUALITIES["1080p"]
 
 #Formats that the OBS recording can be in if recording-trimmed clips are to work
 #Must be moviepy loadable even if copied while being recorded to
-VALID_CLIP_RECORDING_CONTAINERS = ["ts"]
+#In the format for Tkinter file picking
+CLIPPABLE_RECORDING_FILE_OPTIONS = (
+    ("Fragmented or hybrid video", ";".join("*." + container for container in ("mp4", "mov"))),
+    ("MPEG-TS stream video", "*.ts"),
+    ("All files", "*.*"),
+)
 
 #Filename of the temporary copy of an OBS recording, used for ClipRecordingCommand
 TEMP_RECORDING_COPY_FILENAME = ".temp_recording_copy"
