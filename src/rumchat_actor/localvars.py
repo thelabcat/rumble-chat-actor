@@ -82,3 +82,6 @@ RUMBLE_UPLOAD_URL = RUMBLE_BASE_URL + "/upload.php"
 #Default primary and secondary category of clips
 CLIP_CATEGORY_1 = "Entertainment"
 CLIP_CATEGORY_2 = None
+
+#OLLaMa model to use for auto-modetation
+OLLAMA_MODEL = "llama3.1"

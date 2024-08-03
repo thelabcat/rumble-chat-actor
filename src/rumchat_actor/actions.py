@@ -30,7 +30,7 @@ def ollama_message_moderate(message, actor):
         return True
 
     #Get the LLM verdict
-    response = ollama.chat(model = "llama3", messages = [
+    response = ollama.chat(model = OLLAMA_MODEL, messages = [
         {"role" : "system", "content" : LLM_MODERATOR_SYS_MESSAGE},
         {"role" : "user", "content" : message.text},
         ])
