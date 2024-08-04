@@ -90,3 +90,7 @@ CLIP_CATEGORY_2 = None
 
 #OLLaMa model to use for auto-modetation
 OLLAMA_MODEL = "llama3.1"
+
+#Default messages for the follow and subscribe thanker
+DEFAULT_THANK_FOLLOWER = "Thank you @{follower.username} for the follow!"
+DEFAULT_THANK_SUBSCRIBER = "Thank you @{subscriber.username} for the ${subscriber.amount_cents / 100 : .2f} subscription!"
