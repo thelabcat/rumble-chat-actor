@@ -153,35 +153,35 @@ class ClipUploader():
         self.driver.quit()
 
 class Thanker(threading.Thread):
-	"""Thank followers and subscribers in the chat"""
-	def __init__(self, actor):
-		"""Pass the Rumble Chat Actor"""
-		super().__init__()
-		self.actor = actor
-		self.rum_api = self.actor.rum_api
-		assert self.rum_api, "Thanker cannot function if actor does not have Rumble API"
-		
-		#Set up default messages
-		self.follower_message = DEFAULT_THANK_FOLLOWER
-		self.subscriber_message = DEFAULT_THANK_SUBSCRIBER
-		
-		#Start the thread immediately
-		self.start()
-	
-	def run(self):
-		"""Continuously check for new followers and subscribers"""
-		while self.actor.keep_running:
-			#Thank all the new followers
-			for f in self.rum_api.new_followers:
-				self.actor.send_message(self.follower_message.format(follower = f))
-				
-			#Thank all the new subscribers
-			for s in self.rum_api.new_subscribers:
-				self.actor.send_message(self.follower_message.format(subscriber = s))
-			
-			#Wait a bit, either the Rumble API refresh rate or the message sending cooldown
-			time.sleep(max((self.rum_api.refresh_rate, SEND_MESSAGE_COOLDOWN)))
-		
+    """Thank followers and subscribers in the chat"""
+    def __init__(self, actor):
+        """Pass the Rumble Chat Actor"""
+        super().__init__()
+        self.actor = actor
+        self.rum_api = self.actor.rum_api
+        assert self.rum_api, "Thanker cannot function if actor does not have Rumble API"
+
+        #Set up default messages
+        self.follower_message = DEFAULT_THANK_FOLLOWER
+        self.subscriber_message = DEFAULT_THANK_SUBSCRIBER
+
+        #Start the thread immediately
+        self.start()
+
+    def run(self):
+        """Continuously check for new followers and subscribers"""
+        while self.actor.keep_running:
+            #Thank all the new followers
+            for f in self.rum_api.new_followers:
+                self.actor.send_message(self.follower_message.format(follower = f))
+
+            #Thank all the new subscribers
+            for s in self.rum_api.new_subscribers:
+                self.actor.send_message(self.follower_message.format(subscriber = s))
+
+            #Wait a bit, either the Rumble API refresh rate or the message sending cooldown
+            time.sleep(max((self.rum_api.refresh_rate, SEND_MESSAGE_COOLDOWN)))
+
 def is_staff(user):
     """Check if a user is channel staff"""
     return True in [badge in user.badges for badge in STAFF_BADGES]
