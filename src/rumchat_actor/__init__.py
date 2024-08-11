@@ -12,7 +12,7 @@ def eat_some_cheese(message, actor):
     if "cheese" in message.text.lower():
         actor.send_message(f"@{message.user.username} Eat some cheese 🧀.")
 
-    return True #Actions should return None or False if they had to delete a message
+    #Actions should return True if they had to delete a message
 
 #stream_id is either the base 10 or base 36 livestream ID you want the Actor to connect to, obtained from the popout chat or the Rumble Live Stream API.
 #If stream_id is None but you pass api_url, the latest livestream shown on the API is chosen automatically.
@@ -508,8 +508,8 @@ class RumbleChatActor():
     def register_message_action(self, action):
         """Register an action callable to be run on every message
     - Action will be passed cocorum.ssechat.SSEChatMessage() and this actor
-    - Action should return True if the message survived the action
-    - Action should return False if the message was deleted by the action"""
+    - Action should return False if the message survived the action
+    - Action should return True if the message was deleted by the action"""
         assert callable(action), "Action must be a callable"
         self.message_actions.append(action)
 
@@ -545,7 +545,7 @@ class RumbleChatActor():
 
         for action in self.message_actions:
             #The message got deleted, possibly by this action
-            if message.message_id in self.ssechat.deleted_message_ids or not action(message, self):
+            if message.message_id in self.ssechat.deleted_message_ids or action(message, self):
                 return
 
         self.__run_if_command(message)

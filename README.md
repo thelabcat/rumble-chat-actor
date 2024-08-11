@@ -15,11 +15,11 @@ Example usage:
 import rumchat_actor
 
 def eat_some_cheese(message, actor):
-    """If a message mentions cheese, eat some cheese"""
+    '''If a message mentions cheese, eat some cheese'''
     if "cheese" in message.text.lower():
         actor.send_message(f"@{message.user.username} Eat some cheese 🧀.")
 
-    return True #Actions should return None or False if they had to delete a message
+    #Actions should return True if they had to delete a message
 
 #stream_id is either the base 10 or base 36 livestream ID you want the Actor to connect to, obtained from the popout chat or the Rumble Live Stream API.
 #If stream_id is None but you pass api_url, the latest livestream shown on the API is chosen automatically.

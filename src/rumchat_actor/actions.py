@@ -42,22 +42,22 @@ def ollama_message_moderate(message, actor):
     #Verdict was not valid
     except ValueError:
         print(f"Bad verdict for {message.text} : {response["message"]["content"]}")
-        return True
+        return False
 
     #Response was not in expected format
     except KeyError:
         print(f"Could not get verdict for {message.text} : Response: {response}")
-        return True
+        return False
 
     #Returned 1 for SFW
     if verdict:
         print("LLM verdicted as clean: " + message.text)
-        return True
+        return False
 
     #Returned 0 for NSFW
     print("LLM verdicted as dirty: " + message.text)
     actor.delete_message(message)
-    return False
+    return True
 
 class RantTTSManager():
     """System to TTS rant messages, with threshhold settings"""
@@ -124,7 +124,6 @@ class TimedMessagesManager():
     def action(self, message, actor):
         """Count the messages sent"""
         self.in_between_counter += 1
-        return True
 
     def sender_loop(self):
         """Continuously wait till it is time to send another message"""
