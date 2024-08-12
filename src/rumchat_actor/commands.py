@@ -23,7 +23,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import talkey
 from .localvars import *
-from . import misc
+from . import misc, utils
 
 class ChatCommand():
     """Chat command abstract class"""
@@ -797,7 +797,7 @@ class RaffleCommand(ChatCommand):
             removal = segs[2].removesuffix("@")
 
         #Non-staff is trying to remove someone besides themselves
-        if not misc.is_staff(message.user) and removal != message.user.username:
+        if not utils.is_staff(message.user) and removal != message.user.username:
             #self.actor.send_message(f"@{message.user.username} You cannot remove another user from the raffle since you are not staff.")
             print(f"{message.user.username} Tried to remove {removal} from the raffle without the authority to do so.")
             return
@@ -816,7 +816,7 @@ class RaffleCommand(ChatCommand):
 
     def draw_entry(self, message):
         """Draw a winner"""
-        if not misc.is_staff(message.user):
+        if not utils.is_staff(message.user):
             print(f"{message.user.username} tried to draw a raffle winner without the authority to do so.")
             return
 
@@ -837,7 +837,7 @@ class RaffleCommand(ChatCommand):
 
     def reset(self, message):
         """Reset the raffle"""
-        if not misc.is_staff(message.user):
+        if not utils.is_staff(message.user):
             print(f"{message.user.username} tried to reset the raffle without the authority to do so.")
             return
 

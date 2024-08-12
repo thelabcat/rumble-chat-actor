@@ -181,7 +181,3 @@ class Thanker(threading.Thread):
 
             #Wait a bit, either the Rumble API refresh rate or the message sending cooldown
             time.sleep(max((self.rum_api.refresh_rate, SEND_MESSAGE_COOLDOWN)))
-
-def is_staff(user):
-    """Check if a user is channel staff"""
-    return True in [badge in user.badges for badge in STAFF_BADGES]

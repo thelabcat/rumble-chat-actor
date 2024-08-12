@@ -47,7 +47,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from . import actions, commands, misc
+from . import actions, commands, misc, utils
 from .localvars import *
 
 class RumbleChatActor():
@@ -212,7 +212,7 @@ class RumbleChatActor():
         while (m := self.ssechat.get_message()).user.username != self.username:
             pass
 
-        assert misc.is_staff(m.user), \
+        assert utils.is_staff(m.user), \
             "Actor cannot function without being channel staff"
 
         #Functions that are to be called on each message,
