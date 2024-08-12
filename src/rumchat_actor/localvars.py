@@ -22,6 +22,9 @@ USER_URL = RUMBLE_BASE_URL + "/user/{username}"
 #Rumble channel URL. Format with channel_name
 CHANNEL_URL = RUMBLE_BASE_URL + "/c/{channel_name}"
 
+#Rumble control service
+SERVICE_URL = RUMBLE_BASE_URL + "/service.php"
+
 #Maximum chat message length
 MAX_MESSAGE_LEN = 200
 
