@@ -13,7 +13,7 @@ import tempfile
 import time
 import threading
 from tkinter import filedialog, Tk
-from cocorum.localvars import RUMBLE_BASE_URL, DEFAULT_TIMEOUT
+from cocorum.localvars import DEFAULT_TIMEOUT
 from browsermobproxy import Server
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
@@ -22,12 +22,11 @@ import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 import talkey
-from .localvars import *
-from . import misc, utils
+from . import utils, static
 
 class ChatCommand():
     """Chat command abstract class"""
-    def __init__(self, name, actor, cooldown = SEND_MESSAGE_COOLDOWN, amount_cents = 0, exclusive = False, allowed_badges = ["subscriber"], whitelist_badges = ["moderator"], target = None):
+    def __init__(self, name, actor, cooldown = static.Message.send_cooldown, amount_cents = 0, exclusive = False, allowed_badges = ["subscriber"], whitelist_badges = ["moderator"], target = None):
         """name: The !name of the command
     actor: The RumleChatActor host object
     amount_cents: The minimum cost of the command. Defaults to free
@@ -39,8 +38,8 @@ class ChatCommand():
         assert " " not in name, "Name cannot contain spaces"
         self.name = name
         self.actor = actor
-        assert cooldown >= SEND_MESSAGE_COOLDOWN, \
-            f"Cannot set a cooldown shorter than {SEND_MESSAGE_COOLDOWN}"
+        assert cooldown >= static.Message.send_cooldown, \
+            f"Cannot set a cooldown shorter than {static.Message.send_cooldown}"
 
         self.cooldown = cooldown
         self.amount_cents = amount_cents #Cost of the command
@@ -127,7 +126,7 @@ class TTSCommand(ChatCommand):
     def help_message(self):
         """The help message for this command"""
         return f"Speak your message{f" for ${self.amount_cents/100: .2%}" if self.amount_cents else ""}." + \
-            f"Use {COMMAND_PREFIX + self.name} [voice] Your message. Available voices are: " + ", ".join(self.voices)
+            f"Use {static.Message.command_prefix + self.name} [voice] Your message. Available voices are: " + ", ".join(self.voices)
 
     @property
     def default_voice(self):
@@ -195,7 +194,7 @@ class HelpCommand(ChatCommand):
     @property
     def help_message(self):
         """The help message for this command"""
-        return f"Get help on a specific command with {COMMAND_PREFIX + self.name} [command_name] or run alone to list all available commands."
+        return f"Get help on a specific command with {static.Message.command_prefix + self.name} [command_name] or run alone to list all available commands."
 
     def run(self, message):
         """Run the help command"""
@@ -239,9 +238,9 @@ class KillswitchCommand(ChatCommand):
             print("Killswitch thrown.")
             sys.exit()
 
-class ClipDownloaderCommand(ChatCommand):
+class ClipDownloadingCommand(ChatCommand):
     """Save clips of the livestream by downloading stream chunks from Rumble, works remotely"""
-    def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, clip_save_path = "." + os.sep, browsermob_exe = BROWSERMOB_EXE):
+    def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, clip_save_path = "." + os.sep, browsermob_exe = static.Driver.browsermob_exe):
         """actor: The Rumchat Actor
     name: The name of the command
     default_duration: How long the clip will last with no duration specified
@@ -274,7 +273,7 @@ class ClipDownloaderCommand(ChatCommand):
     @property
     def help_message(self):
         """The help message for this command"""
-        return f"Save a clip from the livestream. Use {COMMAND_PREFIX + self.name} [duration] [custom clip name]." + \
+        return f"Save a clip from the livestream. Use {static.Message.command_prefix + self.name} [duration] [custom clip name]." + \
             f"Default duration is {self.default_duration}, max duration is {self.max_duration}."
 
     def get_ts_list(self, quality):
@@ -311,7 +310,7 @@ class ClipDownloaderCommand(ChatCommand):
                                                 f"[@data-video-id='{self.actor.stream_id_b10}']"
                                                 )
 
-        stream_url = RUMBLE_BASE_URL + "/" + stream_griditem.find_element(By.CLASS_NAME, 'videostream__link.link').get_attribute("href")
+        stream_url = static.URI.rumble_base + "/" + stream_griditem.find_element(By.CLASS_NAME, 'videostream__link.link').get_attribute("href")
         print("Waiting for stream to go live before starting clip recorder...")
         while not self.stream_is_live:
             self.stream_is_live = bool(stream_griditem.find_elements(By.CLASS_NAME, "videostream__badge.videostream__status.videostream__status--live"))
@@ -336,7 +335,7 @@ class ClipDownloaderCommand(ChatCommand):
                 return
 
             #Stream is still upcoming
-            time.sleep(WAIT_FOR_PAGE_CONDITION_REFRESH_RATE)
+            time.sleep(static.Driver.page_refresh_rate)
             browser.refresh()
             stream_griditem = browser.find_element(By.XPATH,
                                                     "//div[@class='videostream thumbnail__grid--item']" +
@@ -376,17 +375,17 @@ class ClipDownloaderCommand(ChatCommand):
         self.get_quality_info()
 
         if self.is_dvr:
-            self.use_quality = [q for q in STREAM_QUALITIES if q not in self.unavailable_qualities][-1]
+            self.use_quality = [q for q in static.Clip.Download.stream_qualities if q not in self.unavailable_qualities][-1]
             print("Not using TS cache for clips since stream is DVR. Ready to clip.")
             self.run_recorder = False
             self.ready_to_clip = True
             return
 
         #Find the best quality we can use
-        for quality in STREAM_QUALITIES:
+        for quality in static.Clip.Download.stream_qualities:
             if quality in self.unavailable_qualities:
                 continue
-            if self.average_ts_download_times[quality] > self.ts_durations[quality] / TS_DOWNLOAD_SPEEDFACTOR_REQUIREMENT:
+            if self.average_ts_download_times[quality] > self.ts_durations[quality] / static.Clip.Download.speed_factor_req:
                 continue
             self.use_quality = quality
 
@@ -435,10 +434,10 @@ class ClipDownloaderCommand(ChatCommand):
         """Get information on the stream quality options: Download time, TS length, availability"""
         print("Getting info on stream qualities")
         assert self.ts_url_start, "Must have the TS URL start before this runs"
-        for quality in STREAM_QUALITIES:
+        for quality in static.Clip.Download.stream_qualities:
             download_times = []
             chunk_content = None #The content of a successful chunk download. used for duration checking
-            for _ in range(NUM_TS_DOWNLOAD_TIME_CHECKS):
+            for _ in range(static.Clip.Download.speed_test_iter):
                 r1 = None
                 try:
                     r1 = requests.get(self.ts_url_start.format(quality = quality) + self.m3u8_filename, timeout = DEFAULT_TIMEOUT)
@@ -545,7 +544,7 @@ class ClipDownloaderCommand(ChatCommand):
         #Avoid overwriting other clips
         increment = 0
         safe_filename = filename
-        while safe_filename + "." + CLIP_FILENAME_EXTENSION in glob.glob("*", root_dir = self.clip_save_path):
+        while safe_filename + "." + static.Clip.save_extension in glob.glob("*", root_dir = self.clip_save_path):
             increment += 1
             safe_filename = filename + f"({increment})"
 
@@ -584,7 +583,7 @@ class ClipDownloaderCommand(ChatCommand):
 
         #Save
         print("Saving clip")
-        clip.write_videofile(self.clip_save_path + filename + "." + CLIP_FILENAME_EXTENSION, bitrate = STREAM_QUALITIES[self.use_quality], logger = None)
+        clip.write_videofile(self.clip_save_path + filename + "." + static.Clip.save_extension, bitrate = static.Clip.Download.stream_qualities[self.use_quality], logger = None)
 
         self.running_clipsaves -= 1
         if self.running_clipsaves < 0:
@@ -624,7 +623,7 @@ class ClipRecordingCommand(ChatCommand):
     @property
     def help_message(self):
         """The help message for this command"""
-        return f"Save a clip from the livestream. Use {COMMAND_PREFIX + self.name} [duration] [custom clip name]." + \
+        return f"Save a clip from the livestream. Use {static.Message.command_prefix + self.name} [duration] [custom clip name]." + \
             f"Default duration is {self.default_duration}, max duration is {self.max_duration}."
 
     @property
@@ -640,7 +639,7 @@ class ClipRecordingCommand(ChatCommand):
             self.__recording_filename = filedialog.askopenfilename(
                 title = "Select OBS recording in progress",
                 initialdir = self.recording_load_path,
-                filetypes = CLIPPABLE_RECORDING_FILE_OPTIONS,
+                filetypes = static.Clip.Record.input_options,
                 )
 
             #Destroy the background window
@@ -656,10 +655,10 @@ class ClipRecordingCommand(ChatCommand):
     @property
     def recording_copy_fn(self):
         """The filename of the temporary recording copy"""
-        return TEMP_RECORDING_COPY_FILENAME + "." + self.recording_container
+        return static.Clip.Record.temp_copy_fn + "." + self.recording_container
 
     def run(self, message):
-        """Make a clip. TODO mostly identical to ClipDownloaderCommand().run()"""
+        """Make a clip. TODO mostly identical to ClipDownloadingCommand().run()"""
         segs = message.text.split()
         #Only called clip, no arguments
         if len(segs) == 1:
@@ -696,7 +695,7 @@ class ClipRecordingCommand(ChatCommand):
         #Avoid overwriting other clips
         increment = 0
         safe_filename = filename
-        while safe_filename + "." + CLIP_FILENAME_EXTENSION in glob.glob("*", root_dir = self.clip_save_path):
+        while safe_filename + "." + static.Clip.save_extension in glob.glob("*", root_dir = self.clip_save_path):
             increment += 1
             safe_filename = filename + f"({increment})"
 
@@ -717,7 +716,7 @@ class ClipRecordingCommand(ChatCommand):
         print("Loading copy")
         recording = VideoFileClip(self.recording_copy_fn)
         print("Saving trimmed clip")
-        ffmpeg_extract_subclip(self.recording_copy_fn, max((recording.duration - duration, 0)), recording.duration, targetname = self.clip_save_path + os.sep + filename + "." + CLIP_FILENAME_EXTENSION)
+        ffmpeg_extract_subclip(self.recording_copy_fn, max((recording.duration - duration, 0)), recording.duration, targetname = self.clip_save_path + os.sep + filename + "." + static.Clip.save_extension)
         print("Closing and deleting frozen copy")
         recording.close()
         os.system("rm " + self.recording_copy_fn)
@@ -758,7 +757,7 @@ class RaffleCommand(ChatCommand):
     @property
     def help_message(self):
         """The help message for this command"""
-        return f"Do raffles in the chat. Use {COMMAND_PREFIX}{self.name} [argument]. Valid arguments are: {", ".join(self.operations)}"
+        return f"Do raffles in the chat. Use {static.Message.command_prefix}{self.name} [argument]. Valid arguments are: {", ".join(self.operations)}"
 
     def run(self, message):
         """Run the raffle command"""

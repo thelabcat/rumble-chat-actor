@@ -8,7 +8,8 @@ S.D.G"""
 import threading
 import time
 import talkey
-from .localvars import *
+from . import static
+
 try:
     import ollama
     OLLAMA_IMPORTED = True
@@ -25,13 +26,13 @@ def ollama_message_moderate(message, actor):
         return True
 
     #User has an immunity badge
-    if True in [badge in message.user.badges for badge in STAFF_BADGES]:
+    if True in [badge in message.user.badges for badge in static.Moderation.staff_badges]:
         print(f"{message.user.username} is staff, skipping LLM check.")
         return True
 
     #Get the LLM verdict
-    response = ollama.chat(model = OLLAMA_MODEL, messages = [
-        {"role" : "system", "content" : LLM_MODERATOR_SYS_MESSAGE},
+    response = ollama.chat(model = static.AutoModerator.llm_model, messages = [
+        {"role" : "system", "content" : static.AutoModerator.llm_sys_prompt},
         {"role" : "user", "content" : message.text},
         ])
 
@@ -103,7 +104,7 @@ class TimedMessagesManager():
         self.actor = actor
         assert len(messages) > 0, "List of messages to send cannot be empty"
         self.messages = messages
-        assert delay > SEND_MESSAGE_COOLDOWN, "Cannot send timed messages that frequently"
+        assert delay > static.Message.send_cooldown, "Cannot send timed messages that frequently"
         self.delay = delay
         self.in_between = in_between
 

@@ -13,7 +13,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.select import Select
-from .localvars import *
+from . import static
 
 class ClipUploader():
     """Upload clips to Rumble automatically"""
@@ -42,7 +42,7 @@ class ClipUploader():
         self.driver.minimize_window()
 
         #Load the upload page
-        self.driver.get(RUMBLE_UPLOAD_URL)
+        self.driver.get(static.URI.upload_page)
 
         #Wait for sign in
         while "login" in self.driver.current_url:
@@ -73,10 +73,10 @@ class ClipUploader():
     def __upload_clip(self, filename):
         """Upload a clip to Rumble"""
         #Load the upload page
-        self.driver.get(RUMBLE_UPLOAD_URL)
+        self.driver.get(static.URI.upload_page)
 
         #Select file and begin upload
-        complete_filepath = self.clip_command.clip_save_path + filename + "." + CLIP_FILENAME_EXTENSION
+        complete_filepath = self.clip_command.clip_save_path + filename + "." + static.Clip.save_extension
         file_input = self.driver.find_element(By.CSS_SELECTOR, "input[type='file']")
         file_input.send_keys(complete_filepath)
 
@@ -92,9 +92,9 @@ class ClipUploader():
         self.driver.find_element(By.ID, "title").send_keys(title)
         self.driver.find_element(By.ID, "description").send_keys("Automatic clip upload. Enjoy!")
         #driver.find_element(By.ID, "tags").send_keys(", ".join(TAGS_LIST))
-        self.driver.find_element(By.NAME, "primary-category").send_keys(CLIP_CATEGORY_1 + Keys.RETURN)
-        if CLIP_CATEGORY_2:
-            self.driver.find_element(By.NAME, "secondary-category").send_keys(CLIP_CATEGORY_2 + Keys.RETURN)
+        self.driver.find_element(By.NAME, "primary-category").send_keys(static.Clip.Upload.category_1 + Keys.RETURN)
+        if static.Clip.Upload.category_2:
+            self.driver.find_element(By.NAME, "secondary-category").send_keys(static.Clip.Upload.category_2 + Keys.RETURN)
 
         #Select channel
         channel_id_select = Select(self.driver.find_element(By.ID, "channelId"))
@@ -162,8 +162,8 @@ class Thanker(threading.Thread):
         assert self.rum_api, "Thanker cannot function if actor does not have Rumble API"
 
         #Set up default messages
-        self.follower_message = DEFAULT_THANK_FOLLOWER
-        self.subscriber_message = DEFAULT_THANK_SUBSCRIBER
+        self.follower_message = static.Thank.DefaultMessages.follower
+        self.subscriber_message = static.Thank.DefaultMessages.subscriber
 
         #Start the thread immediately
         self.start()
@@ -172,12 +172,12 @@ class Thanker(threading.Thread):
         """Continuously check for new followers and subscribers"""
         while self.actor.keep_running:
             #Thank all the new followers
-            for f in self.rum_api.new_followers:
-                self.actor.send_message(self.follower_message.format(follower = f))
+            for follower in self.rum_api.new_followers:
+                self.actor.send_message(self.follower_message.format(follower))
 
             #Thank all the new subscribers
-            for s in self.rum_api.new_subscribers:
-                self.actor.send_message(self.follower_message.format(subscriber = s))
+            for subscriber in self.rum_api.new_subscribers:
+                self.actor.send_message(self.follower_message.format(subscriber))
 
             #Wait a bit, either the Rumble API refresh rate or the message sending cooldown
-            time.sleep(max((self.rum_api.refresh_rate, SEND_MESSAGE_COOLDOWN)))
+            time.sleep(max((self.rum_api.refresh_rate, static.Message.send_cooldown)))

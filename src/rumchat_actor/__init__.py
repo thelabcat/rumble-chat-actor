@@ -37,7 +37,7 @@ S.D.G."""
 import textwrap
 import time
 import threading
-from cocorum import RumbleAPI, utils
+from cocorum import RumbleAPI, utils as crutils
 from cocorum.ssechat import SSEChat
 import selenium
 from selenium import webdriver
@@ -47,8 +47,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from . import actions, commands, misc, utils
-from .localvars import *
+from . import actions, commands, misc, utils, static
 
 class RumbleChatActor():
     """Actor that interacts with Rumble chat"""
@@ -116,7 +115,7 @@ class RumbleChatActor():
             assert self.api_stream, "No stream ID was passed and you are not live"
 
             self.stream_id = self.api_stream.stream_id
-            self.stream_id_b10 = utils.stream_id_36_to_10(self.stream_id)
+            self.stream_id_b10 = crutils.stream_id_36_to_10(self.stream_id)
 
         #Get SSE chat and empty the mailbox
         self.ssechat = SSEChat(stream_id = self.stream_id)
@@ -131,7 +130,7 @@ class RumbleChatActor():
         #Get browser
         self.driver = webdriver.Firefox(options = options)
         self.driver.minimize_window()
-        self.driver.get(CHAT_URL.format(stream_id_b10 = self.ssechat.stream_id_b10))
+        self.driver.get(static.URI.chat_popout.format(stream_id_b10 = self.ssechat.stream_id_b10))
         assert "Chat" in self.driver.title
 
         #Sign in to chat, unless we are already. While there is a sign-in button...
@@ -143,7 +142,7 @@ class RumbleChatActor():
             if first_time:
                 #We have any credentials, wait for the sign in dialouge and enter what wa have
                 if "username" in kwargs or "password" in kwargs:
-                    WebDriverWait(self.driver, BROWSER_WAIT_TIMEOUT).until(
+                    WebDriverWait(self.driver, static.Driver.wait_timeout).until(
                         EC.visibility_of_element_located((By.ID, "login-username")),
                         "Timed out waiting for sign-in dialouge"
                         )
@@ -164,7 +163,7 @@ class RumbleChatActor():
                 input("Please log in at the browser, then press enter here.")
 
         #Wait for signed in loading to complete
-        WebDriverWait(self.driver, BROWSER_WAIT_TIMEOUT).until(
+        WebDriverWait(self.driver, static.Driver.wait_timeout).until(
             EC.element_to_be_clickable((By.ID, "chat-message-text-input")),
             "Timed out waiting for chat message field to become usable"
             )
@@ -281,21 +280,21 @@ class RumbleChatActor():
                 if self.api_stream:
                     #We know our channel ID from the API
                     if self.rum_api.channel_id:
-                        self.__streamer_main_page_url = CHANNEL_URL.format(channel_name = f"c-{self.rum_api.channel_id}")
+                        self.__streamer_main_page_url = static.URI.channel_page.format(channel_name = f"c-{self.rum_api.channel_id}")
 
                     #Is a channel stream and on the API but API is not for channel, use the user page instead
                     else:
-                        self.__streamer_main_page_url = USER_URL.format(username = self.streamer_username)
+                        self.__streamer_main_page_url = static.URI.user_page.format(username = self.streamer_username)
 
                 #Is not an API stream and we don't know the username
                 elif not self.__streamer_username:
-                    while not (specified := input("Enter streamer main page URL: ")).startswith(RUMBLE_BASE_URL):
+                    while not (specified := input("Enter streamer main page URL: ")).startswith(static.URI.rumble_base):
                         pass
                     self.__streamer_main_page_url = specified
 
             #Not a channel stream, go by username
             else:
-                self.__streamer_main_page_url = USER_URL.format(username = self.streamer_username)
+                self.__streamer_main_page_url = static.URI.user_page.format(username = self.streamer_username)
 
         return self.__streamer_main_page_url
 
@@ -309,10 +308,10 @@ class RumbleChatActor():
 
     def send_message(self, text):
         """Send a message in chat (splits across lines if necessary)"""
-        text = BOT_MESSAGE_PREFIX + text
+        text = static.Message.bot_prefix + text
         assert "\n" not in text, "Message cannot contain newlines"
-        assert len(text) < MAX_MULTIMESSAGE_LEN, "Message is too long"
-        for subtext in textwrap.wrap(text, width = MAX_MESSAGE_LEN):
+        assert len(text) < static.Message.max_multi_len, "Message is too long"
+        for subtext in textwrap.wrap(text, width = static.Message.max_len):
             self.outbox.append(subtext)
             print("💬:", subtext)
 
@@ -320,14 +319,14 @@ class RumbleChatActor():
         """Constantly check our outbox and send any messages in it"""
         while self.keep_running:
             #We have messages to send and it is time to send one
-            if self.outbox and time.time() - self.last_message_send_time > SEND_MESSAGE_COOLDOWN:
+            if self.outbox and time.time() - self.last_message_send_time > static.Message.send_cooldown:
                 self.__send_message(self.outbox.pop(0))
             time.sleep(0.1)
 
     def __send_message(self, text):
         """Send a message in chat"""
-        assert len(text) < MAX_MESSAGE_LEN, \
-            f"Message with prefix cannot be longer than {MAX_MESSAGE_LEN} characters"
+        assert len(text) < static.Message.max_len, \
+            f"Message with prefix cannot be longer than {static.Message.max_len} characters"
 
         self.sent_messages.append(text)
         self.last_message_send_time = time.time()
@@ -403,7 +402,7 @@ class RumbleChatActor():
         del_bttn.click()
 
         #Wait for the confirmation to appear
-        WebDriverWait(self.driver, BROWSER_WAIT_TIMEOUT).until(
+        WebDriverWait(self.driver, static.Driver.wait_timeout).until(
             EC.alert_is_present(),
             "Timed out waiting for deletion confirmation dialouge to appear"
             )
@@ -420,7 +419,7 @@ class RumbleChatActor():
 
         timeout_bttn = self.driver.find_element(
             By.XPATH,
-            f"//button[@class='{MUTE_LEVELS[mute_level]}']"
+            f"//button[@class='{static.Moderation.mute_levels[mute_level]}']"
             )
 
         timeout_bttn.click()
@@ -469,11 +468,11 @@ class RumbleChatActor():
     def __run_if_command(self, message):
         """Check if a message is a command, and run it if so"""
         #Not a command
-        if not message.text.startswith(COMMAND_PREFIX):
+        if not message.text.startswith(static.Message.command_prefix):
             return
 
         #Get command name
-        name = message.text.split()[0].removeprefix(COMMAND_PREFIX)
+        name = message.text.split()[0].removeprefix(static.Message.command_prefix)
 
         #Is not a valid command
         if name not in self.chat_commands:
