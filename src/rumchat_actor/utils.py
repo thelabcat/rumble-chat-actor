@@ -4,8 +4,8 @@
 Various utility functions
 S.D.G."""
 
-from os.path import join as pjoin
-from pathlib import Path
+#from os.path import join as pjoin
+#from pathlib import Path
 #from js2py import eval_js
 from . import static
 
