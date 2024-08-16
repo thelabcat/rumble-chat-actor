@@ -198,7 +198,7 @@ class HelpCommand(ChatCommand):
 
     def run(self, message):
         """Run the help command"""
-        segs = message.split()
+        segs = message.text.split()
 
         #Command was run without arguments
         if len(segs) == 1:
