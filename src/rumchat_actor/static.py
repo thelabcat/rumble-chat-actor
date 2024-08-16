@@ -106,7 +106,7 @@ class Clip:
         #Must be moviepy loadable even if copied while being recorded to
         #In the format for Tkinter file picking
         input_options = (
-            ("Fragmented or hybrid video", ";".join("*." + container for container in ("mp4", "mov"))),
+            ("Fragmented or hybrid video", " ".join("*." + container for container in ("mp4", "mov"))),
             ("MPEG-TS stream video", "*.ts"),
             ("All files", "*.*"),
         )
