@@ -95,7 +95,7 @@ class RumbleChatActor():
 
         #A stream ID was passed
         if "stream_id" in kwargs:
-            self.stream_id, self.stream_id_b10 = utils.stream_id_36_and_10(kwargs["stream_id"])
+            self.stream_id, self.stream_id_b10 = crutils.stream_id_36_and_10(kwargs["stream_id"])
 
             #It is not our livestream or we have no Live Stream API,
             #so LS API functions are not available
