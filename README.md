@@ -11,7 +11,7 @@ This project requires the following python libraries:
 - [Requests](https://pypi.org/project/requests)
 - [Talkey](https://pypi.org/project/talkey)
 
-RumChat Actor itself is [on PyPi](https://pypi.org/project/rumchat_actor), so once you have Python, installing it with `pip install rumchat_actor` should automatically download all dependencies.
+RumChat Actor itself is [on PyPi](https://pypi.org/project/rumchat_actor), so once you have Python, installing it with `pip install rumchat-actor` should automatically download all dependencies.
 Note that, if you are using Linux, you may have to install python3-pip separately. On Windows, Pip comes with Python.
 
 Additional software requirements that aren't directly Python-related:
@@ -19,7 +19,7 @@ Additional software requirements that aren't directly Python-related:
 
 This is basically meant to be a FOSS local implementation of The Rumble Bot, and should run alongside your streaming software and / or other applications on most systems.
 
-Here is an example usage script. Lines starting with # are comments. You would write a script like this, and save it as 'my_rumchat_actor_setup.py` or similar.
+Here is an example usage script. Lines starting with # are comments. You would write a script like this, and save it as 'my_rumchat_actor_rig.py` or similar.
 ```
 #First, import the module
 import rumchat_actor
@@ -44,18 +44,18 @@ def eat_some_cheese(message, actor):
 
 actor.register_message_action(eat_some_cheese)
 
-#There are many ways to register commands. Internally, they are all based on
-# instances of rumchat_actor.commands.ChatCommand or converted to it.
-#The simplest way is to use a prebuilt modification of this class.
+#There are many ways to register commands. Internally, they all end up
+# as some form of rumchat_actor.commands.ChatCommand().
+#The simplest way is to instantiate a prebuilt modification of this class.
 #Be sure to pass the actor object to the class when you instantiate it.
 
 actor.register_command(rumchat_actor.commands.KillswitchCommand(actor))
 
-#The KillswitchCommand, by the way, shuts down the actor when a mod or admin runs it.
+#This KillswitchCommand, by the way, shuts down the actor when a mod or admin runs it.
 #You can open the Python interpreter and run help("rumchat_actor.commands") to
 # see info on other ChatCommand derivative classes.
 
-#The other main to register a command is via a callable.
+#The other main way to register a command is via a simple callable.
 #Like message actions, these are also passed SSEChatMEssage and RumbleChatActor
 def tester(message, actor):
     '''Test command callable'''
@@ -65,16 +65,17 @@ def tester(message, actor):
 actor.register_command(name = "tester", command = tester)
 
 #Finally, once everything is registered, we call the actor's mainloop method
-# to run it. You can press Ctrl+C to exit, but it might take a moment to respond.
+# to run it. When this is running, you can press Ctrl+C to exit,
+# but it might take a moment to respond.
 actor.mainloop()
 ```
 
-You would write this script, and run it as your local Rumble Chat Actor instance. Note that it currently does not exit on its own when a livestream ends.
+You would write this script, and run it as your local Rumble Chat Actor instance. Note that it currently does not exit on its own when a livestream ends. It may also exit on its own if chat is inactive for a very long time.
 Hope this helps!
 
 Be sure to run `help("rumchat_actor")` in the Python interpreter to get more info on the various methods that are available.
 I'll try to get some better documentation up soon. Hope this helps!
 
-I, Wilbur Jaywright, and my brand, Marswide BGL, have no official association with Rumble Corp. beyond that of a normal user and/or channel on the Rumble Video platform. This wrapper is not officially endorsed by Rumble Corp. or its subsidiaries.
+I, Wilbur Jaywright, and my brand, Marswide BGL, have no official association with Rumble Corp. beyond that of a normal user and/or channel on the Rumble Video platform. This project is not officially endorsed by Rumble Corp. or its subsidiaries.
 
 S.D.G.
