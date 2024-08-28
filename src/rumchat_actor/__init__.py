@@ -505,11 +505,16 @@ class RumbleChatActor():
             self.chat_commands[name].help_message = help_message
 
     def register_message_action(self, action):
-        """Register an action callable to be run on every message
+        """Register an action to be run on every message
+    - Action must be a callable or have an action() attribute
     - Action will be passed cocorum.ssechat.SSEChatMessage() and this actor
     - Action should return False if the message survived the action
     - Action should return True if the message was deleted by the action"""
-        assert callable(action), "Action must be a callable"
+
+        if hasattr(action, "action"):
+            action = action.action
+
+        assert callable(action), "Action must be a callable or have an action() attribute"
         self.message_actions.append(action)
 
     @property
