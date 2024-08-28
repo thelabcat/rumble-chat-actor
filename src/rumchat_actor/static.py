@@ -37,6 +37,9 @@ class Message:
     #How commands always start
     command_prefix = "!"
 
+    #Effective max length of a message
+    effective_max_len = max_len - len(bot_prefix)
+
 class URI:
     """Uniform Resource Identifiers"""
 
