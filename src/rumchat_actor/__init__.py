@@ -52,7 +52,8 @@ from . import actions, commands, misc, utils, static
 class RumbleChatActor():
     """Actor that interacts with Rumble chat"""
     def __init__(self, init_message = "Hello, Rumble!", ignore_users = ["TheRumbleBot"], **kwargs):
-        """stream_id: The stream ID you want to connect to. Defaults to latest livestream
+        """Instance this object, register all chat commands and message actions, then call its mainloop() method.
+    stream_id: The stream ID you want to connect to. Defaults to latest livestream
     init_message: What to say when the actor starts up.
     profile_dir: The Firefox profile directory to use. Defaults to temp (sign-in not saved)
     credentials: The (username, password) to log in with. Defaults to manual log in

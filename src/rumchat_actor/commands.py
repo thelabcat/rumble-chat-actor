@@ -27,12 +27,13 @@ from . import utils, static
 class ChatCommand():
     """Chat command abstract class"""
     def __init__(self, name, actor, cooldown = static.Message.send_cooldown, amount_cents = 0, exclusive = False, allowed_badges = ["subscriber"], whitelist_badges = ["moderator"], target = None):
-        """name: The !name of the command
+        """Instance a derivative of this object, then pass it to RumbleChatActor().register_command().
+    name: The !name of the command
     actor: The RumleChatActor host object
-    amount_cents: The minimum cost of the command. Defaults to free
-    exclusive: If this command can only be run by users with allowed badges. Defaults to False
-    allowed_badges: Badges that are allowed to run this command (if it is exclusive).
-       ChatCommand,  Defaults to subscribers, admin is added internally.
+    amount_cents: The minimum cost of the command
+    exclusive: If this command can only be run by users with allowed badges
+    allowed_badges: Badges that are allowed to run this command (if it is exclusive),
+        "admin" is added internally.
     whitelist_badges: Badges which if borne give the user free-of-charge command access
     target: The command function(message, actor) to call. Defaults to self.run"""
         assert " " not in name, "Name cannot contain spaces"
@@ -113,8 +114,17 @@ class ChatCommand():
 class TTSCommand(ChatCommand):
     """Text-to-speech command"""
     def __init__(self, *args, name = "tts", voices = {}, **kwargs):
-        """Pass the same args and kwargs as ChatCommand, plus:
-    voices: Dict of voice : say(text) callable"""
+        """Instance this object, then pass it to RumbleChatActor().register_command().
+    actor: The RumleChatActor host object
+    name: The !name of the command
+    amount_cents: The minimum cost of the command. Defaults to free
+    exclusive: If this command can only be run by users with allowed badges. Defaults to False
+    allowed_badges: Badges that are allowed to run this command (if it is exclusive),
+        defaults to ["moderator"], "admin" is added internally.
+    whitelist_badges: Badges which if borne give the user free-of-charge command access
+    target: The command function(message, actor) to call. Defaults to self.run
+    voices: Dict of voice_name : say(text) callable
+    """
         super().__init__(*args, name = name, **kwargs)
         self.voices = voices
 
@@ -169,8 +179,9 @@ class TTSCommand(ChatCommand):
 class LurkCommand(ChatCommand):
     """A user is now lurking"""
     def __init__(self, actor, name = "lurk", text = "@{username} is now lurking. Enjoy!"):
-        """actor: The Rumble chat actor host
-    name = lurk: the command name
+        """Instance this object, then pass it to RumbleChatActor().register_command().
+    actor: The Rumble chat actor host
+    name: the command name
     text: A message to format with a username and post"""
         super().__init__(name = name, actor = actor)
         self.text = text
@@ -187,8 +198,9 @@ class LurkCommand(ChatCommand):
 class HelpCommand(ChatCommand):
     """List available commands"""
     def __init__(self, actor, name = "help"):
-        """actor: The Rumble chat actor host
-    name = help: the command name"""
+        """Instance this object, then pass it to RumbleChatActor().register_command().
+    actor: The Rumble chat actor host
+    name: the command name"""
         super().__init__(name = name, actor = actor)
 
     @property
@@ -221,7 +233,10 @@ class HelpCommand(ChatCommand):
 class KillswitchCommand(ChatCommand):
     """A killswitch for Rumchat Actor if moderators or admin need to shut it down from the chat"""
     def __init__(self, actor, name = "killswitch", allowed_badges = ["moderator"]):
-        """Pass the Rumchat Actor, the command name, and the badges allowed to use it"""
+        """Instance this object, then pass it to RumbleChatActor().register_command().
+    actor: The RumleChatActor host object
+    name: The !name of the command
+    allowed_badges: Badges that are allowed to run this command"""
         super().__init__(name = name, actor = actor, exclusive = True, allowed_badges = allowed_badges)
 
     @property
@@ -241,7 +256,8 @@ class KillswitchCommand(ChatCommand):
 class ClipDownloadingCommand(ChatCommand):
     """Save clips of the livestream by downloading stream chunks from Rumble, works remotely"""
     def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, clip_save_path = "." + os.sep, browsermob_exe = static.Driver.browsermob_exe):
-        """actor: The Rumchat Actor
+        """Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
+    actor: The Rumchat Actor
     name: The name of the command
     default_duration: How long the clip will last with no duration specified
     max_duration: How long the clip can possibly be (i.e. how much of the livestream to save)
@@ -250,7 +266,7 @@ class ClipDownloadingCommand(ChatCommand):
         super().__init__(name = name, actor = actor, cooldown = default_duration)
         self.default_duration = default_duration
         self.max_duration = max_duration
-        self.clip_save_path = clip_save_path #Where to save the completed clips
+        self.clip_save_path = clip_save_path.removesuffix(os.sep) + os.sep #Where to save the completed clips
         self.browsermob_exe = browsermob_exe
         self.ready_to_clip = False
         self.streamer_main_page_url = self.actor.streamer_main_page_url #Make sure we have this before we try to start recording
@@ -604,7 +620,8 @@ class ClipDownloadingCommand(ChatCommand):
 class ClipRecordingCommand(ChatCommand):
     """Save clips of the livestream by duplicating then trimming an in-progress TS recording by OBS"""
     def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, recording_load_path = ".", clip_save_path = "." + os.sep):
-        """actor: The Rumchat Actor
+        """Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
+    actor: The Rumchat Actor
     name: The name of the command
     default_duration: How long the clip will last with no duration specified
     max_duration: How long the clip can possibly be
@@ -613,8 +630,8 @@ class ClipRecordingCommand(ChatCommand):
         super().__init__(name = name, actor = actor, cooldown = default_duration)
         self.default_duration = default_duration
         self.max_duration = max_duration
-        self.recording_load_path = recording_load_path
-        self.clip_save_path = clip_save_path #Where to save the completed clips
+        self.recording_load_path = recording_load_path.removesuffix(os.sep) #Where to first look for the OBS recording
+        self.clip_save_path = clip_save_path.removesuffix(os.sep) + os.sep #Where to save the completed clips
         self.running_clipsaves = 0 #How many clip save operations are running
         self.__recording_filename = None #The filename of the running OBS recording, asked later
         print(self.recording_filename) #...now is later
@@ -716,7 +733,7 @@ class ClipRecordingCommand(ChatCommand):
         print("Loading copy")
         recording = VideoFileClip(self.recording_copy_fn)
         print("Saving trimmed clip")
-        ffmpeg_extract_subclip(self.recording_copy_fn, max((recording.duration - duration, 0)), recording.duration, targetname = self.clip_save_path + os.sep + filename + "." + static.Clip.save_extension)
+        ffmpeg_extract_subclip(self.recording_copy_fn, max((recording.duration - duration, 0)), recording.duration, targetname = self.clip_save_path + filename + "." + static.Clip.save_extension)
         print("Closing and deleting frozen copy")
         recording.close()
         os.system("rm " + self.recording_copy_fn)
@@ -734,7 +751,8 @@ class ClipRecordingCommand(ChatCommand):
 class RaffleCommand(ChatCommand):
     """Create, enter, and draw from raffles"""
     def __init__(self, actor, name = "raffle"):
-        """actor: The Rumchat Actor
+        """Instance this object, then pass it to RumbleChatActor().register_command().
+    actor: The Rumchat Actor
     name: The name of the command"""
         super().__init__(name = name, actor = actor)
 

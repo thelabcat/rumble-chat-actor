@@ -63,7 +63,7 @@ def ollama_message_moderate(message, actor):
 class RantTTSManager():
     """System to TTS rant messages, with threshhold settings"""
     def __init__(self):
-        """Instance this object, configure it, then pass its action method to the actor"""
+        """Instance this object, then pass it to RumbleChatActor().register_message_action()"""
 
         #The amount a rant must be to be TTS-ed
         self.__tts_amount_threshold = 0
@@ -95,7 +95,7 @@ class RantTTSManager():
 class TimedMessagesManager():
     """System to send messages on a timed basis"""
     def __init__(self, actor, messages: iter, delay = 60, in_between = 0):
-        """Instance this object, configure it, then pass its action method to the actor
+        """Instance this object, then pass it to RumbleChatActor().register_message_action()
     actor: The actor, to send the timed messages,
     messages: List of messages to send
     delay: Time between messages
