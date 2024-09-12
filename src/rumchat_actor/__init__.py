@@ -134,6 +134,9 @@ class RumbleChatActor():
         self.driver.get(static.URI.chat_popout.format(stream_id_b10 = self.ssechat.stream_id_b10))
         assert "Chat" in self.driver.title
 
+        #Close the premium banner if it is there
+        self.__close_premium_banner()
+
         #Sign in to chat, unless we are already. While there is a sign-in button...
         first_time = True
         while sign_in_buttn := self.get_sign_in_button():
@@ -298,6 +301,13 @@ class RumbleChatActor():
                 self.__streamer_main_page_url = static.URI.user_page.format(username = self.streamer_username)
 
         return self.__streamer_main_page_url
+
+    def __close_premium_banner(self):
+        """If the premium banner is visible, close it"""
+        try:
+            self.driver.find_element(By.CSS_SELECTOR, "[data-js='premium-popup__close-button']").click()
+        except selenium.common.exceptions.NoSuchElementException:
+            pass
 
     def get_sign_in_button(self):
         """Look for the sign in button"""
