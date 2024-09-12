@@ -23,12 +23,12 @@ def ollama_message_moderate(message, actor):
     #Message was blank
     if not message.text.strip():
         print("Message was blank.")
-        return True
+        return
 
     #User has an immunity badge
     if True in [badge in message.user.badges for badge in static.Moderation.staff_badges]:
         print(f"{message.user.username} is staff, skipping LLM check.")
-        return True
+        return
 
     #Get the LLM verdict
     response = ollama.chat(model = static.AutoModerator.llm_model, messages = [
@@ -43,17 +43,17 @@ def ollama_message_moderate(message, actor):
     #Verdict was not valid
     except ValueError:
         print(f"Bad verdict for {message.text} : {response["message"]["content"]}")
-        return False
+        return
 
     #Response was not in expected format
     except KeyError:
         print(f"Could not get verdict for {message.text} : Response: {response}")
-        return False
+        return
 
     #Returned 1 for SFW
     if verdict:
         print("LLM verdicted as clean: " + message.text)
-        return False
+        return
 
     #Returned 0 for NSFW
     print("LLM verdicted as dirty: " + message.text)
