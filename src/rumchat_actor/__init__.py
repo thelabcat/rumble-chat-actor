@@ -135,7 +135,7 @@ class RumbleChatActor():
         assert "Chat" in self.driver.title
 
         #Close the premium banner if it is there
-        self.__close_premium_banner()
+        utils.close_premium_banner(self.driver)
 
         #Sign in to chat, unless we are already. While there is a sign-in button...
         first_time = True
@@ -302,25 +302,6 @@ class RumbleChatActor():
                 self.__streamer_main_page_url = static.URI.user_page.format(username = self.streamer_username)
 
         return self.__streamer_main_page_url
-
-    def __close_premium_banner(self):
-        """If the premium banner is visible, close it"""
-        print("Looking to close Premium banner")
-        try:
-            close_button = self.driver.find_element(By.CSS_SELECTOR, "[data-js='premium-popup__close-button'][aria-label='Close']")
-            print("Close button found.", close_button.get_attribute('outerHTML'))
-
-        except selenium.common.exceptions.NoSuchElementException:
-            print("Close button not present, premium banner presumed already closed.")
-            return
-
-        print("Egg timer for premium banner to display")
-        time.sleep(static.Driver.premium_banner_delay)
-
-        close_button.click()
-        print("Clicked close button. Egg timer for banner to hide")
-        time.sleep(static.Driver.premium_banner_delay)
-        print("Premium banner closed.")
 
     def get_sign_in_button(self):
         """Look for the sign in button"""

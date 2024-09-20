@@ -13,7 +13,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support.select import Select
-from . import static
+from . import static, utils
 
 class ClipUploader():
     """Upload clips to Rumble automatically"""
@@ -43,6 +43,9 @@ class ClipUploader():
 
         #Load the upload page
         self.driver.get(static.URI.upload_page)
+
+        #Close the premium banner if it is there
+        utils.close_premium_banner(self.driver)
 
         #Wait for sign in
         while "login" in self.driver.current_url:
