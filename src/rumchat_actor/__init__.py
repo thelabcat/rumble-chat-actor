@@ -140,10 +140,11 @@ class RumbleChatActor():
         #Sign in to chat, unless we are already. While there is a sign-in button...
         first_time = True
         while sign_in_buttn := self.get_sign_in_button():
-            sign_in_buttn.click()
-
             #First time going around this loop
             if first_time:
+                #Only click the sign-in button the first time, as the sign-in dialog background blur overlay obscures it
+                sign_in_buttn.click()
+
                 #We have any credentials, wait for the sign in dialouge and enter what wa have
                 if "username" in kwargs or "password" in kwargs:
                     WebDriverWait(self.driver, static.Driver.wait_timeout).until(
@@ -159,12 +160,12 @@ class RumbleChatActor():
                 if "password" in kwargs:
                     self.driver.find_element(By.ID, "login-password").send_keys(kwargs["password"] + Keys.RETURN)
 
-                first_time = False
-
-            #We do not have both, ask for manual login
-            if "username" not in kwargs or "password" not in kwargs:
+            #We do not have both, or login failed, ask for manual login
+            else: # "username" not in kwargs or "password" not in kwargs:
                 self.driver.maximize_window()
                 input("Please log in at the browser, then press enter here.")
+
+            first_time = False
 
         #Wait for signed in loading to complete
         WebDriverWait(self.driver, static.Driver.wait_timeout).until(
@@ -306,12 +307,20 @@ class RumbleChatActor():
         """If the premium banner is visible, close it"""
         print("Looking to close Premium banner")
         try:
-            #Wait one second for the element to be there
-            WebDriverWait(self.driver, static.Driver.wait_timeout).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "[data-js='premium-popup__close-button']"))).click()
+            close_button = self.driver.find_element(By.CSS_SELECTOR, "[data-js='premium-popup__close-button'][aria-label='Close']")
+            print("Close button found.", close_button.get_attribute('outerHTML'))
 
-        except selenium.common.exceptions.WebDriverException as e:
-            print("Could not click Premium banner close button:", e)
-            print("This may not be a problem.")
+        except selenium.common.exceptions.NoSuchElementException:
+            print("Close button not present, premium banner presumed already closed.")
+            return
+
+        print("Egg timer for premium banner to display")
+        time.sleep(static.Driver.premium_banner_delay)
+
+        close_button.click()
+        print("Clicked close button. Egg timer for banner to hide")
+        time.sleep(static.Driver.premium_banner_delay)
+        print("Premium banner closed.")
 
     def get_sign_in_button(self):
         """Look for the sign in button"""

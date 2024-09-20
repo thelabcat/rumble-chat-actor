@@ -13,6 +13,9 @@ class Driver:
     #How long to wait maximum for a condition to be true in the browser
     wait_timeout = 13
 
+    #How long it takes for the Rumble Premium banner to pop up
+    premium_banner_delay = 4
+
     #How often to refresh while waiting for a webpage condition to be met
     page_refresh_rate = 10
 
