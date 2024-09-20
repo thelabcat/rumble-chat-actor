@@ -11,7 +11,7 @@ class Driver:
     """For the Selenium WebDriver"""
 
     #How long to wait maximum for a condition to be true in the browser
-    wait_timeout = 30
+    wait_timeout = 13
 
     #How often to refresh while waiting for a webpage condition to be met
     page_refresh_rate = 10
