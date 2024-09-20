@@ -304,10 +304,14 @@ class RumbleChatActor():
 
     def __close_premium_banner(self):
         """If the premium banner is visible, close it"""
+        print("Looking to close Premium banner")
         try:
-            self.driver.find_element(By.CSS_SELECTOR, "[data-js='premium-popup__close-button']").click()
-        except selenium.common.exceptions.NoSuchElementException:
-            pass
+            #Wait one second for the element to be there
+            WebDriverWait(self.driver, static.Driver.wait_timeout).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "[data-js='premium-popup__close-button']"))).click()
+
+        except selenium.common.exceptions.WebDriverException as e:
+            print("Could not click Premium banner close button:", e)
+            print("This may not be a problem.")
 
     def get_sign_in_button(self):
         """Look for the sign in button"""
