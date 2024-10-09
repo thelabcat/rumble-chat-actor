@@ -17,7 +17,7 @@ def eat_some_cheese(message, actor):
 #stream_id is either the base 10 or base 36 livestream ID you want the Actor to connect to, obtained from the popout chat or the Rumble Live Stream API.
 #If stream_id is None but you pass api_url, the latest livestream shown on the API is chosen automatically.
 #If you pass profile_dir to an existing Firefox profile directory, your sign-ins to Rumble chat for the actor will be saved.
-#Otherwise, you will have to log in manuaglly each time you use the bot, or pass username and password).
+#Otherwise, you will have to log in manuaglly each time you use the bot, or pass username and password.
 actor = rumchat_actor.RumbleChatActor(stream_id = STREAM_ID)
 
 #Register an action to be called on every message
