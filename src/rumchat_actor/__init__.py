@@ -17,7 +17,7 @@ def eat_some_cheese(message, actor):
 #stream_id is either the base 10 or base 36 livestream ID you want the Actor to connect to, obtained from the popout chat or the Rumble Live Stream API.
 #If stream_id is None but you pass api_url, the latest livestream shown on the API is chosen automatically.
 #If you pass profile_dir to an existing Firefox profile directory, your sign-ins to Rumble chat for the actor will be saved.
-#Otherwise, you will have to log in manuaglly each time you use the bot, or pass credentials = (username, password).
+#Otherwise, you will have to log in manuaglly each time you use the bot, or pass username and password).
 actor = rumchat_actor.RumbleChatActor(stream_id = STREAM_ID)
 
 #Register an action to be called on every message
@@ -55,19 +55,20 @@ class RumbleChatActor():
         """Instance this object, register all chat commands and message actions, then call its mainloop() method.
     stream_id: The stream ID you want to connect to. Defaults to latest livestream
     init_message: What to say when the actor starts up.
-    profile_dir: The Firefox profile directory to use. Defaults to temp (sign-in not saved)
-    credentials: The (username, password) to log in with. Defaults to manual log in
+    profile_dir: The Firefox profile directory to use. Defaults to temp (sign-in not saved).
+    username: The username to log in with. Defaults to manual entry.
+    password: The password to log in with. Defaults to manual entry.
     api_url: The Rumble Live Stream API URL with your key (or RumBot's passthrough).
-        Defaults to no Live Stream API access
+        Defaults to no Live Stream API access.
     streamer_username: The username of the person streaming.
-        Defaults to Live Stream API username or manually requested if needed
+        Defaults to Live Stream API username or manually requested if needed.
     streamer_channel: The channel doing the livestream, if it is being streamed on a channel.
-        Defaults to Live Stream API channel or manually requested if needed
-    is_channel_stream: Bool, if the livestream is on a channel or not
-        Defaults to automatic determination if possible
-    streamer_main_page_url: The URL of the streamer's main page
-        Defaults to automatic determination if possible
-    ignore_users: List of usernames, will ignore all their messages
+        Defaults to Live Stream API channel or manually requested if needed.
+    is_channel_stream: Bool, if the livestream is on a channel or not.
+        Defaults to automatic determination if possible.
+    streamer_main_page_url: The URL of the streamer's main page.
+        Defaults to automatic determination if possible.
+    ignore_users: List of usernames, will ignore all their messages.
     invalid_command_respond: Bool, sets if we should post an error message if a command was invalid.
         Defaults to False."""
 
