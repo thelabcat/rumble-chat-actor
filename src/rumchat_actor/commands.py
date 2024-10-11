@@ -315,9 +315,13 @@ class ClipDownloadingCommand(ChatCommand):
         "proxyType": "manual",
         }
 
+        #Set browser to headless mode
+        options = webdriver.FirefoxOptions()
+        options.add_argument("--headless")
+
         #Launch the browser
         print("Starting browser for clip command info gathering")
-        browser = webdriver.Firefox()
+        browser = webdriver.Firefox(options)
 
         #Wait for the stream to go live, and get its URL in the meantime
         browser.get(self.streamer_main_page_url)

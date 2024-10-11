@@ -22,7 +22,8 @@ class ClipUploader():
     clip_command: The clip command instance
     channel_id: The name or int ID of the channel to upload to, defaults to no channel (user page)
     profile_dir: The Firefox profile directory to use, defaults to burner profile
-    username, password: The username and password to log in with, not needed if Firefox profile is signed in, otherwise defaults to manual login"""
+    username, password: The username and password to log in with, not needed if Firefox profile is signed in, otherwise defaults to manual login
+    browser_head: Display a head for the Firefox process. Defaults to false."""
 
         #Save actor
         self.actor = actor
@@ -36,6 +37,10 @@ class ClipUploader():
         if "profile_dir" in kwargs:
             options.add_argument("-profile")
             options.add_argument(kwargs["profile_dir"])
+
+        #Set browser to headless mode, unless otherwise specified
+        if headless := ("browser_head" not in kwargs or not kwargs["browser_head"]):
+            options.add_argument("--headless")
 
         #Start the driver
         self.driver = webdriver.Firefox(options)
@@ -54,6 +59,11 @@ class ClipUploader():
             if "password" in kwargs:
                 self.driver.find_element(By.ID, "login-password").send_keys(kwargs["password"] + Keys.RETURN)
             if "username" not in kwargs or "password" not in kwargs:
+                if headless:
+                    print("Error: Automatic login not possible but browser is headless.")
+                    self.driver.quit()
+                    quit()
+
                 input("Please log in, then press enter.")
 
         #Channel ID to use

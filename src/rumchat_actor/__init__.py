@@ -69,7 +69,8 @@ class RumbleChatActor():
         Defaults to automatic determination if possible
     ignore_users: List of usernames, will ignore all their messages
     invalid_command_respond: Bool, sets if we should post an error message if a command was invalid.
-        Defaults to False."""
+        Defaults to False.
+    browser_head: Display a head for the Firefox process. Defaults to false."""
 
         #The info of the person streaming
         self.__streamer_username = kwargs["streamer_username"] if "streamer_username" in kwargs else None
@@ -128,8 +129,12 @@ class RumbleChatActor():
             options.add_argument("-profile")
             options.add_argument(kwargs["profile_dir"])
 
+        #Set browser to headless mode, unless otherwise specified
+        if headless := ("browser_head" not in kwargs or not kwargs["browser_head"]):
+            options.add_argument("--headless")
+
         #Get browser
-        self.driver = webdriver.Firefox(options = options)
+        self.driver = webdriver.Firefox(options)
         self.driver.minimize_window()
         self.driver.get(static.URI.chat_popout.format(stream_id_b10 = self.ssechat.stream_id_b10))
         assert "Chat" in self.driver.title
@@ -162,6 +167,11 @@ class RumbleChatActor():
 
             #We do not have both, or login failed, ask for manual login
             else: # "username" not in kwargs or "password" not in kwargs:
+                if headless:
+                    print("Error: Automatic login did not have correct credentials but browser is headless.")
+                    self.driver.quit()
+                    quit()
+
                 self.driver.maximize_window()
                 input("Please log in at the browser, then press enter here.")
 
