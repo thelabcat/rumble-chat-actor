@@ -35,7 +35,8 @@ def close_premium_banner(driver):
         print("Clicked close button. Egg timer for banner to hide")
         time.sleep(static.Driver.premium_banner_delay)
         print("Premium banner closed.")
-    except selenium.common.exceptions.ElementClickInterceptedException:
+    except selenium.common.exceptions.WebDriverException as e:
+        print(e)
         print("Close button not clickable after wait, premium banner presumed already closed.")
 
 # def calc_password_hashes(password, salts):
