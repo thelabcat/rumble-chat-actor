@@ -4,6 +4,7 @@
 Functions and classes that did not fit in another module
 S.D.G."""
 
+from getpass import getpass
 import threading
 import time
 import selenium
@@ -39,7 +40,7 @@ class ClipUploader():
             options.add_argument(kwargs["profile_dir"])
 
         #Set browser to headless mode, unless otherwise specified
-        if headless := ("browser_head" not in kwargs or not kwargs["browser_head"]):
+        if not kwargs.get("browser_head"):
             options.add_argument("--headless")
 
         #Start the driver
@@ -52,25 +53,43 @@ class ClipUploader():
         #Close the premium banner if it is there
         utils.close_premium_banner(self.driver)
 
+        #Get the login credentials from arguments, or None if they were not passed
+        self.username = kwargs.get("username")
+        self.password = kwargs.get("password")
+
         #Wait for sign in
+        first_time = True
         while "login" in self.driver.current_url:
-            if "username" in kwargs:
-                self.driver.find_element(By.ID, "login-username").send_keys(kwargs["username"] + Keys.RETURN)
-            if "password" in kwargs:
-                self.driver.find_element(By.ID, "login-password").send_keys(kwargs["password"] + Keys.RETURN)
-            if "username" not in kwargs or "password" not in kwargs:
-                if headless:
-                    print("Error: Automatic login not possible but browser is headless.")
-                    self.driver.quit()
-                    quit()
+            #Login failed
+            if not first_time:
+                print("Error. Login failed with provided credentials.")
+                self.username = None
+                self.password = None
 
-                input("Please log in, then press enter.")
+            #A username was not passed or was incorrect
+            if not self.username:
+                #Default to the actor username
+                if self.actor.username:
+                    self.username = self.actor.username
+                else:
+                    self.username = input("Clip uploader username: ")
 
-        #Channel ID to use
-        if "channel_id" in kwargs:
-            self.channel_id = kwargs["channel_id"]
-        else:
-            self.channel_id = None
+            #A password was not passed or was incorrect
+            if not self.password:
+                #Default to the actor password
+                if self.actor.password:
+                    self.password = self.actor.password
+                else:
+                    self.password = getpass("Clip uploader password: ")
+
+            #Enter the credentials
+            self.driver.find_element(By.ID, "login-username").send_keys(self.username + Keys.RETURN)
+            self.driver.find_element(By.ID, "login-password").send_keys(self.password + Keys.RETURN)
+
+            first_time = False
+
+        #Channel ID to use, or None if it was not passed
+        self.channel_id = kwargs.get("channel_id")
 
         #List of clip filenames to upload
         self.clips_to_upload = []

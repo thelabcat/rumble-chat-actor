@@ -34,6 +34,7 @@ actor.mainloop()
 
 S.D.G."""
 
+from getpass import getpass
 import textwrap
 import time
 import threading
@@ -73,19 +74,19 @@ class RumbleChatActor():
     browser_head: Display a head for the Firefox process. Defaults to false."""
 
         #The info of the person streaming
-        self.__streamer_username = kwargs["streamer_username"] if "streamer_username" in kwargs else None
+        self.__streamer_username = kwargs.get("streamer_username")
         assert isinstance(self.__streamer_username, str) or self.__streamer_username is None, \
             f"Streamer username must be str or None, not {type(self.__streamer_username)}"
 
-        self.__streamer_channel = kwargs["streamer_channel"] if "streamer_channel" in kwargs else None
+        self.__streamer_channel = kwargs.get("streamer_channel")
         assert isinstance(self.__streamer_channel, str) or self.__streamer_channel is None, \
             f"Streamer channel name must be str or None, not {type(self.__streamer_channel)}"
 
-        self.__is_channel_stream = kwargs["is_channel_stream"] if "is_channel_stream" in kwargs else None
+        self.__is_channel_stream = kwargs.get("is_channel_stream")
         assert isinstance(self.__is_channel_stream, bool) or self.__is_channel_stream is None, \
             f"Argument is_channel_stream must be bool or None, not {type(self.__is_channel_stream)}"
 
-        self.__streamer_main_page_url = kwargs["streamer_main_page_url"] if "streamer_main_page_url" in kwargs else None
+        self.__streamer_main_page_url = kwargs.get("streamer_main_page_url")
         assert isinstance(self.__streamer_main_page_url, str) or self.__streamer_main_page_url is None, \
             f"Argument streamer_main_page_url must be str or None, not {type(self.__is_channel_stream)}"
 
@@ -130,7 +131,7 @@ class RumbleChatActor():
             options.add_argument(kwargs["profile_dir"])
 
         #Set browser to headless mode, unless otherwise specified
-        if headless := ("browser_head" not in kwargs or not kwargs["browser_head"]):
+        if not kwargs.get("browser_head"):
             options.add_argument("--headless")
 
         #Get browser
@@ -142,38 +143,44 @@ class RumbleChatActor():
         #Close the premium banner if it is there
         utils.close_premium_banner(self.driver)
 
+        #Get the login credentials from arguments, or None if they were not passed
+        self.username = kwargs.get("username")
+        self.password = kwargs.get("password")
+
+        #We can get the username from the Rumble Live Stream API
+        if not self.username and self.rum_api:
+            self.username = self.rum_api.username
+            print("Actor username obtained from Live Stream API:", self.username)
+
         #Sign in to chat, unless we are already. While there is a sign-in button...
         first_time = True
         while sign_in_buttn := self.get_sign_in_button():
+            #Wait for sign-in dialog to appear
+            WebDriverWait(self.driver, static.Driver.wait_timeout).until(
+                EC.visibility_of_element_located((By.ID, "login-username")),
+                "Timed out waiting for sign-in dialouge"
+                )
+
             #First time going around this loop
             if first_time:
                 #Only click the sign-in button the first time, as the sign-in dialog background blur overlay obscures it
                 sign_in_buttn.click()
 
-                #We have any credentials, wait for the sign in dialouge and enter what wa have
-                if "username" in kwargs or "password" in kwargs:
-                    WebDriverWait(self.driver, static.Driver.wait_timeout).until(
-                        EC.visibility_of_element_located((By.ID, "login-username")),
-                        "Timed out waiting for sign-in dialouge"
-                        )
+            #Login failed
+            else:
+                print("Error. Login failed with provided credentials.")
+                self.username = None
+                self.password = None
 
-                #We have the username
-                if "username" in kwargs:
-                    self.driver.find_element(By.ID, "login-username").send_keys(kwargs["username"] + Keys.RETURN)
+            #Ask user for credentials as needed
+            if not self.username:
+                self.username = input("Actor username: ")
+            if not self.password:
+                self.password = getpass("Actor password: ")
 
-                #We have the password
-                if "password" in kwargs:
-                    self.driver.find_element(By.ID, "login-password").send_keys(kwargs["password"] + Keys.RETURN)
-
-            #We do not have both, or login failed, ask for manual login
-            else: # "username" not in kwargs or "password" not in kwargs:
-                if headless:
-                    print("Error: Automatic login did not have correct credentials but browser is headless.")
-                    self.driver.quit()
-                    quit()
-
-                self.driver.maximize_window()
-                input("Please log in at the browser, then press enter here.")
+            #Enter the credentials
+            self.driver.find_element(By.ID, "login-username").send_keys(self.username + Keys.RETURN)
+            self.driver.find_element(By.ID, "login-password").send_keys(self.password + Keys.RETURN)
 
             first_time = False
 
@@ -182,17 +189,6 @@ class RumbleChatActor():
             EC.element_to_be_clickable((By.ID, "chat-message-text-input")),
             "Timed out waiting for chat message field to become usable"
             )
-
-
-        #Find our username
-        if "username" in kwargs:
-            self.username = kwargs["username"]
-        elif self.rum_api:
-            self.username = self.rum_api.username
-        else:
-            self.username = None
-            while not self.username:
-                self.username = input("Enter the username the actor is using: ")
 
         #Ignore these users when processing messages
         self.ignore_users = ignore_users
@@ -237,7 +233,7 @@ class RumbleChatActor():
         self.chat_commands = {}
 
         #Wether or not to post an error message if an invalid command was called
-        self.invalid_command_respond = kwargs["invalid_command_respond"] if "invalid_command_respond" in kwargs else False
+        self.invalid_command_respond = kwargs.get("invalid_command_respond", False)
         assert isinstance(self.invalid_command_respond, bool), \
             f"Argument invalid_command_respond must be bool, not {type(self.invalid_command_respond)}"
 
