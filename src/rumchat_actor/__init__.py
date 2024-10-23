@@ -139,7 +139,7 @@ class RumbleChatActor():
         self.driver = webdriver.Firefox(options)
         self.driver.minimize_window()
         self.driver.get(static.URI.chat_popout.format(stream_id_b10 = self.ssechat.stream_id_b10))
-        assert "Chat" in self.driver.title
+        assert "Chat" in self.driver.title, "Failed to load chat page: Title does not contain 'Chat'"
 
         #Close the premium banner if it is there
         utils.close_premium_banner(self.driver)
