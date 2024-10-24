@@ -60,11 +60,20 @@ class ClipUploader():
         #Wait for sign in
         first_time = True
         while "login" in self.driver.current_url:
+            #First time trying to log in
+            if first_time:
+                #Get the credentials entry fields
+                uname_field = self.driver.find_element(By.ID, "login-username")
+                password_field = self.driver.find_element(By.ID, "login-password")
+
             #Login failed
-            if not first_time:
+            else:
                 print("Error. Login failed with provided credentials.")
                 self.username = None
                 self.password = None
+
+                uname_field.clear()
+                password_field.clear()
 
             #A username was not passed or was incorrect
             if not self.username:
@@ -83,10 +92,23 @@ class ClipUploader():
                     self.password = getpass("Clip uploader password: ")
 
             #Enter the credentials
-            self.driver.find_element(By.ID, "login-username").send_keys(self.username + Keys.RETURN)
-            self.driver.find_element(By.ID, "login-password").send_keys(self.password + Keys.RETURN)
+            uname_field.send_keys(self.username + Keys.RETURN)
+            password_field.send_keys(self.password + Keys.RETURN)
+
+            #Click the login button
+            #self.driver.find_element(By.CLASS_NAME, "login-button.login-form-button.round-button.bg-green")
 
             first_time = False
+
+            #Wait for login
+            try:
+                self.wait_for_upload_elem()
+
+            #Sign in did not work
+            except selenium.common.exceptions.WebDriverException as e:
+                print(e)
+                print("Could not get file upload field.")
+                assert "login" in self.driver.current_url, "Not on login or upload page"
 
         #Channel ID to use, or None if it was not passed
         self.channel_id = kwargs.get("channel_id")
@@ -98,6 +120,13 @@ class ClipUploader():
         self.clip_uploader_thread = threading.Thread(target = self.clip_upload_loop, daemon = True)
         self.clip_uploader_thread.start()
 
+    def wait_for_upload_elem(self):
+        """Wait for the file upload element to appear, indicating page load"""
+        WebDriverWait(self.driver, static.Driver.wait_timeout).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "input[type='file']")),
+            "ClipUploader timed out waiting for file upload field to appear",
+            )
+
     def upload_clip(self, filename):
         """Add the clip filename to the queue"""
         self.clips_to_upload.append(filename)
@@ -106,6 +135,9 @@ class ClipUploader():
         """Upload a clip to Rumble"""
         #Load the upload page
         self.driver.get(static.URI.upload_page)
+
+        #Wait for file upload field to appear
+        self.wait_for_upload_elem()
 
         #Select file and begin upload
         complete_filepath = self.clip_command.clip_save_path + filename + "." + static.Clip.save_extension
@@ -152,7 +184,7 @@ class ClipUploader():
         self.driver.find_element(By.ID, "submitForm").click()
 
         #Wait for rights checkbox, then click it
-        WebDriverWait(self.driver, 20).until(EC.element_to_be_clickable((By.XPATH, "//label[@for='crights']"))).click()
+        WebDriverWait(self.driver, static.Driver.wait_timeout).until(EC.element_to_be_clickable((By.XPATH, "//label[@for='crights']"))).click()
 
         #Click terms checkbox
         self.driver.find_element(By.XPATH, "//label[@for='cterms']").click()
@@ -162,7 +194,7 @@ class ClipUploader():
         self.driver.find_element(By.ID, "submitForm2").click()
 
         #Wait for form to submit
-        WebDriverWait(self.driver, 20).until(EC.visibility_of_element_located((By.XPATH, "//h3[text()='Video Upload Complete!']")))
+        WebDriverWait(self.driver, static.Driver.wait_timeout).until(EC.visibility_of_element_located((By.XPATH, "//h3[text()='Video Upload Complete!']")))
 
         #Get link
         #video_link = self.driver.find_element(By.XPATH, f"//a[text()='View \"{TITLE}\"']").get_attribute("href")

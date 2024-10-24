@@ -156,22 +156,29 @@ class RumbleChatActor():
         #Sign in to chat, unless we are already. While there is a sign-in button...
         first_time = True
         while sign_in_buttn := self.get_sign_in_button():
-            #Wait for sign-in dialog to appear
-            WebDriverWait(self.driver, static.Driver.wait_timeout).until(
-                EC.visibility_of_element_located((By.ID, "login-username")),
-                "Timed out waiting for sign-in dialouge"
-                )
-
             #First time going around this loop
             if first_time:
                 #Only click the sign-in button the first time, as the sign-in dialog background blur overlay obscures it
                 sign_in_buttn.click()
+
+                #Wait for sign-in dialog to appear
+                WebDriverWait(self.driver, static.Driver.wait_timeout).until(
+                    EC.visibility_of_element_located((By.ID, "login-username")),
+                    "Timed out waiting for sign-in dialouge"
+                    )
+
+                #Get the credentials entry fields
+                uname_field = self.driver.find_element(By.ID, "login-username")
+                password_field = self.driver.find_element(By.ID, "login-password")
 
             #Login failed
             else:
                 print("Error. Login failed with provided credentials.")
                 self.username = None
                 self.password = None
+
+                uname_field.clear()
+                password_field.clear()
 
             #Ask user for credentials as needed
             if not self.username:
@@ -180,16 +187,23 @@ class RumbleChatActor():
                 self.password = getpass("Actor password: ")
 
             #Enter the credentials
-            self.driver.find_element(By.ID, "login-username").send_keys(self.username + Keys.RETURN)
-            self.driver.find_element(By.ID, "login-password").send_keys(self.password + Keys.RETURN)
+            uname_field.send_keys(self.username + Keys.RETURN)
+            password_field.send_keys(self.password + Keys.RETURN)
 
             first_time = False
 
+            #Wait for signed in loading to complete
+            try:
+                self.wait_for_chat_input_elem()
+
+            #Sign in did not work
+            except selenium.common.exceptions.WebDriverException as e:
+                print(e)
+                print("Could not get chat input field.")
+                assert self.get_sign_in_button(), "Neither sign-in button nor chat input field are usable"
+
         #Wait for signed in loading to complete
-        WebDriverWait(self.driver, static.Driver.wait_timeout).until(
-            EC.element_to_be_clickable((By.ID, "chat-message-text-input")),
-            "Timed out waiting for chat message field to become usable"
-            )
+        self.wait_for_chat_input_elem()
 
         #Ignore these users when processing messages
         self.ignore_users = ignore_users
@@ -318,6 +332,13 @@ class RumbleChatActor():
             print("Could not find sign-in button, already signed in.")
             return None
 
+    def wait_for_chat_input_elem(self):
+        """Wait for the chat text input to appear, indicating page load"""
+        WebDriverWait(self.driver, static.Driver.wait_timeout).until(
+            EC.element_to_be_clickable((By.ID, "chat-message-text-input")),
+            "Timed out waiting for chat message field to become usable"
+            )
+
     def send_message(self, text):
         """Send a message in chat (splits across lines if necessary)"""
         text = static.Message.bot_prefix + text
@@ -342,7 +363,8 @@ class RumbleChatActor():
 
         self.sent_messages.append(text)
         self.last_message_send_time = time.time()
-        self.driver.find_element(By.ID, "chat-message-text-input").send_keys(text + Keys.RETURN)
+        self.driver.find_element(By.ID, "chat-message-text-input").send_keys(text)
+        self.driver.find_element(By.CLASS_NAME, "chat--send").click()
 
     def hover_element(self, element):
         """Hover over a selenium element"""
