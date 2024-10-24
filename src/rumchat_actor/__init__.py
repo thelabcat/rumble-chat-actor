@@ -148,6 +148,11 @@ class RumbleChatActor():
         self.username = kwargs.get("username")
         self.password = kwargs.get("password")
 
+        #Username must not be an email
+        if "@" in username:
+            print()"Username cannot be provided as email, must be displayed username.")
+            self.username = None
+
         #We can get the username from the Rumble Live Stream API
         if not self.username and self.rum_api:
             self.username = self.rum_api.username
