@@ -149,7 +149,7 @@ class RumbleChatActor():
         self.password = kwargs.get("password")
 
         #Username must not be an email
-        if "@" in self.username:
+        if self.username and "@" in self.username:
             print("Username cannot be provided as email, must be displayed username.")
             self.username = None
 
