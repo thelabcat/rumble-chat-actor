@@ -120,6 +120,24 @@ class Clip:
         #Filename of the temporary copy of an OBS recording, used for ClipRecordingCommand
         temp_copy_fn = ".temp_recording_copy"
 
+    class ReplayBuffer:
+        """For saved replay buffer clips"""
+
+        #How OBS constructs a replay buffer name (emulate using the time.strftime() String Format Time function)
+        save_name_format = "Replay %Y-%m-%d %H-%M-%S"
+
+        #Just the prefix with no timestamp, use if timestamp based searching fails
+        save_name_format_notime = "Replay "
+
+        #List of keys to press at the same time to trigger OBS and save a replay buffer
+        obs_hotkey_default = ["/"]
+
+        #Egg timer for save to initialize
+        save_start_delay = 1
+
+        #Delay between checking replay buffer filesize to determine doneness
+        size_check_delay = 0.3
+
 class AutoModerator:
     """For automatic moderation"""
 

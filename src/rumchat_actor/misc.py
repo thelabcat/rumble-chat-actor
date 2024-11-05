@@ -140,7 +140,7 @@ class ClipUploader():
         self.wait_for_upload_elem()
 
         #Select file and begin upload
-        complete_filepath = self.clip_command.clip_save_path + filename + "." + static.Clip.save_extension
+        complete_filepath = self.clip_command.clip_save_path + filename + "." + self.clip_command.save_format
         file_input = self.driver.find_element(By.CSS_SELECTOR, "input[type='file']")
         file_input.send_keys(complete_filepath)
 

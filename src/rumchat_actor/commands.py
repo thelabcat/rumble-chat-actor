@@ -17,6 +17,7 @@ from cocorum.localvars import DEFAULT_TIMEOUT
 from browsermobproxy import Server
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
+import pyautogui
 import requests
 # import selenium
 from selenium import webdriver
@@ -281,6 +282,7 @@ class ClipDownloadingCommand(ChatCommand):
         self.m3u8_filename = "" #The filename of the m3u8 playlist, will be either chunklist.m3u8 or chunklist_DVR.m3u8, detected later
         self.saved_ts = {} #TS filenames : Tempfile objects containing TS chunks
         self.discarded_ts = [] #TS names that were saved then deleted
+        self.save_format = static.Clip.save_extension #Format that clips are saved in. For ClipUploader
         self.clip_uploader = None #An object to upload the clips when they are complete
         self.recorder_thread = threading.Thread(target = self.record_loop, daemon = True)
         self.run_recorder = True
@@ -639,6 +641,7 @@ class ClipRecordingCommand(ChatCommand):
         self.running_clipsaves = 0 #How many clip save operations are running
         self.__recording_filename = None #The filename of the running OBS recording, asked later
         print(self.recording_filename) #...now is later
+        self.save_format = static.Clip.save_extension #Format that clips are saved in. For ClipUploader
         self.clip_uploader = None #An object to upload the clips when they are complete
 
     @property
@@ -748,6 +751,131 @@ class ClipRecordingCommand(ChatCommand):
         if self.running_clipsaves < 0:
             print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
             self.running_clipsaves = 0
+
+        if self.clip_uploader:
+            self.clip_uploader.upload_clip(filename)
+
+class ClipReplayBufferCommand(ChatCommand):
+    """Save clips of the livestream by triggering OBS to save its replay buffer"""
+    def __init__(self, actor, name = "clip", cooldown = 120, obs_hotkey = static.Clip.ReplayBuffer.obs_hotkey_default, buffer_save_path = "." + os.sep, save_format = static.Clip.save_extension):
+        """Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
+    actor: The Rumchat Actor
+    name: The name of the command
+    cooldown: Command cooldown
+    obs_hotkey: List of keys to press at the same time to trigger OBS and save a replay buffer
+    buffer_save_path: Where replay buffer recordings from OBS are stored
+    save_format: Format that replay buffers are saved in"""
+        super().__init__(name = name, actor = actor, cooldown = cooldown)
+        self.buffer_save_path = buffer_save_path.removesuffix(os.sep) + os.sep #Where replay buffer recordings from OBS are stored
+        self.obs_hotkey = obs_hotkey
+        self.save_format = save_format.removeprefix(".")
+        self.__running_clipsaves = 0 #How many clip save operations are running
+        self.clip_uploader = None #An object to upload the clips when they are complete
+
+    @property
+    def help_message(self):
+        """The help message for this command"""
+        return f"Save a clip from the livestream. Use {static.Message.command_prefix + self.name} [custom clip name]." + \
+            "Duration is defined by OBS replay buffer settings."
+
+    @property
+    def running_clipsaves(self):
+        """How many clip save threads are currently running"""
+        return self.__running_clipsaves
+
+    @running_clipsaves.setter
+    def running_clipsaves(self, new):
+        """How many clip save threads are currently running"""
+        assert int(new) == new, "Running clipsaves count must be an integer value"
+        if new < 0:
+            print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
+            self.__running_clipsaves = 0
+            return
+        self.__running_clipsaves = new
+
+    def run(self, message):
+        """Make a clip. TODO mostly identical to ClipDownloadingCommand().run()"""
+        segs = message.text.split()
+        #Only called clip, no arguments
+        if len(segs) == 1:
+            self.save_clip()
+
+        #A name was passed
+        else:
+            self.save_clip("_".join(segs[1:]))
+
+    def save_clip(self, filename = None):
+        """Save a clip with the given duration to the filename"""
+
+        if filename:
+            #Avoid overwriting other clips
+            increment = 0
+            safe_filename = filename
+            while os.path.exists(os.path.join(self.buffer_save_path, safe_filename + "." + self.save_format)):
+                increment += 1
+                safe_filename = filename + f"({increment})"
+
+            #Report clip save
+            self.actor.send_message(f"Saving clip {safe_filename}.")
+
+            filename = safe_filename
+
+        else:
+            #Report clip save
+            self.actor.send_message("Saving clip with default filename.")
+
+        #Run the clip save in a thread
+        saveclip_thread = threading.Thread(target = self.form_recording_into_clip, args = (filename), daemon = True)
+        saveclip_thread.start()
+
+    def form_recording_into_clip(self, desired_filename):
+        """Do the actual file operations to save a clip"""
+        #Keep a counter of running clipsaves, may not be needed
+        self.running_clipsaves += 1
+
+        print("Pressing replay buffer save hotkey")
+        for key in self.obs_hotkey:
+            pyautogui.keyDown(key)
+
+        #Time the clip was saved
+        marktime = time.time()
+
+        for key in self.obs_hotkey:
+            pyautogui.keyUp(key)
+
+        print("Egg timer for save to initialize")
+        time.sleep(static.Clip.ReplayBuffer.save_start_delay)
+
+        print("Locating saved replay buffer")
+        potential_files = glob.glob(f"{static.Clip.ReplayBuffer.save_name_format_notime}**.{self.save_format}", root_dir = self.buffer_save_path)
+        potential_files.sort()
+
+        if not potential_files:
+            print(f"ERROR: No files matched search for '{static.Clip.ReplayBuffer.save_name_format_notime}**.{self.save_format}' in {self.buffer_save_path}")
+            self.running_clipsaves -= 1
+            return
+
+        believed_filename = time.strftime(static.Clip.ReplayBuffer.save_name_format, marktime)
+        if believed_filename in potential_files:
+            print("Found exact match for", believed_filename)
+            filename = believed_filename
+        else:
+            print("Did not find exact match for", believed_filename)
+            filename = potential_files[-1]
+
+        print("Waiting for file to finish saving")
+        old_size = 0
+        while (new_size := os.path.getsize(os.path.join(self.buffer_save_path, filename))) != old_size:
+            time.sleep(static.Clip.ReplayBuffer.size_check_delay)
+            old_size = new_size
+
+        if desired_filename:
+            print(f"Renaming {filename} to {desired_filename}")
+            shutil.move(os.path.join(self.buffer_save_path, filename), os.path.join(self.buffer_save_path, desired_filename + "." + self.save_format))
+            filename = desired_filename + "." + self.save_format
+
+        #Make note that the clipsave has finished
+        self.running_clipsaves -= 1
 
         if self.clip_uploader:
             self.clip_uploader.upload_clip(filename)
