@@ -177,27 +177,24 @@ class TTSCommand(ChatCommand):
         #No voice was selected
         self.speak(" ".join(segs[1:]))
 
-class LurkCommand(ChatCommand):
-    """A user is now lurking"""
-    def __init__(self, actor, name = "lurk", text = "@{username} is now lurking. Enjoy!"):
+class MessageCommand(ChatCommand):
+    """Post a single message in chat"""
+    def __init__(self, actor, name, text, help_message):
         """Instance this object, then pass it to RumbleChatActor().register_command().
     actor: The Rumble chat actor host
     name: the command name
-    text: A message to format with a username and post"""
+    text: A message to format with the commander's username
+    help_message: The message that the help command will display"""
         super().__init__(name = name, actor = actor)
         self.text = text
-
-    @property
-    def help_message(self):
-        """The help message for this command"""
-        return "Notify the chat that you are lurking."
+        self.help_message = help_message
 
     def run(self, message):
         """Run the lurk"""
         self.actor.send_message(self.text.format(username = message.user.username))
 
 class HelpCommand(ChatCommand):
-    """List available commands"""
+    """List available commands, or show help for a specific command"""
     def __init__(self, actor, name = "help"):
         """Instance this object, then pass it to RumbleChatActor().register_command().
     actor: The Rumble chat actor host
@@ -207,7 +204,7 @@ class HelpCommand(ChatCommand):
     @property
     def help_message(self):
         """The help message for this command"""
-        return f"Get help on a specific command with {static.Message.command_prefix + self.name} [command_name] or run alone to list all available commands."
+        return f"Run alone to list all available commands, or get help on a specific command with {static.Message.command_prefix + self.name} [command_name]"
 
     def run(self, message):
         """Run the help command"""
