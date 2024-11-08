@@ -191,7 +191,7 @@ class MessageCommand(ChatCommand):
 
     def run(self, message):
         """Run the lurk"""
-        self.actor.send_message(self.text.format(username = message.user.username))
+        self.actor.send_message(self.text.format(message.user.username))
 
 class HelpCommand(ChatCommand):
     """List available commands, or show help for a specific command"""
