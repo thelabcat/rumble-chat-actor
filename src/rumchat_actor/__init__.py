@@ -370,7 +370,13 @@ class RumbleChatActor():
         self.sent_messages.append(text)
         self.last_message_send_time = time.time()
         self.driver.find_element(By.ID, "chat-message-text-input").send_keys(text)
-        self.driver.find_element(By.CLASS_NAME, "chat--send").click()
+        send_bttn = self.driver.find_element(By.CLASS_NAME, "chat--send")
+        #Wait for message to be sendable
+        start_time = time.time()
+        while (disabled := send_bttn.get_attribute("disabled") is not None) and time.time() - start_time < static.Message.sendable_check_timeout:
+            time.sleep(static.Message.sendable_check_interval)
+        assert not disabled, "Message send button never enabled"
+        send_bttn.click()
 
     def hover_element(self, element):
         """Hover over a selenium element"""

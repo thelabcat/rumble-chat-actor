@@ -34,6 +34,12 @@ class Message:
     #Prefix to all actor messages
     bot_prefix = "🤖: "
 
+    #How long to wait between checking if the send button is enabled
+    sendable_check_interval = 0.01
+
+    #How long to wait for the send button to enable
+    sendable_check_timeout = 1
+
     #How long to wait between sending messages
     send_cooldown = 3
 
