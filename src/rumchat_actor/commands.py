@@ -179,7 +179,7 @@ class TTSCommand(ChatCommand):
 
 class MessageCommand(ChatCommand):
     """Post a single message in chat"""
-    def __init__(self, actor, name, text, help_message):
+    def __init__(self, actor, name, text, help_message = None):
         """Instance this object, then pass it to RumbleChatActor().register_command().
     actor: The Rumble chat actor host
     name: the command name
@@ -187,7 +187,8 @@ class MessageCommand(ChatCommand):
     help_message: The message that the help command will display"""
         super().__init__(name = name, actor = actor)
         self.text = text
-        self.help_message = help_message
+        if help_message:
+            self.help_message = help_message
 
     def run(self, message):
         """Run the lurk"""
