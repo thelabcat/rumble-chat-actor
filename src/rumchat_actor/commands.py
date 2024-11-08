@@ -755,16 +755,16 @@ class ClipRecordingCommand(ChatCommand):
 
 class ClipReplayBufferCommand(ChatCommand):
     """Save clips of the livestream by triggering OBS to save its replay buffer"""
-    def __init__(self, actor, name = "clip", cooldown = 120, obs_hotkey = static.Clip.ReplayBuffer.obs_hotkey_default, buffer_save_path = "." + os.sep, save_format = static.Clip.save_extension):
+    def __init__(self, actor, name = "clip", cooldown = 120, obs_hotkey = static.Clip.ReplayBuffer.obs_hotkey_default, clip_save_path = "." + os.sep, save_format = static.Clip.save_extension):
         """Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
     actor: The Rumchat Actor
     name: The name of the command
     cooldown: Command cooldown
     obs_hotkey: List of keys to press at the same time to trigger OBS and save a replay buffer
-    buffer_save_path: Where replay buffer recordings from OBS are stored
+    clip_save_path: Where replay buffer recordings from OBS are stored
     save_format: Format that replay buffers are saved in"""
         super().__init__(name = name, actor = actor, cooldown = cooldown)
-        self.buffer_save_path = buffer_save_path.removesuffix(os.sep) + os.sep #Where replay buffer recordings from OBS are stored
+        self.clip_save_path = clip_save_path.removesuffix(os.sep) + os.sep #Where replay buffer recordings from OBS are stored
         self.obs_hotkey = obs_hotkey
         self.save_format = save_format.removeprefix(".")
         self.__running_clipsaves = 0 #How many clip save operations are running
@@ -809,7 +809,7 @@ class ClipReplayBufferCommand(ChatCommand):
             #Avoid overwriting other clips
             increment = 0
             safe_filename = filename
-            while os.path.exists(os.path.join(self.buffer_save_path, safe_filename + "." + self.save_format)):
+            while os.path.exists(os.path.join(self.clip_save_path, safe_filename + "." + self.save_format)):
                 increment += 1
                 safe_filename = filename + f"({increment})"
 
@@ -823,7 +823,7 @@ class ClipReplayBufferCommand(ChatCommand):
             self.actor.send_message("Saving clip with default filename.")
 
         #Run the clip save in a thread
-        saveclip_thread = threading.Thread(target = self.form_recording_into_clip, args = (filename), daemon = True)
+        saveclip_thread = threading.Thread(target = self.form_recording_into_clip, args = [filename], daemon = True)
         saveclip_thread.start()
 
     def form_recording_into_clip(self, desired_filename):
@@ -845,15 +845,15 @@ class ClipReplayBufferCommand(ChatCommand):
         time.sleep(static.Clip.ReplayBuffer.save_start_delay)
 
         print("Locating saved replay buffer")
-        potential_files = glob.glob(f"{static.Clip.ReplayBuffer.save_name_format_notime}**.{self.save_format}", root_dir = self.buffer_save_path)
+        potential_files = glob.glob(f"{static.Clip.ReplayBuffer.save_name_format_notime}**.{self.save_format}", root_dir = self.clip_save_path)
         potential_files.sort()
 
         if not potential_files:
-            print(f"ERROR: No files matched search for '{static.Clip.ReplayBuffer.save_name_format_notime}**.{self.save_format}' in {self.buffer_save_path}")
+            print(f"ERROR: No files matched search for '{static.Clip.ReplayBuffer.save_name_format_notime}**.{self.save_format}' in {self.clip_save_path}")
             self.running_clipsaves -= 1
             return
 
-        believed_filename = time.strftime(static.Clip.ReplayBuffer.save_name_format, marktime)
+        believed_filename = time.strftime(static.Clip.ReplayBuffer.save_name_format, time.localtime(marktime))
         if believed_filename in potential_files:
             print("Found exact match for", believed_filename)
             filename = believed_filename
@@ -863,20 +863,20 @@ class ClipReplayBufferCommand(ChatCommand):
 
         print("Waiting for file to finish saving")
         old_size = 0
-        while (new_size := os.path.getsize(os.path.join(self.buffer_save_path, filename))) != old_size:
+        while (new_size := os.path.getsize(os.path.join(self.clip_save_path, filename))) != old_size:
             time.sleep(static.Clip.ReplayBuffer.size_check_delay)
             old_size = new_size
 
         if desired_filename:
             print(f"Renaming {filename} to {desired_filename}")
-            shutil.move(os.path.join(self.buffer_save_path, filename), os.path.join(self.buffer_save_path, desired_filename + "." + self.save_format))
+            shutil.move(os.path.join(self.clip_save_path, filename), os.path.join(self.clip_save_path, desired_filename + "." + self.save_format))
             filename = desired_filename + "." + self.save_format
 
         #Make note that the clipsave has finished
         self.running_clipsaves -= 1
 
         if self.clip_uploader:
-            self.clip_uploader.upload_clip(filename)
+            self.clip_uploader.upload_clip(filename.removesuffix("." + self.save_format))
 
 class RaffleCommand(ChatCommand):
     """Create, enter, and draw from raffles"""

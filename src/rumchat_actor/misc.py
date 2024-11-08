@@ -45,7 +45,8 @@ class ClipUploader():
 
         #Start the driver
         self.driver = webdriver.Firefox(options)
-        self.driver.minimize_window()
+        self.driver.maximize_window() #Make sure the window covers the full screen
+        #self.driver.minimize_window()  #Cannot do because it shrinks the window. Must be minimized manually
 
         #Load the upload page
         self.driver.get(static.URI.upload_page)
@@ -161,13 +162,13 @@ class ClipUploader():
             self.driver.find_element(By.NAME, "secondary-category").send_keys(static.Clip.Upload.category_2 + Keys.RETURN)
 
         #Select channel
-        channel_id_select = Select(self.driver.find_element(By.ID, "channelId"))
+        channel_id_fieldset = self.driver.find_element(By.ID, "channelId")
         try:
             if self.channel_id:
                 if isinstance(self.channel_id, str):
-                    channel_id_select.select_by_visible_text(self.channel_id)
+                    channel_id_fieldset.find_element(By.XPATH, f"//label[text()='{self.channel_id}']").click()
                 elif isinstance(self.channel_id, int):
-                    channel_id_select.select_by_value(self.channel_id)
+                    channel_id_fieldset.find_element(By.XPATH, f"//label[channel='{self.channel_id}']").click()
                 else:
                     print("Invalid channel format")
             else:

@@ -137,7 +137,8 @@ class RumbleChatActor():
 
         #Get browser
         self.driver = webdriver.Firefox(options)
-        self.driver.minimize_window()
+        self.driver.maximize_window() #Make sure the window covers the full screen
+        #self.driver.minimize_window() #Cannot do because it shrinks the window. Must be minimized manually
         self.driver.get(static.URI.chat_popout.format(stream_id_b10 = self.ssechat.stream_id_b10))
         assert "Chat" in self.driver.title, "Failed to load chat page: Title does not contain 'Chat'"
 

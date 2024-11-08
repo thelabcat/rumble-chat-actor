@@ -130,7 +130,7 @@ class Clip:
         save_name_format_notime = "Replay "
 
         #List of keys to press at the same time to trigger OBS and save a replay buffer
-        obs_hotkey_default = ["/"]
+        obs_hotkey_default = ["numdivide"]
 
         #Egg timer for save to initialize
         save_start_delay = 1
