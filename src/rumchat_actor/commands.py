@@ -27,7 +27,7 @@ from . import utils, static
 
 class ChatCommand():
     """Chat command abstract class"""
-    def __init__(self, name, actor, cooldown = static.Message.send_cooldown, amount_cents = 0, exclusive = False, allowed_badges = ["subscriber"], whitelist_badges = ["moderator"], target = None):
+    def __init__(self, name, actor, cooldown = static.Message.send_cooldown, amount_cents = 0, exclusive = False, allowed_badges = ["subscriber"], free_badges = ["moderator"], target = None):
         """Instance a derivative of this object, then pass it to RumbleChatActor().register_command().
     name: The !name of the command
     actor: The RumleChatActor host object
@@ -35,7 +35,7 @@ class ChatCommand():
     exclusive: If this command can only be run by users with allowed badges
     allowed_badges: Badges that are allowed to run this command (if it is exclusive),
         "admin" is added internally.
-    whitelist_badges: Badges which if borne give the user free-of-charge command access
+    free_badges: Badges which if borne give the user free-of-charge command access
     target: The command function(message, actor) to call. Defaults to self.run"""
         assert " " not in name, "Name cannot contain spaces"
         self.name = name
@@ -47,7 +47,7 @@ class ChatCommand():
         self.amount_cents = amount_cents #Cost of the command
         self.exclusive = exclusive
         self.allowed_badges = ["admin"] + allowed_badges #Admin can always run any command
-        self.whitelist_badges = ["admin"] + whitelist_badges #Admin always has free-of-charge usage
+        self.free_badges = ["admin"] + free_badges #Admin always has free-of-charge usage
         self.last_use_time = 0 #Last time the command was called
         self.target = target
         self.__set_help_message = None
@@ -86,7 +86,7 @@ class ChatCommand():
 
         #the user did not pay enough for the command and they do not have a free pass
         if message.rant_price_cents < self.amount_cents and \
-            not (True in [badge.slug in self.whitelist_badges for badge in message.user.badges]):
+            not (True in [badge.slug in self.free_badges for badge in message.user.badges]):
 
             self.actor.send_message("@" + message.user.username +
                                     f"That command costs ${self.amount_cents/100:.2f}."
@@ -120,7 +120,7 @@ class TTSCommand(ChatCommand):
     exclusive: If this command can only be run by users with allowed badges. Defaults to False
     allowed_badges: Badges that are allowed to run this command (if it is exclusive),
         defaults to ["moderator"], "admin" is added internally.
-    whitelist_badges: Badges which if borne give the user free-of-charge command access
+    free_badges: Badges which if borne give the user free-of-charge command access
     target: The command function(message, actor) to call. Defaults to self.run
     voices: Dict of voice_name : say(text) callable
     """
@@ -203,7 +203,9 @@ class HelpCommand(ChatCommand):
     @property
     def help_message(self):
         """The help message for this command"""
-        return f"Run alone to list all available commands, or get help on a specific command with {static.Message.command_prefix + self.name} [command_name]"
+        return "Run alone to list all available commands, or get " + \
+        "help on a specific command with " + \
+        f"{static.Message.command_prefix + self.name} [command_name]"
 
     def run(self, message):
         """Run the help command"""
@@ -211,7 +213,10 @@ class HelpCommand(ChatCommand):
 
         #Command was run without arguments
         if len(segs) == 1:
-            self.actor.send_message("The following commands are registered: " + ", ".join(self.actor.chat_commands))
+            self.actor.send_message(
+                "The following commands are registered: " + \
+                ", ".join(self.actor.chat_commands)
+            )
 
         #Command had one argument
         elif len(segs) == 2:
@@ -295,8 +300,10 @@ class ClipDownloadingCommand(ChatCommand):
 
     def get_ts_list(self, quality):
         """Download an m3u8 playlist and parse it for TS filenames"""
-        assert self.ts_url_start and self.m3u8_filename, "Must have the TS URL start and the m3u8 filename before this runs"
-        m3u8 = requests.get(self.ts_url_start.format(quality = quality) + self.m3u8_filename, timeout = DEFAULT_TIMEOUT).content.decode()
+        assert self.ts_url_start and self.m3u8_filename, \
+            "Must have the TS URL start and the m3u8 filename before this runs"
+        m3u8 = requests.get(self.ts_url_start.format(quality = quality) + \
+            self.m3u8_filename, timeout = DEFAULT_TIMEOUT).content.decode()
         return [line for line in m3u8.splitlines() if not line.startswith("#")]
 
     def record_loop(self):
@@ -326,15 +333,23 @@ class ClipDownloadingCommand(ChatCommand):
 
         #Wait for the stream to go live, and get its URL in the meantime
         browser.get(self.streamer_main_page_url)
-        stream_griditem = browser.find_element(By.XPATH,
-                                                "//div[@class='videostream thumbnail__grid--item']" +
-                                                f"[@data-video-id='{self.actor.stream_id_b10}']"
-                                                )
+        stream_griditem = browser.find_element(
+            By.XPATH,
+            "//div[@class='videostream thumbnail__grid--item']" +
+            f"[@data-video-id='{self.actor.stream_id_b10}']"
+        )
 
-        stream_url = static.URI.rumble_base + "/" + stream_griditem.find_element(By.CLASS_NAME, 'videostream__link.link').get_attribute("href")
+        stream_url = static.URI.rumble_base + "/" + \
+            stream_griditem.find_element(By.CLASS_NAME, 'videostream__link.link')\
+                .get_attribute("href")
         print("Waiting for stream to go live before starting clip recorder...")
         while not self.stream_is_live:
-            self.stream_is_live = bool(stream_griditem.find_elements(By.CLASS_NAME, "videostream__badge.videostream__status.videostream__status--live"))
+            self.stream_is_live = bool(
+                stream_griditem.find_elements(
+                    By.CLASS_NAME,
+                    "videostream__badge.videostream__status.videostream__status--live",
+                )
+            )
 
             #Stream is now live, stop the loop by going back to the top to re-evaluate
             if self.stream_is_live:
@@ -358,10 +373,11 @@ class ClipDownloadingCommand(ChatCommand):
             #Stream is still upcoming
             time.sleep(static.Driver.page_refresh_rate)
             browser.refresh()
-            stream_griditem = browser.find_element(By.XPATH,
-                                                    "//div[@class='videostream thumbnail__grid--item']" +
-                                                    f"[@data-video-id='{self.actor.stream_id_b10}']"
-                                                        )
+            stream_griditem = browser.find_element(
+                By.XPATH,
+                "//div[@class='videostream thumbnail__grid--item']" + \
+                f"[@data-video-id='{self.actor.stream_id_b10}']",
+            )
 
         #Watch the network traffic for the m3u8 URL
         print("Starting traffic recorder")
@@ -563,11 +579,7 @@ class ClipDownloadingCommand(ChatCommand):
             filename = f"{round(t - self.ts_durations[self.use_quality] * len(use_ts))}-{round(t)}"
 
         #Avoid overwriting other clips
-        increment = 0
-        safe_filename = filename
-        while safe_filename + "." + static.Clip.save_extension in glob.glob("*", root_dir = self.clip_save_path):
-            increment += 1
-            safe_filename = filename + f"({increment})"
+        safe_filename = utils.get_safe_filename(self.clip_save_path, filename)
 
         self.actor.send_message(f"Saving clip {safe_filename}, duration of {round(self.ts_durations[self.use_quality] * len(use_ts))} seconds.")
         saveclip_thread = threading.Thread(target = self.form_ts_into_clip, args = (safe_filename, use_ts), daemon = True)
@@ -604,7 +616,12 @@ class ClipDownloadingCommand(ChatCommand):
 
         #Save
         print("Saving clip")
-        clip.write_videofile(self.clip_save_path + filename + "." + static.Clip.save_extension, bitrate = static.Clip.Download.stream_qualities[self.use_quality], logger = None)
+        complete_filepath = os.path.join(self.clip_save_path, filename + "." + static.Clip.save_extension)
+        clip.write_videofile(
+            complete_filepath,
+            bitrate = static.Clip.Download.stream_qualities[self.use_quality],
+            logger = None
+        )
 
         self.running_clipsaves -= 1
         if self.running_clipsaves < 0:
@@ -618,7 +635,7 @@ class ClipDownloadingCommand(ChatCommand):
 
         #Upload the clip
         if self.clip_uploader:
-            self.clip_uploader.upload_clip(filename)
+            self.clip_uploader.upload_clip(filename, complete_filepath)
 
         print("Complete")
 
@@ -640,7 +657,6 @@ class ClipRecordingCommand(ChatCommand):
         self.running_clipsaves = 0 #How many clip save operations are running
         self.__recording_filename = None #The filename of the running OBS recording, asked later
         print(self.recording_filename) #...now is later
-        self.save_format = static.Clip.save_extension #Format that clips are saved in. For ClipUploader
         self.clip_uploader = None #An object to upload the clips when they are complete
 
     @property
@@ -716,11 +732,7 @@ class ClipRecordingCommand(ChatCommand):
             filename = f"{round(t - duration)}-{round(t)}"
 
         #Avoid overwriting other clips
-        increment = 0
-        safe_filename = filename
-        while safe_filename + "." + static.Clip.save_extension in glob.glob("*", root_dir = self.clip_save_path):
-            increment += 1
-            safe_filename = filename + f"({increment})"
+        safe_filename = utils.get_safe_filename(self.clip_save_path, filename)
 
         #Report clip save
         self.actor.send_message(f"Saving clip {safe_filename}, duration of {duration} seconds.")
@@ -739,7 +751,8 @@ class ClipRecordingCommand(ChatCommand):
         print("Loading copy")
         recording = VideoFileClip(self.recording_copy_fn)
         print("Saving trimmed clip")
-        ffmpeg_extract_subclip(self.recording_copy_fn, max((recording.duration - duration, 0)), recording.duration, targetname = self.clip_save_path + filename + "." + static.Clip.save_extension)
+        complete_path = os.path.join(self.clip_save_path, filename + "." + static.Clip.save_extension)
+        ffmpeg_extract_subclip(self.recording_copy_fn, max((recording.duration - duration, 0)), recording.duration, targetname = complete_path)
         print("Closing and deleting frozen copy")
         recording.close()
         os.system("rm " + self.recording_copy_fn)
@@ -752,7 +765,7 @@ class ClipRecordingCommand(ChatCommand):
             self.running_clipsaves = 0
 
         if self.clip_uploader:
-            self.clip_uploader.upload_clip(filename)
+            self.clip_uploader.upload_clip(filename, complete_path)
 
 class ClipReplayBufferCommand(ChatCommand):
     """Save clips of the livestream by triggering OBS to save its replay buffer"""
@@ -804,15 +817,11 @@ class ClipReplayBufferCommand(ChatCommand):
             self.save_clip("_".join(segs[1:]))
 
     def save_clip(self, filename = None):
-        """Save a clip with the given duration to the filename"""
+        """Save a clip to the filename"""
 
         if filename:
             #Avoid overwriting other clips
-            increment = 0
-            safe_filename = filename
-            while os.path.exists(os.path.join(self.clip_save_path, safe_filename + "." + self.save_format)):
-                increment += 1
-                safe_filename = filename + f"({increment})"
+            safe_filename = utils.get_safe_filename(self.clip_save_path, filename, extension = self.save_format)
 
             #Report clip save
             self.actor.send_message(f"Saving clip {safe_filename}.")
@@ -824,10 +833,10 @@ class ClipReplayBufferCommand(ChatCommand):
             self.actor.send_message("Saving clip with default filename.")
 
         #Run the clip save in a thread
-        saveclip_thread = threading.Thread(target = self.form_recording_into_clip, args = [filename], daemon = True)
+        saveclip_thread = threading.Thread(target = self.save_buffer_as_clip, args = [filename], daemon = True)
         saveclip_thread.start()
 
-    def form_recording_into_clip(self, desired_filename):
+    def save_buffer_as_clip(self, desired_filename):
         """Do the actual file operations to save a clip"""
         #Keep a counter of running clipsaves, may not be needed
         self.running_clipsaves += 1
@@ -846,38 +855,45 @@ class ClipReplayBufferCommand(ChatCommand):
         time.sleep(static.Clip.ReplayBuffer.save_start_delay)
 
         print("Locating saved replay buffer")
-        potential_files = glob.glob(f"{static.Clip.ReplayBuffer.save_name_format_notime}**.{self.save_format}", root_dir = self.clip_save_path)
+        search_string = f"{static.Clip.ReplayBuffer.save_name_format_notime}**.{self.save_format}"
+        potential_files = glob.glob(search_string, root_dir = self.clip_save_path)
         potential_files.sort()
 
         if not potential_files:
-            print(f"ERROR: No files matched search for '{static.Clip.ReplayBuffer.save_name_format_notime}**.{self.save_format}' in {self.clip_save_path}")
+            print(f"ERROR: No files matched search for '{search_string}' in {self.clip_save_path}")
             self.running_clipsaves -= 1
             return
 
         believed_filename = time.strftime(static.Clip.ReplayBuffer.save_name_format, time.localtime(marktime))
         if believed_filename in potential_files:
             print("Found exact match for", believed_filename)
-            filename = believed_filename
+            filename_wext = believed_filename
         else:
             print("Did not find exact match for", believed_filename)
-            filename = potential_files[-1]
+            filename_wext = potential_files[-1]
+
+        filename = filename_wext.removesuffix("." + self.save_format)
+        complete_path = os.path.join(self.clip_save_path, filename_wext)
 
         print("Waiting for file to finish saving")
         old_size = 0
-        while (new_size := os.path.getsize(os.path.join(self.clip_save_path, filename))) != old_size:
+        while (new_size := os.path.getsize(complete_path)) != old_size:
             time.sleep(static.Clip.ReplayBuffer.size_check_delay)
             old_size = new_size
 
         if desired_filename:
             print(f"Renaming {filename} to {desired_filename}")
-            shutil.move(os.path.join(self.clip_save_path, filename), os.path.join(self.clip_save_path, desired_filename + "." + self.save_format))
-            filename = desired_filename + "." + self.save_format
+            old_complete_path = complete_path
+            complete_path = os.path.join(self.clip_save_path, desired_filename + "." + self.save_format)
+            shutil.move(old_complete_path, complete_path)
+            filename = desired_filename
+            del filename_wext #This is no longer valid, so remove from memory for debug
 
         #Make note that the clipsave has finished
         self.running_clipsaves -= 1
 
         if self.clip_uploader:
-            self.clip_uploader.upload_clip(filename.removesuffix("." + self.save_format))
+            self.clip_uploader.upload_clip(filename, complete_path)
 
 class RaffleCommand(ChatCommand):
     """Create, enter, and draw from raffles"""

@@ -5,6 +5,7 @@ Functions and classes that did not fit in another module
 S.D.G."""
 
 from getpass import getpass
+import queue
 import threading
 import time
 import selenium
@@ -114,7 +115,7 @@ class ClipUploader():
         self.channel_id = kwargs.get("channel_id")
 
         #List of clip filenames to upload
-        self.clips_to_upload = []
+        self.clips_to_upload = queue.Queue()
 
         #Thread to keep uploading clips as they arrive
         self.clip_uploader_thread = threading.Thread(target = self.clip_upload_loop, daemon = True)
@@ -127,11 +128,11 @@ class ClipUploader():
             "ClipUploader timed out waiting for file upload field to appear",
             )
 
-    def upload_clip(self, filename):
+    def upload_clip(self, filename, complete_path):
         """Add the clip filename to the queue"""
-        self.clips_to_upload.append(filename)
+        self.clips_to_upload.put((filename, complete_path))
 
-    def __upload_clip(self, filename):
+    def __upload_clip(self, filename, complete_path):
         """Upload a clip to Rumble"""
         #Load the upload page
         self.driver.get(static.URI.upload_page)
@@ -140,9 +141,8 @@ class ClipUploader():
         self.wait_for_upload_elem()
 
         #Select file and begin upload
-        complete_filepath = self.clip_command.clip_save_path + filename + "." + self.clip_command.save_format
         file_input = self.driver.find_element(By.CSS_SELECTOR, "input[type='file']")
-        file_input.send_keys(complete_filepath)
+        file_input.send_keys(complete_path)
 
         #Wait for upload to complete
         upload_progress_el = self.driver.find_element(By.CLASS_NAME, "green_percent")
@@ -211,8 +211,10 @@ class ClipUploader():
     def clip_upload_loop(self):
         """Keep uploading clips while actor is alive"""
         while self.actor.keep_running:
-            if self.clips_to_upload:
-                self.__upload_clip(self.clips_to_upload.pop(0))
+            try:
+                self.__upload_clip(*self.clips_to_upload.get_nowait())
+            except queue.Empty:
+                pass
             time.sleep(1)
         self.driver.quit()
 
