@@ -151,7 +151,7 @@ class AutoModerator:
     llm_sys_prompt = "Analyze the following chat messages for appropriate-ness. Respond with either a 0 or a 1: If a message is appropriate for PG-13 SFW and not spam, or you are not sure, respond with a 1. If it is not appropriate for PG-13 or is NSFW or is spam, respond with a 0. You can only respond with these two values. Do not respond with commentary."
 
     #OLLaMa model to use for auto-modetation
-    llm_model = "llama3.1"
+    llm_model = "llama3.2"
 
 class Thank:
     """For saying thank-you in chat"""

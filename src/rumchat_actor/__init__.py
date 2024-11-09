@@ -35,6 +35,7 @@ actor.mainloop()
 S.D.G."""
 
 from getpass import getpass
+import queue
 import textwrap
 import time
 import threading
@@ -218,7 +219,7 @@ class RumbleChatActor():
         self.sent_messages = []
 
         #Messages waiting to be sent
-        self.outbox = []
+        self.outbox = queue.Queue()
 
         #Messages that we know are actually raid alerts
         self.known_raid_alert_messages = []
@@ -321,7 +322,7 @@ class RumbleChatActor():
                 #Is not an API stream and we don't know the username
                 elif not self.__streamer_username:
                     while not (specified := input("Enter streamer main page URL: ")).startswith(static.URI.rumble_base):
-                        pass
+                        print("ERROR: Must be a Rumble URL.")
                     self.__streamer_main_page_url = specified
 
             #Not a channel stream, go by username
@@ -351,15 +352,18 @@ class RumbleChatActor():
         assert "\n" not in text, "Message cannot contain newlines"
         assert len(text) < static.Message.max_multi_len, "Message is too long"
         for subtext in textwrap.wrap(text, width = static.Message.max_len):
-            self.outbox.append(subtext)
+            self.outbox.put(subtext)
             print("💬:", subtext)
 
     def _sender_loop(self):
         """Constantly check our outbox and send any messages in it"""
         while self.keep_running:
             #We have messages to send and it is time to send one
-            if self.outbox and time.time() - self.last_message_send_time > static.Message.send_cooldown:
-                self.__send_message(self.outbox.pop(0))
+            if time.time() - self.last_message_send_time > static.Message.send_cooldown:
+                try: #Must be nonblocking so we can shut down
+                    self.__send_message(self.outbox.get_nowait())
+                except queue.Empty:
+                    pass
             time.sleep(0.1)
 
     def __send_message(self, text):
@@ -373,7 +377,8 @@ class RumbleChatActor():
         send_bttn = self.driver.find_element(By.CLASS_NAME, "chat--send")
         #Wait for message to be sendable
         start_time = time.time()
-        while (disabled := send_bttn.get_attribute("disabled") is not None) and time.time() - start_time < static.Message.sendable_check_timeout:
+        while (disabled := send_bttn.get_attribute("disabled") is not None) \
+            and time.time() - start_time < static.Message.sendable_check_timeout:
             time.sleep(static.Message.sendable_check_interval)
         assert not disabled, "Message send button never enabled"
         send_bttn.click()
@@ -507,7 +512,8 @@ class RumbleChatActor():
     def quit(self):
         """Shut down everything"""
         self.keep_running = False
-        self.driver.quit()
+        if hasattr(self, "driver"):
+            self.driver.quit()
         # TODO how to close an SSEClient?
         # self.ssechat.client.close()
 
@@ -575,8 +581,8 @@ class RumbleChatActor():
 
     def __process_message(self, message):
         """Process a single SSE Chat message"""
-        #Ignore messages that match ones we sent before
-        if message.text in self.sent_messages:
+        #Ignore messages that are from our account and match ones we sent before
+        if message.user.username == self.username and message.text in self.sent_messages:
             return
 
         #the message is actually a raid alert, take raid action on it, nothing more

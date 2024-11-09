@@ -58,8 +58,6 @@ class ChatCommand():
         if self.__set_help_message:
             return self.__set_help_message
 
-        return "No specific help for this command"
-
     @help_message.setter
     def help_message(self, new):
         """Set the help message for this command externally"""
@@ -219,7 +217,10 @@ class HelpCommand(ChatCommand):
         elif len(segs) == 2:
             #Argument is a valid command
             if segs[-1] in self.actor.chat_commands:
-                self.actor.send_message(segs[-1] + " command: " + self.actor.chat_commands[segs[-1]].help_message)
+                hm = self.actor.chat_commands[segs[-1]].help_message
+                if not hm:
+                    hm = "No specific help for this command."
+                self.actor.send_message(segs[-1] + " command: " + hm)
 
             #Argument is something else
             else:
