@@ -167,7 +167,7 @@ class ClipUploader():
                 if isinstance(self.channel_id, str):
                     channel_id_fieldset.find_element(By.XPATH, f"//label[text()='{self.channel_id}']").click()
                 elif isinstance(self.channel_id, int):
-                    channel_id_fieldset.find_element(By.XPATH, f"//label[channel='{self.channel_id}']").click()
+                    channel_id_fieldset.find_element(By.XPATH, f"//label[@channel='{self.channel_id}']").click()
                 else:
                     print("Invalid channel format")
             else:
@@ -215,7 +215,10 @@ class ClipUploader():
                 self.__upload_clip(*self.clips_to_upload.get_nowait())
             except queue.Empty:
                 pass
+
             time.sleep(1)
+
+        #Shutdown the upload driver when the actor shuts down
         self.driver.quit()
 
 class Thanker(threading.Thread):

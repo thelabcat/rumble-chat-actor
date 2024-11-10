@@ -135,7 +135,7 @@ class TTSCommand(ChatCommand):
     def help_message(self):
         """The help message for this command"""
         return f"Speak your message{f" for ${self.amount_cents/100: .2%}" if self.amount_cents else ""}." + \
-            f"Use {static.Message.command_prefix + self.name} [voice] Your message. Available voices are: " + ", ".join(self.voices)
+            f"Use {static.Message.command_prefix}{self.name} [voice] Your message. Available voices are: " + ", ".join(self.voices)
 
     @property
     def default_voice(self):
@@ -204,8 +204,8 @@ class HelpCommand(ChatCommand):
     def help_message(self):
         """The help message for this command"""
         return "Run alone to list all available commands, or get " + \
-        "help on a specific command with " + \
-        f"{static.Message.command_prefix + self.name} [command_name]"
+            "help on a specific command with " + \
+            f"{static.Message.command_prefix}{self.name} [command_name]"
 
     def run(self, message):
         """Run the help command"""
@@ -295,7 +295,7 @@ class ClipDownloadingCommand(ChatCommand):
     @property
     def help_message(self):
         """The help message for this command"""
-        return f"Save a clip from the livestream. Use {static.Message.command_prefix + self.name} [duration] [custom clip name]." + \
+        return f"Save a clip from the livestream. Use {static.Message.command_prefix}{self.name} [duration] [custom clip name]." + \
             f"Default duration is {self.default_duration}, max duration is {self.max_duration}."
 
     def get_ts_list(self, quality):
@@ -339,9 +339,7 @@ class ClipDownloadingCommand(ChatCommand):
             f"[@data-video-id='{self.actor.stream_id_b10}']"
         )
 
-        stream_url = static.URI.rumble_base + "/" + \
-            stream_griditem.find_element(By.CLASS_NAME, 'videostream__link.link')\
-                .get_attribute("href")
+        stream_url = static.URI.rumble_base + "/" + stream_griditem.find_element(By.CLASS_NAME, 'videostream__link.link').get_attribute("href")
         print("Waiting for stream to go live before starting clip recorder...")
         while not self.stream_is_live:
             self.stream_is_live = bool(
@@ -662,7 +660,7 @@ class ClipRecordingCommand(ChatCommand):
     @property
     def help_message(self):
         """The help message for this command"""
-        return f"Save a clip from the livestream. Use {static.Message.command_prefix + self.name} [duration] [custom clip name]." + \
+        return f"Save a clip from the livestream. Use {static.Message.command_prefix}{self.name} [duration] [custom clip name]." + \
             f"Default duration is {self.default_duration}, max duration is {self.max_duration}."
 
     @property
@@ -787,7 +785,7 @@ class ClipReplayBufferCommand(ChatCommand):
     @property
     def help_message(self):
         """The help message for this command"""
-        return f"Save a clip from the livestream. Use {static.Message.command_prefix + self.name} [custom clip name]." + \
+        return f"Save a clip from the livestream. Use {static.Message.command_prefix}{self.name} [custom clip name]." + \
             "Duration is defined by OBS replay buffer settings."
 
     @property
@@ -922,7 +920,9 @@ class RaffleCommand(ChatCommand):
     @property
     def help_message(self):
         """The help message for this command"""
-        return f"Do raffles in the chat. Use {static.Message.command_prefix}{self.name} [argument]. Valid arguments are: {", ".join(self.operations)}"
+        return "Do raffles in the chat. " + \
+            f"Use {static.Message.command_prefix}{self.name} [argument]. " + \
+            f"Valid arguments are: {", ".join(self.operations)}"
 
     def run(self, message):
         """Run the raffle command"""
