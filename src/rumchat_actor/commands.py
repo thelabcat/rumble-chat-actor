@@ -89,7 +89,7 @@ class ChatCommand():
             not (True in [badge.slug in self.free_badges for badge in message.user.badges]):
 
             self.actor.send_message("@" + message.user.username +
-                                    f"That command costs ${self.amount_cents/100:.2f}."
+                                    f" That command costs ${self.amount_cents/100:.2f}."
                                     )
             return
 
