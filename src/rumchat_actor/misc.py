@@ -225,7 +225,7 @@ class Thanker(threading.Thread):
     """Thank followers and subscribers in the chat"""
     def __init__(self, actor):
         """Pass the Rumble Chat Actor"""
-        super().__init__()
+        super().__init__(daemon = True)
         self.actor = actor
         self.rum_api = self.actor.rum_api
         assert self.rum_api, "Thanker cannot function if actor does not have Rumble API"
