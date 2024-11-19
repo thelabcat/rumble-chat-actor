@@ -517,7 +517,7 @@ class RumbleChatActor():
         # TODO how to close an SSEClient?
         # self.ssechat.client.close()
 
-    def __run_if_command(self, message):
+    def __run_if_command(self, message, act_props: dict):
         """Check if a message is a command, and run it if so"""
         #Not a command
         if not message.text.startswith(static.Message.command_prefix):
@@ -532,7 +532,7 @@ class RumbleChatActor():
                 self.send_message(f"@{message.user.username} That is not a registered command.")
             return
 
-        self.chat_commands[name].call(message)
+        self.chat_commands[name].call(message, act_props)
 
     def register_command(self, command, name = None, help_message = None):
         """Register a command"""
@@ -599,12 +599,23 @@ class RumbleChatActor():
         if message.user.username in self.ignore_users:
             return
 
+        act_props_all = {}
         for action in self.message_actions:
             #The message got deleted, possibly by this action
-            if message.message_id in self.ssechat.deleted_message_ids or action(message, self):
+            if message.message_id in self.ssechat.deleted_message_ids:
                 return
 
-        self.__run_if_command(message)
+            act_props_one = action(message, self)
+
+            #Legacy message action return support
+            if act_props_one is None:
+                act_props_one = {}
+
+            act_props_all.update(act_props_one)
+            if act_props_all.get("deleted"):
+                return
+
+        self.__run_if_command(message, act_props_all)
 
     def mainloop(self):
         """Run the actor forever"""

@@ -23,12 +23,12 @@ def ollama_message_moderate(message, actor):
     #Message was blank
     if not message.text.strip():
         print("Message was blank.")
-        return
+        return {}
 
     #User has an immunity badge
     if True in [badge in message.user.badges for badge in static.Moderation.staff_badges]:
         print(f"{message.user.username} is staff, skipping LLM check.")
-        return
+        return {}
 
     #Get the LLM verdict
     response = ollama.chat(model = static.AutoModerator.llm_model, messages = [
@@ -43,22 +43,22 @@ def ollama_message_moderate(message, actor):
     #Verdict was not valid
     except ValueError:
         print(f"Bad verdict for {message.text} : {response["message"]["content"]}")
-        return
+        return {}
 
     #Response was not in expected format
     except KeyError:
         print(f"Could not get verdict for {message.text} : Response: {response}")
-        return
+        return {}
 
     #Returned 1 for SFW
     if verdict:
         print("LLM verdicted as clean: " + message.text)
-        return
+        return {}
 
     #Returned 0 for NSFW
     print("LLM verdicted as dirty: " + message.text)
     actor.delete_message(message)
-    return True
+    return {"deleted" : True}
 
 class RantTTSManager():
     """System to TTS rant messages, with threshhold settings"""
@@ -91,6 +91,8 @@ class RantTTSManager():
         """TTS rants above the manager instance's threshhold"""
         if message.is_rant and message.rant_price_cents >= self.__tts_amount_threshold:
             self.__say(message.text)
+            return {"sound" : True}
+        return {}
 
 class TimedMessagesManager():
     """System to send messages on a timed basis"""
@@ -125,6 +127,7 @@ class TimedMessagesManager():
     def action(self, message, actor):
         """Count the messages sent"""
         self.in_between_counter += 1
+        return {}
 
     def sender_loop(self):
         """Continuously wait till it is time to send another message"""

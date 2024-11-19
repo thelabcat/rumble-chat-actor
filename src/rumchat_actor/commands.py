@@ -63,7 +63,7 @@ class ChatCommand():
         """Set the help message for this command externally"""
         self.__set_help_message = str(new)
 
-    def call(self, message):
+    def call(self, message, act_props: dict):
         """The command was called"""
         #this command is exclusive, and the user does not have the required badge
         if self.exclusive and \
@@ -94,12 +94,12 @@ class ChatCommand():
             return
 
         #the command was called successfully
-        self.run(message)
+        self.run(message, act_props)
 
         #Mark the last use time for cooldown
         self.last_use_time = time.time()
 
-    def run(self, message):
+    def run(self, message, act_props: dict):
         """Dummy run method"""
         if self.target:
             self.target(message, self.actor)
@@ -112,7 +112,7 @@ class ChatCommand():
 
 class TTSCommand(ChatCommand):
     """Text-to-speech command"""
-    def __init__(self, *args, name = "tts", voices = {}, **kwargs):
+    def __init__(self, *args, name = "tts", no_double_sound = True, voices = {}, **kwargs):
         """Instance this object, then pass it to RumbleChatActor().register_command().
     actor: The RumleChatActor host object
     name: The !name of the command
@@ -122,9 +122,12 @@ class TTSCommand(ChatCommand):
         defaults to ["moderator"], "admin" is added internally.
     free_badges: Badges which if borne give the user free-of-charge command access
     target: The command function(message, actor) to call. Defaults to self.run
+    no_double_sound: Do not play if act_props["sound"] is True
     voices: Dict of voice_name : say(text) callable
     """
         super().__init__(*args, name = name, **kwargs)
+
+        self.no_double_sound = no_double_sound
         self.voices = voices
 
         #Make sure we have a default voice
@@ -154,8 +157,13 @@ class TTSCommand(ChatCommand):
         else:
             self.voices[voice](text)
 
-    def run(self, message):
+    def run(self, message, act_props: dict):
         """Run the TTS"""
+
+        #Do not create more sound if a message action already made some
+        if self.no_double_sound and act_props.get("sound"):
+            return
+
         segs = message.text.split()
 
         #No args for the tts command
@@ -188,7 +196,7 @@ class MessageCommand(ChatCommand):
         if help_message:
             self.help_message = help_message
 
-    def run(self, message):
+    def run(self, message, act_props: dict):
         """Run the lurk"""
         self.actor.send_message(self.text.format(message.user.username))
 
@@ -207,7 +215,7 @@ class HelpCommand(ChatCommand):
             "help on a specific command with " + \
             f"{static.Message.command_prefix}{self.name} [command_name]"
 
-    def run(self, message):
+    def run(self, message, act_props: dict):
         """Run the help command"""
         segs = message.text.split()
 
@@ -249,7 +257,7 @@ class KillswitchCommand(ChatCommand):
         """The help message for this command"""
         return "Shut down RumChat Actor."
 
-    def run(self, message):
+    def run(self, message, act_props: dict):
         """Shut down Rumchat Actor"""
         try:
             self.actor.send_message("Shutting down.")
@@ -517,7 +525,7 @@ class ClipDownloadingCommand(ChatCommand):
             #Calculate average download time
             self.average_ts_download_times[quality] = sum(download_times) / len(download_times)
 
-    def run(self, message):
+    def run(self, message, act_props: dict):
         """Make a clip"""
         #We are not ready for clipping
         if not self.ready_to_clip or not (self.is_dvr or self.saved_ts):
@@ -694,7 +702,7 @@ class ClipRecordingCommand(ChatCommand):
         """The filename of the temporary recording copy"""
         return static.Clip.Record.temp_copy_fn + "." + self.recording_container
 
-    def run(self, message):
+    def run(self, message, act_props: dict):
         """Make a clip. TODO mostly identical to ClipDownloadingCommand().run()"""
         segs = message.text.split()
         #Only called clip, no arguments
@@ -803,7 +811,7 @@ class ClipReplayBufferCommand(ChatCommand):
             return
         self.__running_clipsaves = new
 
-    def run(self, message):
+    def run(self, message, act_props: dict):
         """Make a clip. TODO mostly identical to ClipDownloadingCommand().run()"""
         segs = message.text.split()
         #Only called clip, no arguments
@@ -924,7 +932,7 @@ class RaffleCommand(ChatCommand):
             f"Use {static.Message.command_prefix}{self.name} [argument]. " + \
             f"Valid arguments are: {", ".join(self.operations)}"
 
-    def run(self, message):
+    def run(self, message, act_props: dict):
         """Run the raffle command"""
 
         segs = message.text.split()
