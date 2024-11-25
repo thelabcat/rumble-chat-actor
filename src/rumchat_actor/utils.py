@@ -8,6 +8,7 @@ import os
 from cocorum.utils import *
 #from js2py import eval_js
 import selenium
+import hashlib
 from selenium.webdriver.common.by import By
 from . import static
 
