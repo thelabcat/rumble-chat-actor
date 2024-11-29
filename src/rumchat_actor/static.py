@@ -63,11 +63,11 @@ class URI:
     #Rumble channel URL. Format with channel_name
     channel_page = RUMBLE_BASE_URL + "/c/{channel_name}"
 
-    #Rumble control service
-    service = RUMBLE_BASE_URL + "/service.php"
-
     #URL of upload page at Rumble
     upload_page = RUMBLE_BASE_URL + "/upload.php"
+
+    #M3U8 qualities list URL. Format with base 36 stream ID
+    m3u8_qualities_list = "https://rumble.com/live-hls-dvr/{stream_id_b36}/playlist.m3u8"
 
 class Moderation:
     """For moderation and related tasks"""

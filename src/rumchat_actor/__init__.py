@@ -40,15 +40,7 @@ import textwrap
 import time
 import threading
 from cocorum import RumbleAPI
-from cocorum.ssechat import SSEChat
-import selenium
-from selenium import webdriver
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.alert import Alert
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+from cocorum.chatapi import ChatAPI
 from . import actions, commands, misc, utils, static
 
 class RumbleChatActor():
@@ -72,8 +64,7 @@ class RumbleChatActor():
         Defaults to automatic determination if possible.
     ignore_users: List of usernames, will ignore all their messages.
     invalid_command_respond: Bool, sets if we should post an error message if a command was invalid.
-        Defaults to False.
-    browser_head: Display a head for the Firefox process. Defaults to false."""
+        Defaults to False."""
 
         #The info of the person streaming
         self.__streamer_username = kwargs.get("streamer_username")
@@ -122,30 +113,6 @@ class RumbleChatActor():
             self.stream_id = self.api_stream.stream_id
             self.stream_id_b10 = utils.stream_id_36_to_10(self.stream_id)
 
-        #Get SSE chat and empty the mailbox
-        self.ssechat = SSEChat(stream_id = self.stream_id)
-        self.ssechat.clear_mailbox()
-
-        #Set browser profile directory if we have one
-        options = webdriver.FirefoxOptions()
-        if "profile_dir" in kwargs:
-            options.add_argument("-profile")
-            options.add_argument(kwargs["profile_dir"])
-
-        #Set browser to headless mode, unless otherwise specified
-        if not kwargs.get("browser_head"):
-            options.add_argument("--headless")
-
-        #Get browser
-        self.driver = webdriver.Firefox(options)
-        self.driver.maximize_window() #Make sure the window covers the full screen
-        #self.driver.minimize_window() #Cannot do because it shrinks the window. Must be minimized manually
-        self.driver.get(static.URI.chat_popout.format(stream_id_b10 = self.ssechat.stream_id_b10))
-        assert "Chat" in self.driver.title, "Failed to load chat page: Title does not contain 'Chat'"
-
-        #Close the premium banner if it is there
-        utils.close_premium_banner(self.driver)
-
         #Get the login credentials from arguments, or None if they were not passed
         self.username = kwargs.get("username")
         self.password = kwargs.get("password")
@@ -162,55 +129,22 @@ class RumbleChatActor():
 
         #Sign in to chat, unless we are already. While there is a sign-in button...
         first_time = True
-        while sign_in_buttn := self.get_sign_in_button():
-            #First time going around this loop
-            if first_time:
-                #Only click the sign-in button the first time, as the sign-in dialog background blur overlay obscures it
-                sign_in_buttn.click()
-
-                #Wait for sign-in dialog to appear
-                WebDriverWait(self.driver, static.Driver.wait_timeout).until(
-                    EC.visibility_of_element_located((By.ID, "login-username")),
-                    "Timed out waiting for sign-in dialouge"
-                    )
-
-                #Get the credentials entry fields
-                uname_field = self.driver.find_element(By.ID, "login-username")
-                password_field = self.driver.find_element(By.ID, "login-password")
-
-            #Login failed
-            else:
-                print("Error. Login failed with provided credentials.")
-                self.username = None
-                self.password = None
-
-                uname_field.clear()
-                password_field.clear()
-
+        while first_time or not (self.username and self.password):
             #Ask user for credentials as needed
             if not self.username:
                 self.username = input("Actor username: ")
             if not self.password:
                 self.password = getpass("Actor password: ")
 
-            #Enter the credentials
-            uname_field.send_keys(self.username + Keys.RETURN)
-            password_field.send_keys(self.password + Keys.RETURN)
+            try:
+                self.chat = ChatAPI(self.stream_id_b10, self.username, self.password)
+            #Login failed
+            except AssertionError:
+                print("Error. Login failed with provided credentials.")
+                self.username = None
+                self.password = None
 
             first_time = False
-
-            #Wait for signed in loading to complete
-            try:
-                self.wait_for_chat_input_elem()
-
-            #Sign in did not work
-            except selenium.common.exceptions.WebDriverException as e:
-                print(e)
-                print("Could not get chat input field.")
-                assert self.get_sign_in_button(), "Neither sign-in button nor chat input field are usable"
-
-        #Wait for signed in loading to complete
-        self.wait_for_chat_input_elem()
 
         #Ignore these users when processing messages
         self.ignore_users = ignore_users
@@ -241,7 +175,7 @@ class RumbleChatActor():
         self.send_message(init_message)
 
         #Wait until we get that message
-        while (m := self.ssechat.get_message()).user.username != self.username:
+        while (m := self.chat.get_message()).user.username != self.username:
             pass
 
         assert utils.is_staff(m.user), \
@@ -331,21 +265,6 @@ class RumbleChatActor():
 
         return self.__streamer_main_page_url
 
-    def get_sign_in_button(self):
-        """Look for the sign in button"""
-        try:
-            return self.driver.find_element(By.CLASS_NAME, "chat--sign-in")
-        except selenium.common.exceptions.NoSuchElementException:
-            print("Could not find sign-in button, already signed in.")
-            return None
-
-    def wait_for_chat_input_elem(self):
-        """Wait for the chat text input to appear, indicating page load"""
-        WebDriverWait(self.driver, static.Driver.wait_timeout).until(
-            EC.element_to_be_clickable((By.ID, "chat-message-text-input")),
-            "Timed out waiting for chat message field to become usable"
-            )
-
     def send_message(self, text):
         """Send a message in chat (splits across lines if necessary)"""
         text = static.Message.bot_prefix + text
@@ -373,149 +292,38 @@ class RumbleChatActor():
 
         self.sent_messages.append(text)
         self.last_message_send_time = time.time()
-        self.driver.find_element(By.ID, "chat-message-text-input").send_keys(text)
-        send_bttn = self.driver.find_element(By.CLASS_NAME, "chat--send")
-        #Wait for message to be sendable
-        start_time = time.time()
-        while (disabled := send_bttn.get_attribute("disabled") is not None) \
-            and time.time() - start_time < static.Message.sendable_check_timeout:
-            time.sleep(static.Message.sendable_check_interval)
-        assert not disabled, "Message send button never enabled"
-        send_bttn.click()
+        self.chat.send_message(text, channel_id = None) #TODO send as other channels
 
-    def hover_element(self, element):
-        """Hover over a selenium element"""
-        ActionChains(self.driver).move_to_element(element).perform()
-
-    def open_moderation_menu(self, message):
-        """Open the moderation menu of a message"""
-
-        #The passed message was a li element
-        if isinstance(message, webdriver.remote.webelement.WebElement) and message.tag_name == "li":
-            message_li = message
-            message_id = message_li.get_attribute("data-message-id")
-
-        #Find the message by ID
-        elif isinstance(message, int):
-            message_id = message
-            message_li = self.driver.find_element(
-                By.XPATH,
-                "//li[@class='chat-history--row js-chat-history-item']" +
-                f"[@data-message-id='{message_id}']"
-                )
-
-        #The message has a message ID attribute
-        elif hasattr(message, "message_id"):
-            message_id = message.message_id
-            message_li = self.driver.find_element(
-                By.XPATH,
-                "//li[@class='chat-history--row js-chat-history-item']" +
-                f"[@data-message-id='{message_id}']"
-                )
-
-        #Not a valid message type
-        else:
-            raise TypeError("Message must be ID, li element, or have message_id attribute")
-
-        if message_id in self.known_raid_alert_messages:
-            print("Cannot open moderation menu: Is a raid message.")
-            return None
-
-        #Hover over the message
-        self.hover_element(message_li)
-        #Find the moderation menu
-        try:
-            menu_bttn = message_li.find_element(
-                By.XPATH,
-                ".//button[@class='js-moderate-btn chat-history--kebab-button']"
-                )
-        except selenium.common.exceptions.NoSuchElementException:
-            print("Cannot open moderation menu: Could not find moderation button.")
-            return None
-
-        #Click the moderation menu button
-        menu_bttn.click()
-
-        return message_id
-
-    def delete_message(self, message):
+    @property
+    def delete_message(self):
         """Delete a message in the chat"""
-        m_id = self.open_moderation_menu(message)
-        if m_id is None:
-            print("Could not delete message.")
-            return
+        return self.chat.delete_message
 
-        del_bttn = self.driver.find_element(
-            By.XPATH,
-            f"//button[@class='cmi js-btn-delete-current'][@data-message-id='{m_id}']"
-            )
+    @property
+    def mute_user(self):
+        """Mute a user in the chat"""
+        return self.chat.mute_user
 
-        del_bttn.click()
+    @property
+    def unmute_user(self):
+        """Unmute a user"""
+        return self.chat.unmute_user
 
-        #Wait for the confirmation to appear
-        WebDriverWait(self.driver, static.Driver.wait_timeout).until(
-            EC.alert_is_present(),
-            "Timed out waiting for deletion confirmation dialouge to appear"
-            )
-
-        #Confirm the confirmation dialog
-        Alert(self.driver).accept()
-
-    def mute_by_message(self, message, mute_level = "5"):
-        """Mute a user by message"""
-        m_id = self.open_moderation_menu(message)
-        if m_id is None:
-            print("Could not mute by message.")
-            return
-
-        timeout_bttn = self.driver.find_element(
-            By.XPATH,
-            f"//button[@class='{static.Moderation.mute_levels[mute_level]}']"
-            )
-
-        timeout_bttn.click()
-
-    def mute_by_appearname(self, name, mute_level = "5"):
-        """Mute a user by the name they are appearing with"""
-        #Find any chat message by this user
-        message_li = self.driver.find_element(
-            By.XPATH,
-            f"//li[@class='chat-history--row js-chat-history-item'][@data-username='{name}']"
-            )
-
-        self.mute_by_message(message = message_li, mute_level = mute_level)
-
-    def pin_message(self, message):
+    @property
+    def pin_message(self):
         """Pin a message by ID or li element"""
-        m_id = self.open_moderation_menu(message)
-        if m_id is None:
-            print("Could not pin message.")
-            return
+        return self.chat.pin_message
 
-        pin_bttn = self.driver.find_element(By.XPATH, "//button[@class='cmi js-btn-pin-current']")
-        pin_bttn.click()
-
+    @property
     def unpin_message(self):
         """Unpin the currently pinned message"""
-        try:
-            unpin_bttn = self.driver.find_element(
-                By.XPATH,
-                "//button[@data-js='remove_pinned_message_button']"
-                )
-
-        except selenium.common.exceptions.NoSuchElementException:
-            return False #No message was pinned
-
-        unpin_bttn.click()
-        return True
+        return self.chat.unpin_message
 
     def quit(self):
         """Shut down everything"""
         self.keep_running = False
-        if hasattr(self, "driver"):
-            self.driver.quit()
         # TODO how to close an SSEClient?
-        # self.ssechat.client.close()
+        # self.chat.client.close()
 
     def __run_if_command(self, message, act_props: dict):
         """Check if a message is a command, and run it if so"""
@@ -602,7 +410,7 @@ class RumbleChatActor():
         act_props_all = {}
         for action in self.message_actions:
             #The message got deleted, possibly by this action
-            if message.message_id in self.ssechat.deleted_message_ids:
+            if message.message_id in self.chat.deleted_message_ids:
                 return
 
             act_props_one = action(message, self)
@@ -621,7 +429,7 @@ class RumbleChatActor():
         """Run the actor forever"""
         try:
             while self.keep_running:
-                m = self.ssechat.get_message()
+                m = self.chat.get_message()
                 if not m: #Chat has closed
                     self.keep_running = False
                     return

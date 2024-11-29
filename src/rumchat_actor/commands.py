@@ -13,15 +13,11 @@ import tempfile
 import time
 import threading
 from tkinter import filedialog, Tk
-from cocorum.localvars import DEFAULT_TIMEOUT
-from browsermobproxy import Server
+from cocorum.static.Delays import request_timeout as DEFAULT_TIMEOUT
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import pyautogui
 import requests
-# import selenium
-from selenium import webdriver
-from selenium.webdriver.common.by import By
 import talkey
 from . import utils, static
 
@@ -268,7 +264,7 @@ class KillswitchCommand(ChatCommand):
 
 class ClipDownloadingCommand(ChatCommand):
     """Save clips of the livestream by downloading stream chunks from Rumble, works remotely"""
-    def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, clip_save_path = "." + os.sep, browsermob_exe = static.Driver.browsermob_exe):
+    def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, clip_save_path = "." + os.sep):
         """Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
     actor: The Rumchat Actor
     name: The name of the command
@@ -280,10 +276,9 @@ class ClipDownloadingCommand(ChatCommand):
         self.default_duration = default_duration
         self.max_duration = max_duration
         self.clip_save_path = clip_save_path.removesuffix(os.sep) + os.sep #Where to save the completed clips
-        self.browsermob_exe = browsermob_exe
         self.ready_to_clip = False
-        self.streamer_main_page_url = self.actor.streamer_main_page_url #Make sure we have this before we try to start recording
-        self.stream_is_live = False #Wether or not the stream is live, we find this later
+        #self.streamer_main_page_url = self.actor.streamer_main_page_url #Make sure we have this before we try to start recording
+        #self.stream_is_live = False #Wether or not the stream is live, we find this later
         self.running_clipsaves = 0 #How many clip save operations are running
         self.unavailable_qualities = [] #Stream qualities that are not available (cause a 404)
         self.average_ts_download_times = {} #The average time it takes to download a TS chunk of a given stream quality
@@ -311,109 +306,26 @@ class ClipDownloadingCommand(ChatCommand):
         assert self.ts_url_start and self.m3u8_filename, \
             "Must have the TS URL start and the m3u8 filename before this runs"
         m3u8 = requests.get(self.ts_url_start.format(quality = quality) + \
-            self.m3u8_filename, timeout = DEFAULT_TIMEOUT).content.decode()
+            self.m3u8_filename, timeout = DEFAULT_TIMEOUT).text
         return [line for line in m3u8.splitlines() if not line.startswith("#")]
 
     def record_loop(self):
         """Start and run the recorder system"""
-        #Set up the proxy for network capture to find the m3u8 URL
-        print("Starting proxy server")
-        proxy_server = Server(self.browsermob_exe)
-        proxy_server.start()
-        proxy = proxy_server.create_proxy()
 
-        #Set Selenium to use the proxy
-        print("Setting proxy options")
-        webdriver.DesiredCapabilities.FIREFOX['proxy'] = {
-        "httpProxy": f"localhost:{proxy.port}",
-        #"ftpProxy": f"localhost:{proxy.port}",
-        "sslProxy": f"localhost:{proxy.port}",
-        "proxyType": "manual",
-        }
+        #Get the base URL for the wualities listing
+        m3u8_qualities_url = static.URI.m3u8_qualities_list.format(stream_id_b36 = self.actor.stream_id_b36)
 
-        #Set browser to headless mode
-        options = webdriver.FirefoxOptions()
-        options.add_argument("--headless")
+        m3u8_qualities_raw = requests.get(m3u8_qualities_url, timeout = DEFAULT_TIMEOUT).text
 
-        #Launch the browser
-        print("Starting browser for clip command info gathering")
-        browser = webdriver.Firefox(options)
-
-        #Wait for the stream to go live, and get its URL in the meantime
-        browser.get(self.streamer_main_page_url)
-        stream_griditem = browser.find_element(
-            By.XPATH,
-            "//div[@class='videostream thumbnail__grid--item']" +
-            f"[@data-video-id='{self.actor.stream_id_b10}']"
-        )
-
-        stream_url = static.URI.rumble_base + "/" + stream_griditem.find_element(By.CLASS_NAME, 'videostream__link.link').get_attribute("href")
-        print("Waiting for stream to go live before starting clip recorder...")
-        while not self.stream_is_live:
-            self.stream_is_live = bool(
-                stream_griditem.find_elements(
-                    By.CLASS_NAME,
-                    "videostream__badge.videostream__status.videostream__status--live",
-                )
-            )
-
-            #Stream is now live, stop the loop by going back to the top to re-evaluate
-            if self.stream_is_live:
-                continue
-
-            #Stream is upcoming
-            if stream_griditem.find_elements(By.CLASS_NAME, "videostream__badge.videostream__status.videostream__status--upcoming"):
-                # print("Stream is still upcoming.")
-                pass
-
-            #Stream is showing as DVR
-            elif stream_griditem.find_elements(By.CLASS_NAME, "videostream__badge.videostream__status.videostream__status--dvr"):
-                print("Stream is showing as DVR, but may be starting. See https://github.com/thelabcat/rumble-chat-actor/issues/5.")
-
-            #Stream is not live or upcoming
-            else:
-                print("Stream is not live or upcoming! Critical error.")
-                self.actor.quit()
-                return
-
-            #Stream is still upcoming
-            time.sleep(static.Driver.page_refresh_rate)
-            browser.refresh()
-            stream_griditem = browser.find_element(
-                By.XPATH,
-                "//div[@class='videostream thumbnail__grid--item']" + \
-                f"[@data-video-id='{self.actor.stream_id_b10}']",
-            )
-
-        #Watch the network traffic for the m3u8 URL
-        print("Starting traffic recorder")
-        proxy.new_har("rumble_traffic_capture", options={'captureHeaders': True, 'captureContent': True})
-        print("Loading livestream viewing page")
-        browser.get(stream_url)
-        print("Waiting for m3u8 to go by. You may have to manually click play on the stream page.")
-        m3u8_url = None
-        while not m3u8_url:
-            for ent in proxy.har['log']['entries']:
-                #The entry was a GET request to https://hugh.cdn.rumble.cloud/live/ for an m3u8 file
-                if ent["request"]["method"] == "GET" and ent["request"]["url"].startswith("https://hugh.cdn.rumble.cloud/live/") and ent["request"]["url"].endswith(".m3u8"):
-                    m3u8_url = ent["request"]["url"]
-                    break
-
-        #We've got the m3u8 URL, TYJ! Clean up the browser and proxy.
-        proxy_server.stop()
-        browser.quit()
-        print(m3u8_url)
+        m3u8_quality_urls_all = [line for line in m3u8_qualities_raw.splitlines() if not line.startswith("#")]
+        ts_url_default = m3u8_quality_urls_all[-1]
 
         #Is this a DVR stream?
-        self.is_dvr = m3u8_url.endswith("DVR.m3u8")
+        self.is_dvr = ts_url_default.endswith("DVR.m3u8")
 
-        #The TS files are at the same URL as the m3u8 playlist
-        ts_url_start = m3u8_url[:m3u8_url.rfind("/") + 1]
+        self.ts_url_start = ts_url_default[:ts_url_default.rfind("/")] + "_{quality}/"
 
-        #Create an m3u8 URL formattable with the quality we are going to use
-        self.ts_url_start = ts_url_start[:ts_url_start.rfind("_") + 1] + "{quality}" + "/"
-        print(self.ts_url_start)
-        self.m3u8_filename = m3u8_url[m3u8_url.rfind("/"):]
+        self.m3u8_filename = ts_url_default[ts_url_default.rfind("/") + 1 ]
 
         self.get_quality_info()
 
@@ -454,7 +366,7 @@ class ClipDownloadingCommand(ChatCommand):
             #Save the unsaved TS chunks to temporary files
             for ts_name in new_ts_list:
                 try:
-                    data = requests.get(ts_url_start.format(quality = self.use_quality) + ts_name, timeout = DEFAULT_TIMEOUT).content
+                    data = requests.get(self.ts_url_start.format(quality = self.use_quality) + ts_name, timeout = DEFAULT_TIMEOUT).content
                 except (AttributeError, requests.exceptions.ReadTimeout): #The request failed or has no content
                     print("Failed to save ", ts_name)
                     continue
@@ -476,7 +388,7 @@ class ClipDownloadingCommand(ChatCommand):
     def get_quality_info(self):
         """Get information on the stream quality options: Download time, TS length, availability"""
         print("Getting info on stream qualities")
-        assert self.ts_url_start, "Must have the TS URL start before this runs"
+        assert self.ts_url_start, "Must have start of TS URL before this runs"
         for quality in static.Clip.Download.stream_qualities:
             download_times = []
             chunk_content = None #The content of a successful chunk download. used for duration checking
@@ -495,7 +407,7 @@ class ClipDownloadingCommand(ChatCommand):
                     break
 
                 #Download a chunk and time it
-                ts_chunk_names = [l for l in r1.content.decode().splitlines() if not l.startswith("#")]
+                ts_chunk_names = [l for l in r1.text if not l.startswith("#")]
                 start_time = time.time()
                 r2 = None
                 try:
