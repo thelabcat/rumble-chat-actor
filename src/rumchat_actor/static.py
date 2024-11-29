@@ -5,7 +5,9 @@ Absolute variable definitions not uinque to scripts.
 S.D.G.
 """
 
-from cocorum.localvars import RUMBLE_BASE_URL
+from cocorum import static as cstatic
+
+REQUEST_TIMEOUT = cstatic.Delays.request_timeout
 
 class Driver:
     """For the Selenium WebDriver"""
@@ -52,19 +54,20 @@ class Message:
 class URI:
     """Uniform Resource Identifiers"""
 
-    rumble_base = RUMBLE_BASE_URL
+    #Rumble base URL
+    rumble_base = cstatic.URI.rumble_base
 
     #Popout chat url. Format with stream_id_b10
-    chat_popout = RUMBLE_BASE_URL + "/chat/popup/{stream_id_b10}"
+    chat_popout = rumble_base + "/chat/popup/{stream_id_b10}"
 
     #Rumble user URL. Format with username
-    user_page = RUMBLE_BASE_URL + "/user/{username}"
+    user_page = rumble_base + "/user/{username}"
 
     #Rumble channel URL. Format with channel_name
-    channel_page = RUMBLE_BASE_URL + "/c/{channel_name}"
+    channel_page = rumble_base + "/c/{channel_name}"
 
     #URL of upload page at Rumble
-    upload_page = RUMBLE_BASE_URL + "/upload.php"
+    upload_page = rumble_base + "/upload.php"
 
     #M3U8 qualities list URL. Format with base 36 stream ID
     m3u8_qualities_list = "https://rumble.com/live-hls-dvr/{stream_id_b36}/playlist.m3u8"

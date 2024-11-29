@@ -146,6 +146,8 @@ class RumbleChatActor():
 
             first_time = False
 
+        self.chat.clear_mailbox()
+
         #Ignore these users when processing messages
         self.ignore_users = ignore_users
 
@@ -161,25 +163,21 @@ class RumbleChatActor():
         #Action to be taken when raids occur
         self.__raid_action = print
 
-        #Time that the last message we sent was sent
-        self.last_message_send_time = 0
 
         #Loop condition of the mainloop() and sender_loop() methods
         self.keep_running = True
 
+        #Send an initialization message to get wether we are moderator or not
+        _, user = self.__send_message(static.Message.bot_prefix + init_message)
+        assert utils.is_staff(user), \
+            "Actor cannot function without being channel staff"
+
+        #Time that the last message we sent was sent
+        self.last_message_send_time = time.time()
+
         #thread to send messages at timed intervals
         self.sender_thread = threading.Thread(target = self._sender_loop, daemon = True)
         self.sender_thread.start()
-
-        #Send an initialization message to get wether we are moderator or not
-        self.send_message(init_message)
-
-        #Wait until we get that message
-        while (m := self.chat.get_message()).user.username != self.username:
-            pass
-
-        assert utils.is_staff(m.user), \
-            "Actor cannot function without being channel staff"
 
         #Functions that are to be called on each message,
         #must return False if the message was deleted
@@ -292,7 +290,7 @@ class RumbleChatActor():
 
         self.sent_messages.append(text)
         self.last_message_send_time = time.time()
-        self.chat.send_message(text, channel_id = None) #TODO send as other channels
+        return self.chat.send_message(text, channel_id = None) #TODO send as other channels
 
     @property
     def delete_message(self):

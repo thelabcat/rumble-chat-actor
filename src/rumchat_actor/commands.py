@@ -13,7 +13,6 @@ import tempfile
 import time
 import threading
 from tkinter import filedialog, Tk
-from cocorum.static.Delays import request_timeout as DEFAULT_TIMEOUT
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import pyautogui
@@ -306,7 +305,7 @@ class ClipDownloadingCommand(ChatCommand):
         assert self.ts_url_start and self.m3u8_filename, \
             "Must have the TS URL start and the m3u8 filename before this runs"
         m3u8 = requests.get(self.ts_url_start.format(quality = quality) + \
-            self.m3u8_filename, timeout = DEFAULT_TIMEOUT).text
+            self.m3u8_filename, timeout = static.REQUEST_TIMEOUT).text
         return [line for line in m3u8.splitlines() if not line.startswith("#")]
 
     def record_loop(self):
@@ -315,7 +314,7 @@ class ClipDownloadingCommand(ChatCommand):
         #Get the base URL for the wualities listing
         m3u8_qualities_url = static.URI.m3u8_qualities_list.format(stream_id_b36 = self.actor.stream_id_b36)
 
-        m3u8_qualities_raw = requests.get(m3u8_qualities_url, timeout = DEFAULT_TIMEOUT).text
+        m3u8_qualities_raw = requests.get(m3u8_qualities_url, timeout = static.REQUEST_TIMEOUT).text
 
         m3u8_quality_urls_all = [line for line in m3u8_qualities_raw.splitlines() if not line.startswith("#")]
         ts_url_default = m3u8_quality_urls_all[-1]
@@ -366,7 +365,7 @@ class ClipDownloadingCommand(ChatCommand):
             #Save the unsaved TS chunks to temporary files
             for ts_name in new_ts_list:
                 try:
-                    data = requests.get(self.ts_url_start.format(quality = self.use_quality) + ts_name, timeout = DEFAULT_TIMEOUT).content
+                    data = requests.get(self.ts_url_start.format(quality = self.use_quality) + ts_name, timeout = static.REQUEST_TIMEOUT).content
                 except (AttributeError, requests.exceptions.ReadTimeout): #The request failed or has no content
                     print("Failed to save ", ts_name)
                     continue
@@ -395,10 +394,10 @@ class ClipDownloadingCommand(ChatCommand):
             for _ in range(static.Clip.Download.speed_test_iter):
                 r1 = None
                 try:
-                    r1 = requests.get(self.ts_url_start.format(quality = quality) + self.m3u8_filename, timeout = DEFAULT_TIMEOUT)
+                    r1 = requests.get(self.ts_url_start.format(quality = quality) + self.m3u8_filename, timeout = static.REQUEST_TIMEOUT)
                 except requests.exceptions.ReadTimeout:
                     print("Timeout for m3u8 playlist download")
-                    download_times.append(DEFAULT_TIMEOUT + 1)
+                    download_times.append(static.REQUEST_TIMEOUT + 1)
                     continue
 
                 if r1.status_code == 404:
@@ -411,10 +410,10 @@ class ClipDownloadingCommand(ChatCommand):
                 start_time = time.time()
                 r2 = None
                 try:
-                    r2 = requests.get(self.ts_url_start.format(quality = quality) + ts_chunk_names[-1], timeout = DEFAULT_TIMEOUT)
+                    r2 = requests.get(self.ts_url_start.format(quality = quality) + ts_chunk_names[-1], timeout = static.REQUEST_TIMEOUT)
                 except requests.exceptions.ReadTimeout:
                     print("Timeout for TS chunk download")
-                    download_times.append(DEFAULT_TIMEOUT + 1)
+                    download_times.append(static.REQUEST_TIMEOUT + 1)
                     continue
                 if r2.status_code != 200 or not r2.content:
                     print("TS chunk download unsuccessful:", r2.status_code)
@@ -511,7 +510,7 @@ class ClipDownloadingCommand(ChatCommand):
             tempfiles = []
             for ts_name in use_ts:
                 try:
-                    data = requests.get(self.ts_url_start.format(quality = self.use_quality) + ts_name, timeout = DEFAULT_TIMEOUT).content
+                    data = requests.get(self.ts_url_start.format(quality = self.use_quality) + ts_name, timeout = static.REQUEST_TIMEOUT).content
                     if not data:
                         raise ValueError
                 except (ValueError, requests.exceptions.ReadTimeout): #The request failed or has no content
