@@ -39,7 +39,7 @@ import queue
 import textwrap
 import time
 import threading
-from cocorum import RumbleAPI
+from cocorum import RumbleAPI, servicephp
 from cocorum.chatapi import ChatAPI
 from . import actions, commands, misc, utils, static
 
@@ -91,7 +91,7 @@ class RumbleChatActor():
 
         #A stream ID was passed
         if "stream_id" in kwargs:
-            self.stream_id, self.stream_id_b10 = utils.stream_id_36_and_10(kwargs["stream_id"])
+            self.stream_id, self.stream_id_b10 = utils.base_36_and_10(kwargs["stream_id"])
 
             #It is not our livestream or we have no Live Stream API,
             #so LS API functions are not available
@@ -111,7 +111,7 @@ class RumbleChatActor():
             assert self.api_stream, "No stream ID was passed and you are not live"
 
             self.stream_id = self.api_stream.stream_id
-            self.stream_id_b10 = utils.stream_id_36_to_10(self.stream_id)
+            self.stream_id_b10 = utils.base_36_to_10(self.stream_id)
 
         #Get the login credentials from arguments, or None if they were not passed
         self.username = kwargs.get("username")
@@ -137,7 +137,7 @@ class RumbleChatActor():
                 self.password = getpass("Actor password: ")
 
             try:
-                self.chat = ChatAPI(self.stream_id_b10, self.username, self.password)
+                self.session_cookie = servicephp.login(self.username, self.password)
             #Login failed
             except AssertionError:
                 print("Error. Login failed with provided credentials.")
@@ -146,6 +146,7 @@ class RumbleChatActor():
 
             first_time = False
 
+        self.chat = ChatAPI(self.stream_id, self.session_cookie)
         self.chat.clear_mailbox()
 
         #Ignore these users when processing messages
