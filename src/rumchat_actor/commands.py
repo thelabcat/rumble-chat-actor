@@ -15,7 +15,11 @@ import threading
 from tkinter import filedialog, Tk
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
-import pyautogui
+try:
+    import pyautogui
+except Exception as e:
+    print("Could not import PyAutoGUI:", e)
+    pyautogui = None
 import requests
 import talkey
 from . import utils, static
