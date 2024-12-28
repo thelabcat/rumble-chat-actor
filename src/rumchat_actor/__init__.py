@@ -16,9 +16,8 @@ def eat_some_cheese(message, actor):
 
 #stream_id is either the base 10 or base 36 livestream ID you want the Actor to connect to, obtained from the popout chat or the Rumble Live Stream API.
 #If stream_id is None but you pass api_url, the latest livestream shown on the API is chosen automatically.
-#If you pass profile_dir to an existing Firefox profile directory, your sign-ins to Rumble chat for the actor will be saved.
-#Otherwise, you will have to log in manuaglly each time you use the bot, or pass username and password.
-actor = rumchat_actor.RumbleChatActor(stream_id = STREAM_ID)
+#Pass CREDENTIALS to log in to Rumble
+actor = rumchat_actor.RumbleChatActor(stream_id = STREAM_ID, username, password = CREDENTIALS)
 
 #Register an action to be called on every message
 actor.register_message_action(eat_some_cheese)
@@ -118,8 +117,8 @@ class RumbleChatActor():
         self.password = kwargs.get("password")
 
         #Username must not be an email
-        if self.username and "@" in self.username:
-            print("Username cannot be provided as email, must be displayed username.")
+        if "@" in self.username:
+            print("Username cannot be provided as email.")
             self.username = None
 
         #We can get the username from the Rumble Live Stream API
@@ -137,7 +136,7 @@ class RumbleChatActor():
                 self.password = getpass("Actor password: ")
 
             try:
-                self.session_cookie = servicephp.login(self.username, self.password)
+                self.chat = ChatAPI(self.stream_id, self.username, self.password)
             #Login failed
             except AssertionError:
                 print("Error. Login failed with provided credentials.")
@@ -146,8 +145,10 @@ class RumbleChatActor():
 
             first_time = False
 
-        self.chat = ChatAPI(self.stream_id, self.session_cookie)
         self.chat.clear_mailbox()
+
+        #Reference the chat's servicephp for commands and stuff that might go to us for it
+        self.servicephp = self.chat.servicephp
 
         #Ignore these users when processing messages
         self.ignore_users = ignore_users
