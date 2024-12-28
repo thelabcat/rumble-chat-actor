@@ -16,8 +16,8 @@ def eat_some_cheese(message, actor):
 
 #stream_id is either the base 10 or base 36 livestream ID you want the Actor to connect to, obtained from the popout chat or the Rumble Live Stream API.
 #If stream_id is None but you pass api_url, the latest livestream shown on the API is chosen automatically.
-#Pass CREDENTIALS to log in to Rumble
-actor = rumchat_actor.RumbleChatActor(stream_id = STREAM_ID, username, password = CREDENTIALS)
+#If you do not pass password, it will be requested
+actor = rumchat_actor.RumbleChatActor(stream_id = STREAM_ID, username = USERNAME, password = PASSWORD)
 
 #Register an action to be called on every message
 actor.register_message_action(eat_some_cheese)
