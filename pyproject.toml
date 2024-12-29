@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rumchat_actor"
-version = "3.2.0"
+version = "3.2.1"
 keywords = ["rumble", "chat", "livestream", "bot"]
 authors = [
   { name="Wilbur Jaywright", email="zargulthewizard@outlook.com" },
@@ -17,7 +17,6 @@ dependencies = [
   "moviepy",
   "pyautogui",
   "requests",
-  "selenium",
   "standard-pipes", #Dead battery dependency of Talkey as of Python 3.13.0
   "talkey",
   ]
