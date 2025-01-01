@@ -7,6 +7,7 @@ S.D.G"""
 # import socket
 import threading
 import time
+from pygame import mixer
 import talkey
 from . import static
 
@@ -15,6 +16,8 @@ try:
     OLLAMA_IMPORTED = True
 except ModuleNotFoundError:
     OLLAMA_IMPORTED = False
+
+mixer_initialized = False
 
 def ollama_message_moderate(message, actor):
     """Moderate a message with Ollama, deleting if needed"""
@@ -147,3 +150,51 @@ class TimedMessagesManager():
                 self.last_send_time = time.time()
 
             time.sleep(1)
+
+class ChatBlipper:
+    """Blip with chat activity, getting fainter as activity gets more common"""
+    def __init__(self, sound_filename: str, rarity_regen_time = 60, rarity_reduce = 5):
+        """Instance this object, then pass it to RumbleChatActor().register_message_action()
+        sound_filename: The filename of the blip sound to play.
+        rarity_regen_time: How long before the blip volume regenerates to maximum.
+        rarity_reduce: How much a message reduces the volume from 0 to 1"""
+
+        self.sound = None
+        self.load_sound(sound_filename)
+        self.rarity_regen_time = rarity_regen_time
+        self.rarity_reduce = rarity_reduce
+
+        #Time in the past at which we would have been silent
+        self.silent_time = 0
+
+    def load_sound(self, fn):
+        """Load a sound from a file to use as a blip"""
+        #Make sure PyGame mixer is initialized
+        global mixer_initialized
+        if not mixer_initialized:
+            mixer.init()
+            mixer_initialized = True
+
+        self.sound = mixer.Sound(fn)
+
+    @property
+    def current_volume(self):
+        """Calculate the current volume based on how rare messages have been, from 0 to 1"""
+        return min((time.time() - self.silent_time) / self.rarity_regen_time, 1)
+
+    def reduce_rarity(self):
+        """Reduce the remembered rarity of a message"""
+        curtime = time.time()
+
+        #Limit the effective regen to 100%
+        if curtime - self.silent_time > self.rarity_regen_time:
+            self.silent_time = curtime - self.rarity_regen_time
+
+        #Move the time we "were" silent forward
+        self.silent_time += self.rarity_regen_time * self.rarity_reduce
+
+    def action(self, message, actor):
+        """Blip for a chat message, taking rarity into account for the volume"""
+        self.sound.set_volume(self.current_volume)
+        self.sound.play()
+        self.reduce_rarity()
