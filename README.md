@@ -5,17 +5,13 @@ This project is currently just a Python module. It is fully functional, but you 
 
 This project requires the following python libraries:
 - [Cocorum](https://pypi.org/project/cocorum/)
-- [Selenium](https://pypi.org/project/selenium/)
 - [BrowserMob Proxy](https://pypi.org/project/browsermob-proxy)
 - [MoviePy](https://pypi.org/project/moviepy)
 - [Requests](https://pypi.org/project/requests)
 - [Talkey](https://pypi.org/project/talkey)
 
 RumChat Actor itself is [on PyPi](https://pypi.org/project/rumchat_actor), so once you have Python, installing it with `pip install rumchat-actor` should automatically download all dependencies.
-Note that, if you are using Linux, you may have to install python3-pip separately. On Windows, Pip comes with Python.
-
-Additional software requirements that aren't directly Python-related:
-- [The Firefox web browser](https://www.mozilla.org/en-US/firefox/new/)
+Note that, if you are using Linux, you may have to install python3-pip separately. On Windows, Python's installer comes with Pip.
 
 This is basically meant to be a FOSS local implementation of The Rumble Bot, and should run alongside your streaming software and / or other applications on most systems.
 
