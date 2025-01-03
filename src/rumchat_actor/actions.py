@@ -153,15 +153,17 @@ class TimedMessagesManager():
 
 class ChatBlipper:
     """Blip with chat activity, getting fainter as activity gets more common"""
-    def __init__(self, sound_filename: str, rarity_regen_time = 60, rarity_reduce = 5):
+    def __init__(self, sound_filename: str, rarity_regen_time = 60, stay_dead_time = 10, rarity_reduce = 5):
         """Instance this object, then pass it to RumbleChatActor().register_message_action()
         sound_filename: The filename of the blip sound to play.
         rarity_regen_time: How long before the blip volume regenerates to maximum.
-        rarity_reduce: How much a message reduces the volume from 0 to 1"""
+        stay_dead_time: Effectively more regen time but with the volume staying at zero for the duration.
+        rarity_reduce: How much a message reduces the volume, ranging from 0 to 1"""
 
         self.sound = None
         self.load_sound(sound_filename)
         self.rarity_regen_time = rarity_regen_time
+        self.stay_dead_time = stay_dead_time
         self.rarity_reduce = rarity_reduce
 
         #Time in the past at which we would have been silent
@@ -180,7 +182,7 @@ class ChatBlipper:
     @property
     def current_volume(self):
         """Calculate the current volume based on how rare messages have been, from 0 to 1"""
-        return min((time.time() - self.silent_time) / self.rarity_regen_time, 1)
+        return max((min((time.time() - self.silent_time) / self.rarity_regen_time, 1), 0))
 
     def reduce_rarity(self):
         """Reduce the remembered rarity of a message"""
@@ -190,8 +192,8 @@ class ChatBlipper:
         if curtime - self.silent_time > self.rarity_regen_time:
             self.silent_time = curtime - self.rarity_regen_time
 
-        #Move the time we "were" silent forward, capping at present
-        self.silent_time = min((self.silent_time + self.rarity_regen_time * self.rarity_reduce, curtime))
+        #Move the time we "were" silent forward, capping at present + stay-dead time
+        self.silent_time = min((self.silent_time + self.rarity_regen_time * self.rarity_reduce, curtime + self.stay_dead_time))
 
     def action(self, message, actor):
         """Blip for a chat message, taking rarity into account for the volume"""
