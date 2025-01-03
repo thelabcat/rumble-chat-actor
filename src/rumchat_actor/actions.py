@@ -190,8 +190,8 @@ class ChatBlipper:
         if curtime - self.silent_time > self.rarity_regen_time:
             self.silent_time = curtime - self.rarity_regen_time
 
-        #Move the time we "were" silent forward
-        self.silent_time += self.rarity_regen_time * self.rarity_reduce
+        #Move the time we "were" silent forward, capping at present
+        self.silent_time = min((self.silent_time + self.rarity_regen_time * self.rarity_reduce, curtime))
 
     def action(self, message, actor):
         """Blip for a chat message, taking rarity into account for the volume"""
