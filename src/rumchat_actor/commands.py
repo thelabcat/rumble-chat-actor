@@ -15,11 +15,7 @@ import threading
 from tkinter import filedialog, Tk
 from moviepy.editor import VideoFileClip, concatenate_videoclips
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
-try:
-    import pyautogui
-except Exception as e:
-    print("Could not import PyAutoGUI:", e)
-    pyautogui = None
+import obsws_python as obs
 import requests
 import talkey
 from . import utils, static
@@ -690,20 +686,35 @@ class ClipRecordingCommand(ChatCommand):
 
 class ClipReplayBufferCommand(ChatCommand):
     """Save clips of the livestream by triggering OBS to save its replay buffer"""
-    def __init__(self, actor, name = "clip", cooldown = 120, obs_hotkey = static.Clip.ReplayBuffer.obs_hotkey_default, clip_save_path = "." + os.sep, save_format = static.Clip.save_extension):
+    def __init__(self, actor, name = "clip", cooldown = 120, addr = "localhost", port = 4455, password = "", save_format = static.Clip.save_extension):
         """Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
     actor: The Rumchat Actor
     name: The name of the command
     cooldown: Command cooldown
-    obs_hotkey: List of keys to press at the same time to trigger OBS and save a replay buffer
-    clip_save_path: Where replay buffer recordings from OBS are stored
+    addr: IP address of the computer running OBS
+    port: Port that OBS WebSocket is listening on
+    password: OBS WebSocket password, if you have one set
     save_format: Format that replay buffers are saved in"""
         super().__init__(name = name, actor = actor, cooldown = cooldown)
-        self.clip_save_path = clip_save_path.removesuffix(os.sep) + os.sep #Where replay buffer recordings from OBS are stored
-        self.obs_hotkey = obs_hotkey
+        self.addr, self.port, self.password = addr, port, password
         self.save_format = save_format.removeprefix(".")
         self.__running_clipsaves = 0 #How many clip save operations are running
         self.clip_uploader = None #An object to upload the clips when they are complete
+
+        #Connect to OBS
+        self.obsclient = obs.ReqClient(host = self.addr, port = self.port, password = self.password, timeout = 3)
+
+        #Make sure the replay buffer is running
+        if not self.obsclient.get_replay_buffer_status().output_active:
+            self.obsclient.start_replay_buffer()
+            print("Replay buffer was not started, autostarting. OK.")
+
+        else:
+            print("Replay buffer was already started. OK.")
+
+        #Query the clip save location automatically while we're at it
+        self.clip_save_path = self.obsclient.get_record_directory().record_directory + os.sep
+        print("OBS says recordings will save to", self.clip_save_path)
 
     @property
     def help_message(self):
@@ -762,15 +773,11 @@ class ClipReplayBufferCommand(ChatCommand):
         #Keep a counter of running clipsaves, may not be needed
         self.running_clipsaves += 1
 
-        print("Pressing replay buffer save hotkey")
-        for key in self.obs_hotkey:
-            pyautogui.keyDown(key)
+        print("Signaling OBS to save the replay buffer")
+        self.obsclient.save_replay_buffer()
 
         #Time the clip was saved
         marktime = time.time()
-
-        for key in self.obs_hotkey:
-            pyautogui.keyUp(key)
 
         print("Egg timer for save to initialize")
         time.sleep(static.Clip.ReplayBuffer.save_start_delay)
