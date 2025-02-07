@@ -17,6 +17,7 @@ dependencies = [
   "moviepy",
   "obsws-python",
   "pyautogui",
+  "pygame",
   "requests",
   "standard-pipes", #Dead battery dependency of Talkey as of Python 3.13.0
   "talkey",
