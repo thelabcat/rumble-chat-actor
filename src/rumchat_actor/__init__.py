@@ -409,8 +409,8 @@ class RumbleChatActor():
 
         act_props_all = {}
         for action in self.message_actions:
-            #The message got deleted, possibly by this action
-            if message.message_id in self.chat.deleted_message_ids:
+            #The message got deleted
+            if message.deleted:
                 return
 
             act_props_one = action(message, self)
