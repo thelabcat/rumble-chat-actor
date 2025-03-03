@@ -22,30 +22,54 @@ from . import utils, static
 
 class ChatCommand():
     """Chat command abstract class"""
-    def __init__(self, name, actor, cooldown = static.Message.send_cooldown, amount_cents = 0, exclusive = False, allowed_badges = ["subscriber"], free_badges = ["moderator"], target = None):
-        """Instance a derivative of this object, then pass it to RumbleChatActor().register_command().
-    name: The !name of the command
-    actor: The RumleChatActor host object
-    amount_cents: The minimum cost of the command
-    exclusive: If this command can only be run by users with allowed badges
-    allowed_badges: Badges that are allowed to run this command (if it is exclusive),
-        "admin" is added internally.
-    free_badges: Badges which if borne give the user free-of-charge command access
-    target: The command function(message, actor) to call. Defaults to self.run"""
+    def __init__(self, name, actor, target = None, **kwargs):
+        """Chat command abstract class
+    Instance this object, then pass it to RumbleChatActor().register_command().
+
+    Args:
+        name (str): The !name of the command.
+        actor (RumleChatActor): The RumleChatActor host object.
+        cooldown (int | float): How long to wait before allowing the command to be run again.
+            Defaults to static.Message.send_cooldown
+        amount_cents (int): The minimum cost of the command.
+            Defaults to free.
+        exclusive (bool): If this command can only be run by users with allowed badges.
+            Defaults to False.
+        allowed_badges (list): Badges that are allowed to run this command (if it is exclusive); ignored if exclusive is False.
+            "admin" is added internally.
+            Defaults to ["subscriber"]
+        free_badges (list): Badges which, if borne, give the user free-of-charge command access even if amount_cents > 0.
+            "admin" is added internally.
+            Defaults to ["moderator"]
+        target (callable): The command function(message, actor) to call.
+            Defaults to self.run"""
+
         assert " " not in name, "Name cannot contain spaces"
         self.name = name
         self.actor = actor
-        assert cooldown >= static.Message.send_cooldown, \
+
+        #Don't let the cooldown be shorter than we can send messages
+        self.cooldown = kwargs.get("cooldown", static.Message.send_cooldown)
+        assert self.cooldown >= static.Message.send_cooldown, \
             f"Cannot set a cooldown shorter than {static.Message.send_cooldown}"
 
-        self.cooldown = cooldown
-        self.amount_cents = amount_cents #Cost of the command
-        self.exclusive = exclusive
-        self.allowed_badges = ["admin"] + allowed_badges #Admin can always run any command
-        self.free_badges = ["admin"] + free_badges #Admin always has free-of-charge usage
+        #Cost of the command
+        self.amount_cents = kwargs.get("amount_cents", 0)
+
+        #Is this command exclusive to only certain user badges?
+        self.exclusive = kwargs.get("exclusive", False)
+
+        #Allowed badges if this is exclusive
+        #Admin can always run any command
+        self.allowed_badges = ["admin"] + kwargs.get("allowed_badges", ["subscriber"])
+
+        #Free-of-charge access badges if this command is paid
+        #Admin always has free-of-charge usage
+        self.free_badges = ["admin"] + kwargs.get("free_badges", ["moderator"])
+
         self.last_use_time = 0 #Last time the command was called
-        self.target = target
-        self.__set_help_message = None
+        self.target = target #Callable to run
+        self.__set_help_message = None #The externally set help message of this command
 
     @property
     def help_message(self):
@@ -55,11 +79,20 @@ class ChatCommand():
 
     @help_message.setter
     def help_message(self, new):
-        """Set the help message for this command externally"""
+        """Set the help message for this command externally
+
+    Args:
+        new (str): The new help message."""
+
         self.__set_help_message = str(new)
 
     def call(self, message, act_props: dict):
-        """The command was called"""
+        """The command was called
+
+    Args:
+        message (cocorum.ChatAPI.Message): The chat message that called us.
+        act_props (dict): Message action recorded properties."""
+
         #this command is exclusive, and the user does not have the required badge
         if self.exclusive and \
             not (True in [badge.slug in self.allowed_badges for badge in message.user.badges]):
@@ -95,31 +128,48 @@ class ChatCommand():
         self.last_use_time = time.time()
 
     def run(self, message, act_props: dict):
-        """Dummy run method"""
+        """Dummy run method, for when calling the command was successful.
+
+    Args:
+        message (cocorum.ChatAPI.Message): The chat message that called us.
+        act_props (dict): Message action recorded properties."""
+
         if self.target:
             self.target(message, self.actor)
             return
 
         #Run method was never defined
         self.actor.send_message("@" + message.user.username +
-                                "Hello, this command never had a target defined. :-)"
+                                "This command never had a target defined, so it doesn't do anything. :-)"
                                 )
 
 class TTSCommand(ChatCommand):
     """Text-to-speech command"""
     def __init__(self, *args, name = "tts", no_double_sound = True, voices = {}, **kwargs):
-        """Instance this object, then pass it to RumbleChatActor().register_command().
-    actor: The RumleChatActor host object
-    name: The !name of the command
-    amount_cents: The minimum cost of the command. Defaults to free
-    exclusive: If this command can only be run by users with allowed badges. Defaults to False
-    allowed_badges: Badges that are allowed to run this command (if it is exclusive),
-        defaults to ["moderator"], "admin" is added internally.
-    free_badges: Badges which if borne give the user free-of-charge command access
-    target: The command function(message, actor) to call. Defaults to self.run
-    no_double_sound: Do not play if act_props["sound"] is True
-    voices: Dict of voice_name : say(text) callable
+        """Text-to-speech command.
+    Instance this object, then pass it to RumbleChatActor().register_command().
+
+    Args:
+        actor (RumleChatActor): The RumleChatActor host object.
+        name (str): The !name of the command.
+            Defaults to "tts"
+        no_double_sound (bool): Do not play if act_props["sound"] is True.
+            Defaults to True
+        voices (dict): Dict of voice_name : say(text) callable.
+        cooldown (int | float): How long to wait before allowing the command to be run again.
+            Defaults to static.Message.send_cooldown
+        amount_cents (int): The minimum cost of the command.
+            Defaults to free.
+        exclusive (bool): If this command can only be run by users with allowed badges.
+            Defaults to False.
+        allowed_badges (list): Badges that are allowed to run this command (if it is exclusive); ignored if exclusive is False.
+            "admin" is added internally.
+            Defaults to ["subscriber"]
+        free_badges (list): Badges which, if borne, give the user free-of-charge command access even if amount_cents > 0.
+            "admin" is added internally.
+            Defaults to ["moderator"]
     """
+
         super().__init__(*args, name = name, **kwargs)
 
         self.no_double_sound = no_double_sound
@@ -141,7 +191,12 @@ class TTSCommand(ChatCommand):
         return self.voices["default"]
 
     def speak(self, text, voice = None):
-        """Speak text with voice"""
+        """Speak text with voice
+
+    Args:
+        voice (str): The key of the voice in our voices dict.
+            Defaults to None"""
+
         if not voice:
             self.default_voice(text)
 
@@ -153,7 +208,11 @@ class TTSCommand(ChatCommand):
             self.voices[voice](text)
 
     def run(self, message, act_props: dict):
-        """Run the TTS"""
+        """Run the TTS
+
+    Args:
+        message (cocorum.ChatAPI.Message): The chat message that called us.
+        act_props (dict): Message action recorded properties."""
 
         #Do not create more sound if a message action already made some
         if self.no_double_sound and act_props.get("sound"):
@@ -181,26 +240,40 @@ class TTSCommand(ChatCommand):
 class MessageCommand(ChatCommand):
     """Post a single message in chat"""
     def __init__(self, actor, name, text, help_message = None):
-        """Instance this object, then pass it to RumbleChatActor().register_command().
-    actor: The Rumble chat actor host
-    name: the command name
-    text: A message to format with the commander's username
-    help_message: The message that the help command will display"""
+        """Post a single message in chat.
+    Instance this object, then pass it to RumbleChatActor().register_command().
+
+    Args:
+        actor (RumbleChatActor): The Rumble chat actor host.
+        name (str): The command name.
+        text (str): A message to format with the commander's username.
+        help_message (str): The message that the help command will display.
+            Defaults to None"""
+
         super().__init__(name = name, actor = actor)
         self.text = text
         if help_message:
             self.help_message = help_message
 
     def run(self, message, act_props: dict):
-        """Run the lurk"""
+        """Post the message
+
+    Args:
+        message (cocorum.ChatAPI.Message): The chat message that called us.
+        act_props (dict): Message action recorded properties."""
+
         self.actor.send_message(self.text.format(message.user.username))
 
 class HelpCommand(ChatCommand):
     """List available commands, or show help for a specific command"""
     def __init__(self, actor, name = "help"):
-        """Instance this object, then pass it to RumbleChatActor().register_command().
-    actor: The Rumble chat actor host
-    name: the command name"""
+        """List available commands, or show help for a specific command.
+    Instance this object, then pass it to RumbleChatActor().register_command().
+
+    Args:
+        actor (RumbleChatActor): The Rumble chat actor host.
+        name (str): The command name."""
+
         super().__init__(name = name, actor = actor)
 
     @property
@@ -211,7 +284,12 @@ class HelpCommand(ChatCommand):
             f"{static.Message.command_prefix}{self.name} [command_name]"
 
     def run(self, message, act_props: dict):
-        """Run the help command"""
+        """Run the help command
+
+    Args:
+        message (cocorum.ChatAPI.Message): The chat message that called us.
+        act_props (dict): Message action recorded properties."""
+
         segs = message.text.split()
 
         #Command was run without arguments
@@ -239,12 +317,18 @@ class HelpCommand(ChatCommand):
             self.actor.send_message("Invalid number of arguments for help command.")
 
 class KillswitchCommand(ChatCommand):
-    """A killswitch for Rumchat Actor if moderators or admin need to shut it down from the chat"""
+    """A killswitch for Rumchat Actor, in case moderators or admin need to shut it down from the chat"""
     def __init__(self, actor, name = "killswitch", allowed_badges = ["moderator"]):
-        """Instance this object, then pass it to RumbleChatActor().register_command().
-    actor: The RumleChatActor host object
-    name: The !name of the command
-    allowed_badges: Badges that are allowed to run this command"""
+        """A killswitch for Rumchat Actor, in case moderators or admin need to shut it down from the chat.
+    Instance this object, then pass it to RumbleChatActor().register_command().
+
+    Args:
+        actor (RumbleChatActor): The RumleChatActor host object.
+        name (str): The !name of the command.
+        allowed_badges (list): Badges that are allowed to run this command.
+            "admin" is added internally.
+            Defaults to ["moderator"]"""
+
         super().__init__(name = name, actor = actor, exclusive = True, allowed_badges = allowed_badges)
 
     @property
@@ -253,7 +337,12 @@ class KillswitchCommand(ChatCommand):
         return "Shut down RumChat Actor."
 
     def run(self, message, act_props: dict):
-        """Shut down Rumchat Actor"""
+        """Shut down Rumchat Actor
+
+    Args:
+        message (cocorum.ChatAPI.Message): The chat message that called us.
+        act_props (dict): Message action recorded properties."""
+
         try:
             self.actor.send_message("Shutting down.")
             self.actor.quit()
@@ -264,13 +353,21 @@ class KillswitchCommand(ChatCommand):
 class ClipDownloadingCommand(ChatCommand):
     """Save clips of the livestream by downloading stream chunks from Rumble, works remotely"""
     def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, clip_save_path = "." + os.sep):
-        """Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
-    actor: The Rumchat Actor
-    name: The name of the command
-    default_duration: How long the clip will last with no duration specified
-    max_duration: How long the clip can possibly be (i.e. how much of the livestream to save)
-    clip_save_path: Where to save clips to when they are made
-    browsermob_exe: The path to the Browsermob Proxy executable"""
+        """Save clips of the livestream by downloading stream chunks from Rumble, works remotely.
+    Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
+
+    Args:
+        actor (RumbleChatActor): The Rumchat Actor.
+        name (str): The name of the command.
+            Defaults to "clip"
+        default_duration (int): How long the clip will last in seconds if no duration is specified on run.
+            Defaults to 60
+        max_duration (int): How long the clip can be set to be in seconds on run.
+            Defaults to 120
+        clip_save_path (str): Where to save clips to when they are made.
+            Defaults to "."
+        """
+
         super().__init__(name = name, actor = actor, cooldown = default_duration)
         self.default_duration = default_duration
         self.max_duration = max_duration
@@ -301,7 +398,14 @@ class ClipDownloadingCommand(ChatCommand):
             f"Default duration is {self.default_duration}, max duration is {self.max_duration}."
 
     def get_ts_list(self, quality):
-        """Download an m3u8 playlist and parse it for TS filenames"""
+        """Download an m3u8 playlist and parse it for TS filenames
+
+    Args:
+        quality (str): The quality specifier used in the TS URL.
+
+    Returns:
+        Files (list): Lines of the TS playlist that do not start with #"""
+
         assert self.ts_url_start and self.m3u8_filename, \
             "Must have the TS URL start and the m3u8 filename before this runs"
         m3u8 = requests.get(self.ts_url_start.format(quality = quality) + \
@@ -386,6 +490,7 @@ class ClipDownloadingCommand(ChatCommand):
 
     def get_quality_info(self):
         """Get information on the stream quality options: Download time, TS length, availability"""
+
         print("Getting info on stream qualities")
         assert self.ts_url_start, "Must have start of TS URL before this runs"
         for quality in static.Clip.Download.stream_qualities:
@@ -437,7 +542,12 @@ class ClipDownloadingCommand(ChatCommand):
             self.average_ts_download_times[quality] = sum(download_times) / len(download_times)
 
     def run(self, message, act_props: dict):
-        """Make a clip"""
+        """Make a clip
+
+    Args:
+        message (cocorum.ChatAPI.Message): The chat message that called us.
+        act_props (dict): Message action recorded properties."""
+
         #We are not ready for clipping
         if not self.ready_to_clip or not (self.is_dvr or self.saved_ts):
             self.actor.send_message(f"@{message.user.username} Not ready for clip saving yet.")
@@ -470,7 +580,14 @@ class ClipDownloadingCommand(ChatCommand):
                 self.save_clip(self.default_duration, "_".join(segs[1:]))
 
     def save_clip(self, duration, filename = None):
-        """Save a clip with the given duration to the filename"""
+        """Start a clip saver thread with the given parameters
+
+    Args:
+        duration (int): How long the clip should be.
+        filename (str): What to name the saved clip file.
+            Defaults to None, auto-generate a filename.
+    """
+
         self.running_clipsaves += 1
 
         #This is a DVR stream
@@ -503,7 +620,13 @@ class ClipDownloadingCommand(ChatCommand):
         saveclip_thread.start()
 
     def form_ts_into_clip(self, filename, use_ts):
-        """Do the actual TS [down]loading and processing, and save the video clip"""
+        """Do the actual TS [down]loading and processing, and save the video clip.
+    This method should be a thread target.
+
+    Args:
+        filename (str): The base name to save the clip file with, with no extension or path.
+        use_ts (list): The list of TS file names to use for this clip."""
+
         #Download the TS chunks if this is a DVR stream
         if self.is_dvr:
             print("Downloading TS for clip")
@@ -557,15 +680,25 @@ class ClipDownloadingCommand(ChatCommand):
         print("Complete")
 
 class ClipRecordingCommand(ChatCommand):
-    """Save clips of the livestream by duplicating then trimming an in-progress TS recording by OBS"""
+    """Save clips of the livestream by duplicating then trimming an in-progress recording by OBS"""
     def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, recording_load_path = ".", clip_save_path = "." + os.sep):
-        """Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
-    actor: The Rumchat Actor
-    name: The name of the command
-    default_duration: How long the clip will last with no duration specified
-    max_duration: How long the clip can possibly be
-    recording_load_path: Where recordings from OBS are stored, used for filedialog init
-    clip_save_path: Where to save clips to when they are made"""
+        """Save clips of the livestream by duplicating then trimming an in-progress recording by OBS.
+    Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
+
+    Args:
+        actor (RumbleChatActor): The Rumchat Actor.
+        name (str): The name of the command.
+            Defaults to "clip"
+        default_duration (int): How long the clip will last in seconds if no duration is specified on run.
+            Defaults to 60
+        max_duration (int): How long the clip can be set to be in seconds on run.
+            Defaults to 120
+        recording_load_path (str): Where recordings from OBS are stored, used for filedialog init.
+            Defaults to "."
+        clip_save_path (str): Where to save clips to when they are made.
+            Defaults to "."
+        """
+
         super().__init__(name = name, actor = actor, cooldown = default_duration)
         self.default_duration = default_duration
         self.max_duration = max_duration
@@ -614,7 +747,12 @@ class ClipRecordingCommand(ChatCommand):
         return static.Clip.Record.temp_copy_fn + "." + self.recording_container
 
     def run(self, message, act_props: dict):
-        """Make a clip. TODO mostly identical to ClipDownloadingCommand().run()"""
+        """Make a clip. TODO mostly identical to ClipDownloadingCommand().run()
+
+    Args:
+        message (cocorum.ChatAPI.Message): The chat message that called us.
+        act_props (dict): Message action recorded properties."""
+
         segs = message.text.split()
         #Only called clip, no arguments
         if len(segs) == 1:
@@ -642,7 +780,13 @@ class ClipRecordingCommand(ChatCommand):
                 self.save_clip(self.default_duration, "_".join(segs[1:]))
 
     def save_clip(self, duration, filename = None):
-        """Save a clip with the given duration to the filename"""
+        """Start a clip saver thread with the given parameters
+
+    Args:
+        duration (int): The length of the clip in seconds.
+        filename (str): The base filename of the clip, with no path or extension.
+            Defaults to None, auto-generate the filename."""
+
         #No filename specified, construct from time values
         if not filename:
             t = time.time()
@@ -659,7 +803,13 @@ class ClipRecordingCommand(ChatCommand):
         saveclip_thread.start()
 
     def form_recording_into_clip(self, duration, filename):
-        """Do the actual file operations to save a clip"""
+        """Do the actual file operations to save a clip.
+    This method should be a thread target.
+
+    Args:
+        duration (int): The length of the clip in seconds.
+        filename (str): The base filename of the clip, with no path or extension."""
+
         #Keep a counter of running clipsaves, may not be needed
         self.running_clipsaves += 1
 
@@ -687,14 +837,23 @@ class ClipRecordingCommand(ChatCommand):
 class ClipReplayBufferCommand(ChatCommand):
     """Save clips of the livestream by triggering OBS to save its replay buffer"""
     def __init__(self, actor, name = "clip", cooldown = 120, addr = "localhost", port = 4455, password = "", save_format = static.Clip.save_extension):
-        """Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
-    actor: The Rumchat Actor
-    name: The name of the command
-    cooldown: Command cooldown
-    addr: IP address of the computer running OBS
-    port: Port that OBS WebSocket is listening on
-    password: OBS WebSocket password, if you have one set
-    save_format: Format that replay buffers are saved in"""
+        """Save clips of the livestream by triggering OBS to save its replay buffer.
+    Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
+
+    Args:
+        actor (RumbleChatActor): The Rumchat Actor.
+        name (str): The name of the command.
+            Defaults to "clip"
+        cooldown (int): Command cooldown in seconds.
+        addr (str): IP address of the computer running OBS.
+            Defaults to "localhost", meaning this computer.
+        port (4455): Port that OBS WebSocket is listening on.
+            Defaults to 4455, currently OBS's default.
+        password (str): OBS WebSocket password, if you have one set.
+            Defaults to empty.
+        save_format (str): Filename extension for the format that replay buffers are saved in.
+            Defaults to static.Clip.save_extension"""
+
         super().__init__(name = name, actor = actor, cooldown = cooldown)
         self.addr, self.port, self.password = addr, port, password
         self.save_format = save_format.removeprefix(".")
@@ -729,7 +888,11 @@ class ClipReplayBufferCommand(ChatCommand):
 
     @running_clipsaves.setter
     def running_clipsaves(self, new):
-        """How many clip save threads are currently running"""
+        """How many clip save threads are currently running
+
+    Args:
+        new (int): The new number of running clipsaves"""
+
         assert int(new) == new, "Running clipsaves count must be an integer value"
         if new < 0:
             print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
@@ -738,7 +901,12 @@ class ClipReplayBufferCommand(ChatCommand):
         self.__running_clipsaves = new
 
     def run(self, message, act_props: dict):
-        """Make a clip. TODO mostly identical to ClipDownloadingCommand().run()"""
+        """Make a clip. TODO mostly identical to ClipDownloadingCommand().run()
+
+    Args:
+        message (cocorum.ChatAPI.Message): The chat message that called us.
+        act_props (dict): Message action recorded properties."""
+
         segs = message.text.split()
         #Only called clip, no arguments
         if len(segs) == 1:
@@ -749,7 +917,11 @@ class ClipReplayBufferCommand(ChatCommand):
             self.save_clip("_".join(segs[1:]))
 
     def save_clip(self, filename = None):
-        """Save a clip to the filename"""
+        """Start a clip saver thread with the given parameters
+
+    Args:
+        filename (str): The base filename of the clip, with no path or extension.
+            Defaults to None, auto-generate the filename."""
 
         if filename:
             #Avoid overwriting other clips
@@ -769,7 +941,12 @@ class ClipReplayBufferCommand(ChatCommand):
         saveclip_thread.start()
 
     def save_buffer_as_clip(self, desired_filename):
-        """Do the actual file operations to save a clip"""
+        """Do the actual file operations to save a clip.
+    This method should be a thread target.
+
+    Args:
+        filename (str): The base filename of the clip, with no path or extension, renamed from whatever OBS named it."""
+
         #Keep a counter of running clipsaves, may not be needed
         self.running_clipsaves += 1
 
@@ -826,9 +1003,15 @@ class ClipReplayBufferCommand(ChatCommand):
 class RaffleCommand(ChatCommand):
     """Create, enter, and draw from raffles"""
     def __init__(self, actor, name = "raffle"):
-        """Instance this object, then pass it to RumbleChatActor().register_command().
-    actor: The Rumchat Actor
-    name: The name of the command"""
+        """Create, enter, and draw from raffles.
+    Instance this object, then pass it to RumbleChatActor().register_command().
+
+    Args:
+        actor (RumbleChatActor): The Rumchat Actor.
+        name (str): The name of the command.
+            Defaults to "raffle"
+"""
+
         super().__init__(name = name, actor = actor)
 
         #Username entries in the raffle
@@ -855,7 +1038,11 @@ class RaffleCommand(ChatCommand):
             f"Valid arguments are: {", ".join(self.operations)}"
 
     def run(self, message, act_props: dict):
-        """Run the raffle command"""
+        """Run the raffle command
+
+    Args:
+        message (cocorum.ChatAPI.Message): The chat message that called us.
+        act_props (dict): Message action recorded properties."""
 
         segs = message.text.split()
         #Only called command, no arguments
@@ -873,7 +1060,11 @@ class RaffleCommand(ChatCommand):
             print(f"{message.user.username} called the raffle command but with invalid argument(s): {", ".join(segs[1:])}. No action taken.")
 
     def make_entry(self, message):
-        """An entry was made by the sender of the message"""
+        """Make an entry
+
+    Args:
+        message (cocorum.ChatAPI.Message): The message of the user who wishes to enter."""
+
         if message.user.username in self.entries:
             print(f"{message.user.username} is already in the raffle.")
             return
@@ -882,7 +1073,11 @@ class RaffleCommand(ChatCommand):
         print(f"{message.user.username} has entered the raffle.")
 
     def remove_entry(self, message):
-        """Remove an entry from the raffle"""
+        """Remove an entry
+
+    Args:
+        message (cocorum.ChatAPI.Message): The message of the removal request."""
+
         segs = message.text.split()
         #No username argument, the user wishes to remove themselves
         if len(segs) == 2:
@@ -904,12 +1099,22 @@ class RaffleCommand(ChatCommand):
         self.actor.send_message(f"@{message.user.username} The user {removal} was removed from the raffle.")
 
     def count_entries(self, message):
-        """Report the number of entries made so far"""
+        """Report the number of entries made so far
+
+    Args:
+        message (cocorum.ChatAPI.Message): The message of the count request."""
+
         count = len(self.entries)
+
+        #Some formatting here to make the grammar of the message always correct
         self.actor.send_message(f"@{message.user.username} There {("are", "is")[count == 1]} currently {("no", count)[count != 0]} {("entries", "entry")[count == 1]} in the raffle.")
 
     def draw_entry(self, message):
-        """Draw a winner"""
+        """Draw a winner
+
+    Args:
+        message (cocorum.ChatAPI.Message): The message of the winner draw request."""
+
         if not utils.is_staff(message.user):
             print(f"{message.user.username} tried to draw a raffle winner without the authority to do so.")
             return
@@ -922,7 +1127,11 @@ class RaffleCommand(ChatCommand):
         self.report_winner(message)
 
     def report_winner(self, message):
-        """Report the current winner"""
+        """Report the current winner
+
+    Args:
+        message (cocorum.ChatAPI.Message): The message of the winner display request."""
+
         if not self.winner:
             self.actor.send_message(f"@{message.user.username} There is no current winner.")
             return
@@ -930,7 +1139,11 @@ class RaffleCommand(ChatCommand):
         self.actor.send_message(f"@{message.user.username} The winner of the raffle is @{self.winner}")
 
     def reset(self, message):
-        """Reset the raffle"""
+        """Reset the raffle
+
+    Args:
+        message (cocorum.ChatAPI.Message): The message of the reset request."""
+
         if not utils.is_staff(message.user):
             print(f"{message.user.username} tried to reset the raffle without the authority to do so.")
             return

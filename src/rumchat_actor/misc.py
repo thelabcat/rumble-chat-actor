@@ -13,11 +13,12 @@ from . import static
 class ClipUploader():
     """Upload clips to Rumble automatically"""
     def __init__(self, actor, clip_command, **kwargs):
-        """actor: The RumbleChatActor() instance
-    clip_command: The clip command instance
-    channel_id: The name or int ID of the channel to upload to, defaults to no channel (user page)
-    profile_dir: The Firefox profile directory to use, defaults to burner profile
-    browser_head: Display a head for the Firefox process. Defaults to false."""
+        """Upload clips to Rumble automatically
+
+    Args:
+        actor (RumbleChatActor): The RumbleChatActor() instance
+        clip_command (ChatCommand): The clip command instance
+        channel_id (str | int): The name or int ID of the channel to upload to, defaults to no channel (user page)"""
 
         #Save actor
         self.actor = actor
@@ -39,16 +40,24 @@ class ClipUploader():
         self.clip_uploader_thread = threading.Thread(target = self.clip_upload_loop, daemon = True)
         self.clip_uploader_thread.start()
 
-    def upload_clip(self, filename, complete_path):
-        """Add the clip filename to the queue"""
-        self.clips_to_upload.put((filename, complete_path))
+    def upload_clip(self, name, complete_path):
+        """Add the clip filename to the queue
 
-    def __upload_clip(self, filename, complete_path):
-        """Upload a clip to Rumble"""
+    Args:
+        name (str): The base name of the clip.
+        complete_path (str): The full file path of the clip."""
+        self.clips_to_upload.put((name, complete_path))
+
+    def __upload_clip(self, name, complete_path):
+        """Upload a clip to Rumble
+
+    Args:
+        name (str): The base name of the clip.
+        complete_path (str): The full file path of the clip."""
 
         upload = self.uploadphp.upload_video(
             file_path = complete_path,
-            title = f"stream {self.actor.stream_id_b10} clip {filename}",
+            title = f"stream {self.actor.stream_id_b10} clip {name}",
             description = "Automatic clip upload. Enjoy!",
             category1 = static.Clip.Upload.category_1,
             category2 = static.Clip.Upload.category_2,
@@ -59,7 +68,7 @@ class ClipUploader():
         #Announce link
         self.actor.send_message("Clip uploaded to " + upload.url)
 
-        print(f"Clip {filename} published.")
+        print(f"Clip {name} published.")
 
     def clip_upload_loop(self):
         """Keep uploading clips while actor is alive"""
@@ -74,11 +83,13 @@ class ClipUploader():
 class Thanker(threading.Thread):
     """Thank followers and subscribers in the chat"""
     def __init__(self, actor, **kwargs):
-        """Pass the following:
-        actor: The Rumble Chat Actor instance
-        follower_message: Message to format with follower username
+        """Thank followers and subscribers in the chat
+
+    Args:
+        actor (RumbleChatActor): The Rumble Chat Actor instance.
+        follower_message (str): Message to format with Cocorum follower object.
             Defaults to static.Thank.DefaultMessages.follower
-        subscriber_message: Message to format with the subscriber username
+        subscriber_message (str): Message to format with the Cocorum subscriber object (twice!).
             Defaults to static.Thank.DefaultMessages.subscriber"""
 
         super().__init__(daemon = True)
@@ -102,7 +113,7 @@ class Thanker(threading.Thread):
 
             #Thank all the new subscribers
             for subscriber in self.rum_api.new_subscribers:
-                self.actor.send_message(self.follower_message.format(subscriber))
+                self.actor.send_message(self.follower_message.format(subscriber, subscriber))
 
             #Wait a bit, either the Rumble API refresh rate or the message sending cooldown
             time.sleep(max((self.rum_api.refresh_rate, static.Message.send_cooldown)))
