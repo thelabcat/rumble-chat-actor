@@ -45,25 +45,32 @@ from . import actions, commands, misc, utils, static
 class RumbleChatActor():
     """Actor that interacts with Rumble chat"""
     def __init__(self, init_message = "Hello, Rumble!", ignore_users = ["TheRumbleBot"], **kwargs):
-        """Instance this object, register all chat commands and message actions, then call its mainloop() method.
-    stream_id: The stream ID you want to connect to. Defaults to latest livestream
-    init_message: What to say when the actor starts up.
-    profile_dir: The Firefox profile directory to use. Defaults to temp (sign-in not saved).
-    username: The username to log in with. Defaults to manual entry.
-    password: The password to log in with. Defaults to manual entry.
-    api_url: The Rumble Live Stream API URL with your key (or RumBot's passthrough).
-        Defaults to no Live Stream API access.
-    streamer_username: The username of the person streaming.
-        Defaults to Live Stream API username or manually requested if needed.
-    streamer_channel: The channel doing the livestream, if it is being streamed on a channel.
-        Defaults to Live Stream API channel or manually requested if needed.
-    is_channel_stream: Bool, if the livestream is on a channel or not.
-        Defaults to automatic determination if possible.
-    streamer_main_page_url: The URL of the streamer's main page.
-        Defaults to automatic determination if possible.
-    ignore_users: List of usernames, will ignore all their messages.
-    invalid_command_respond: Bool, sets if we should post an error message if a command was invalid.
-        Defaults to False."""
+        """Actor that interacts with Rumble chat.
+    Instance this object, register all chat commands and message actions, then call its mainloop() method.
+
+    Args:
+        stream_id (int | str): The stream ID you want to connect to.
+            Defaults to latest livestream.
+        init_message (str): What to say when the actor starts up.
+            Defaults to "Hello, Rumble!"
+        username (str): The username to log in with.
+            Defaults to manual entry.
+        password (str): The password to log in with.
+            Defaults to manual entry.
+        api_url (str): The Rumble Live Stream API URL with your key (or RumBot's passthrough).
+            Defaults to no Live Stream API access.
+        streamer_username (str): The username of the person streaming.
+            Defaults to Live Stream API username or manually requested if needed.
+        streamer_channel (str): The channel doing the livestream, if it is being streamed on a channel.
+            Defaults to Live Stream API channel or manually requested if needed.
+        is_channel_stream (bool): If the livestream is on a channel or not.
+            Defaults to automatic determination if possible.
+        streamer_main_page_url (str): The URL of the streamer's main page.
+            Defaults to automatic determination if possible.
+        ignore_users (list): List of usernames to not act on (not a moderation feature).
+            Defaults to ["TheRumbleBot"]
+        invalid_command_respond (bool): Sets if we should post an error message if a command was invalid.
+            Defaults to False."""
 
         #The info of the person streaming
         self.__streamer_username = kwargs.get("streamer_username")
@@ -233,7 +240,7 @@ class RumbleChatActor():
 
             #We will ask the user
             else:
-                self.__is_channel_stream = "y" in input("Is this a channel stream? y/[N]:")
+                self.__is_channel_stream = "y" in input("Is this a channel stream? y/[N]:").lower()
 
         return self.__is_channel_stream
 
@@ -266,7 +273,11 @@ class RumbleChatActor():
         return self.__streamer_main_page_url
 
     def send_message(self, text):
-        """Send a message in chat (splits across lines if necessary)"""
+        """Send a message in chat (splits across lines if necessary)
+
+        Args:
+            text (str): The message to send"""
+
         text = static.Message.bot_prefix + text
         assert "\n" not in text, "Message cannot contain newlines"
         assert len(text) < static.Message.max_multi_len, "Message is too long"
@@ -286,7 +297,11 @@ class RumbleChatActor():
             time.sleep(0.1)
 
     def __send_message(self, text):
-        """Send a message in chat"""
+        """Send a message in chat (no safeties or suffix)
+
+        Args:
+            text (str): The message to send"""
+
         assert len(text) < static.Message.max_len, \
             f"Message with prefix cannot be longer than {static.Message.max_len} characters"
 
@@ -296,27 +311,27 @@ class RumbleChatActor():
 
     @property
     def delete_message(self):
-        """Delete a message in the chat"""
+        """Delete a message in the chat (passthrough to cocorum.ChatAPI)"""
         return self.chat.delete_message
 
     @property
     def mute_user(self):
-        """Mute a user in the chat"""
+        """Mute a user in the chat (passthrough to cocorum.ChatAPI)"""
         return self.chat.mute_user
 
     @property
     def unmute_user(self):
-        """Unmute a user"""
+        """Unmute a user (passthrough to cocorum.ChatAPI)"""
         return self.chat.unmute_user
 
     @property
     def pin_message(self):
-        """Pin a message by ID or li element"""
+        """Pin a message by ID or li element (passthrough to cocorum.ChatAPI)"""
         return self.chat.pin_message
 
     @property
     def unpin_message(self):
-        """Unpin the currently pinned message"""
+        """Unpin the currently pinned message (passthrough to cocorum.ChatAPI)"""
         return self.chat.unpin_message
 
     def quit(self):
@@ -326,7 +341,12 @@ class RumbleChatActor():
         # self.chat.client.close()
 
     def __run_if_command(self, message, act_props: dict):
-        """Check if a message is a command, and run it if so"""
+        """Check if a message is a command, and run it if so
+
+        Args:
+            message (cocorum.ChatAPI.Message): The message in question.
+            act_props (dict): Properties of this message as recorded by message actors."""
+
         #Not a command
         if not message.text.startswith(static.Message.command_prefix):
             return
@@ -343,11 +363,20 @@ class RumbleChatActor():
         self.chat_commands[name].call(message, act_props)
 
     def register_command(self, command, name = None, help_message = None):
-        """Register a command"""
+        """Register a command
+
+        Args:
+            command (callable | commands.ChatCommand): The command operation to register.
+            name (str): The name of the command.
+                Defaults to None, use the ChatCommand name.
+            help_message
+            """
         #Is a ChatCommand instance
         if isinstance(command, commands.ChatCommand):
-            assert not name or name == command.name, \
-                "ChatCommand instance has different name than one passed"
+            if name and name != command.name:
+                print(f"Overriding command name ''{command.name}' with '{name}'")
+                command.name = name
+
             self.chat_commands[command.name] = command
 
         #Is a callable
@@ -366,10 +395,12 @@ class RumbleChatActor():
 
     def register_message_action(self, action):
         """Register an action to be run on every message
-    - Action must be a callable or have an action() attribute
-    - Action will be passed cocorum.ssechat.SSEChatMessage() and this actor
-    - Action should return False if the message survived the action
-    - Action should return True if the message was deleted by the action"""
+
+        Args:
+            action (callable | object):
+                - Action must be a callable or have an action() attribute.
+                - On run, action will be passed cocorum.ssechat.SSEChatMessage() and this actor instance.
+                - Action should return a dictionary of action properties (full documentation pending, things like {"deleted" : True})."""
 
         if hasattr(action, "action"):
             action = action.action
@@ -384,8 +415,16 @@ class RumbleChatActor():
 
     @raid_action.setter
     def raid_action(self, new_action):
+        """The callable we are supposed to run on raids
+
+        Args:
+            new_action (callable): The callable to be run.
+                Passes it the cocorum.ChatAPI.Message and this actor instance."""
+
         assert callable(new_action), "Raid action must be a callable"
         self.__raid_action = new_action
+
+###STOPPED HERE
 
     def __process_message(self, message):
         """Process a single SSE Chat message"""
@@ -396,7 +435,7 @@ class RumbleChatActor():
         #the message is actually a raid alert, take raid action on it, nothing more
         if message.raid_notification:
             self.known_raid_alert_messages.append(message)
-            self.raid_action(message)
+            self.raid_action(message, self)
             return
 
         #If the message is from the same account as us, consider it in message send cooldown

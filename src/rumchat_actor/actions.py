@@ -17,10 +17,16 @@ try:
 except ModuleNotFoundError:
     OLLAMA_IMPORTED = False
 
-mixer_initialized = False
-
 def ollama_message_moderate(message, actor):
-    """Moderate a message with Ollama, deleting if needed"""
+    """Moderate a message with Ollama, deleting if needed
+
+    Args:
+        message (cocorum.chatapi.Message): The chat message to run this action on.
+        actor (RumbleChatActor): The chat actor.
+
+    Returns:
+        act_props (dict): Dictionary of recorded properties from running this action."""
+
     assert OLLAMA_IMPORTED, "The Ollama library and a working Ollama installation are required for ollama_message_moderate"
 
     #Message was blank
@@ -66,7 +72,8 @@ def ollama_message_moderate(message, actor):
 class RantTTSManager():
     """System to TTS rant messages, with threshhold settings"""
     def __init__(self):
-        """Instance this object, then pass it to RumbleChatActor().register_message_action()"""
+        """System to TTS rant messages, with threshhold settings.
+    Instance this object, then pass it to RumbleChatActor().register_message_action()"""
 
         #The amount a rant must be to be TTS-ed
         self.__tts_amount_threshold = 0
@@ -81,17 +88,33 @@ class RantTTSManager():
 
     @tts_amount_threshold.setter
     def tts_amount_threshold(self, new):
-        """The amount a rant must be to be TTS-ed, 0 means all rants are TTS-ed"""
+        """The amount a rant must be to be TTS-ed, 0 means all rants are TTS-ed
+
+    Args:
+        new (int): The new threshold in cents."""
+
         assert isinstance(new, (int, float)) and new >= 0, "Value must be a number greater than zero"
         self.__tts_amount_threshold = new
 
     def set_rant_tts_sayer(self, new):
-        """Set the callable to be used on rant TTS"""
+        """Set the callable to be used on rant TTS
+
+    Args:
+        new (callable): The function or method to call, passing the message text."""
+
         assert callable(new), "Must be a callable"
         self.__say = new
 
     def action(self, message, actor):
-        """TTS rants above the manager instance's threshhold"""
+        """TTS rants above the manager instance's threshhold
+
+    Args:
+        message (cocorum.chatapi.Message): The chat message to run this action on.
+        actor (RumbleChatActor): The chat actor.
+
+    Returns:
+        act_props (dict): Dictionary of recorded properties from running this action."""
+
         if message.is_rant and message.rant_price_cents >= self.__tts_amount_threshold:
             self.__say(message.text)
             return {"sound" : True}
@@ -100,11 +123,13 @@ class RantTTSManager():
 class TimedMessagesManager():
     """System to send messages on a timed basis"""
     def __init__(self, actor, messages: iter, delay = 60, in_between = 0):
-        """Instance this object, then pass it to RumbleChatActor().register_message_action()
-    actor: The actor, to send the timed messages,
-    messages: List of messages to send
-    delay: Time between messages
-    in_between: Number of messages that must be sent before we send another timed one"""
+        """System to send messages on a timed basis. Instance this object, then pass it to RumbleChatActor().register_message_action()
+
+    Args:
+        actor (RumbleChatActor): The actor, to send the timed messages,
+        messages (list): List of str messages to send
+        delay (int): Time between messages in seconds
+        in_between (int): Number of messages that must be sent before we send another timed one"""
 
         self.actor = actor
         assert len(messages) > 0, "List of messages to send cannot be empty"
@@ -128,7 +153,15 @@ class TimedMessagesManager():
         self.sender_thread.start()
 
     def action(self, message, actor):
-        """Count the messages sent"""
+        """Count the messages sent
+
+    Args:
+        message (cocorum.chatapi.Message): The chat message to run this action on.
+        actor (RumbleChatActor): The chat actor.
+
+    Returns:
+        act_props (dict): Dictionary of recorded properties from running this action."""
+
         self.in_between_counter += 1
         return {}
 
@@ -153,12 +186,15 @@ class TimedMessagesManager():
 
 class ChatBlipper:
     """Blip with chat activity, getting fainter as activity gets more common"""
-    def __init__(self, sound_filename: str, rarity_regen_time = 60, stay_dead_time = 10, rarity_reduce = 5):
-        """Instance this object, then pass it to RumbleChatActor().register_message_action()
-        sound_filename: The filename of the blip sound to play.
-        rarity_regen_time: How long before the blip volume regenerates to maximum.
-        stay_dead_time: Effectively more regen time but with the volume staying at zero for the duration.
-        rarity_reduce: How much a message reduces the volume, ranging from 0 to 1"""
+    def __init__(self, sound_filename: str, rarity_regen_time = 60, stay_dead_time = 10, rarity_reduce = 0.1):
+        """Blip with chat activity, getting fainter as activity gets more common.
+    Instance this object, then pass it to RumbleChatActor().register_message_action()
+
+    Args:
+        sound_filename (str): The filename of the blip sound to play.
+        rarity_regen_time (int): How long before the blip volume regenerates to maximum, in seconds.
+        stay_dead_time (int): Effectively more regen time, in seconds, but with the volume staying at zero for the duration.
+        rarity_reduce (float): How much a message reduces the volume in factor, ranging from >0 to 1."""
 
         self.sound = None
         self.load_sound(sound_filename)
@@ -172,10 +208,8 @@ class ChatBlipper:
     def load_sound(self, fn):
         """Load a sound from a file to use as a blip"""
         #Make sure PyGame mixer is initialized
-        global mixer_initialized
-        if not mixer_initialized:
+        if not mixer.get_init():
             mixer.init()
-            mixer_initialized = True
 
         self.sound = mixer.Sound(fn)
 
@@ -196,7 +230,16 @@ class ChatBlipper:
         self.silent_time = min((self.silent_time + self.rarity_regen_time * self.rarity_reduce, curtime + self.stay_dead_time))
 
     def action(self, message, actor):
-        """Blip for a chat message, taking rarity into account for the volume"""
+        """Blip for a chat message, taking rarity into account for the volume
+
+    Args:
+        message (cocorum.chatapi.Message): The chat message to run this action on.
+        actor (RumbleChatActor): The chat actor.
+
+    Returns:
+        act_props (dict): Dictionary of recorded properties from running this action."""
+
         self.sound.set_volume(self.current_volume)
         self.sound.play()
         self.reduce_rarity()
+        return {}
