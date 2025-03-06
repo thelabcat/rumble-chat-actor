@@ -424,10 +424,12 @@ class RumbleChatActor():
         assert callable(new_action), "Raid action must be a callable"
         self.__raid_action = new_action
 
-###STOPPED HERE
-
     def __process_message(self, message):
-        """Process a single SSE Chat message"""
+        """Process a single SSE Chat message
+
+        Args:
+            message (cocorum.ChatAPI.Message): The message to send to actions and check for commands"""
+
         #Ignore messages that are from our account and match ones we sent before
         if message.user.username == self.username and message.text in self.sent_messages:
             return
