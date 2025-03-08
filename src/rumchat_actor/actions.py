@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Common chat actions
+"""Common message actions
 
 Actions commonly run on chat messages
 S.D.G"""
