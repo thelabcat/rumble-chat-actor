@@ -349,7 +349,8 @@ class RumbleChatActor():
             command (callable | commands.ChatCommand): The command operation to register.
             name (str): The name of the command.
                 Defaults to None, use the ChatCommand name.
-            help_message
+            help_message (str): Help message for this command.
+                Defaults to None, use the ChatCommand help message (cannot override).
             """
         #Is a ChatCommand instance
         if isinstance(command, commands.ChatCommand):
@@ -438,6 +439,9 @@ class RumbleChatActor():
 
             #Legacy message action return support
             if act_props_one is None:
+                act_props_one = {}
+            elif not isinstance(act_props_one, dict):
+                print(f"Warning: message action {action} did not return valid action properties, but rather {act_props_one}. Compensating with blank action properties.")
                 act_props_one = {}
 
             act_props_all.update(act_props_one)

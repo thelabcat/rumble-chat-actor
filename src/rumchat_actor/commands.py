@@ -41,7 +41,7 @@ class ChatCommand():
         free_badges (list): Badges which, if borne, give the user free-of-charge command access even if amount_cents > 0.
             "admin" is added internally.
             Defaults to ["moderator"]
-        target (callable): The command function(message, actor) to call.
+        target (callable): The command function(message, act_props, actor) to call.
             Defaults to self.run"""
 
         assert " " not in name, "Name cannot contain spaces"
@@ -135,7 +135,7 @@ class ChatCommand():
         act_props (dict): Message action recorded properties."""
 
         if self.target:
-            self.target(message, self.actor)
+            self.target(message, act_props, self.actor)
             return
 
         #Run method was never defined

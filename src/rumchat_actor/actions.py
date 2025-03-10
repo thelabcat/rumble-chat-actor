@@ -17,11 +17,12 @@ try:
 except ModuleNotFoundError:
     OLLAMA_IMPORTED = False
 
-def ollama_message_moderate(message, actor):
+def ollama_message_moderate(message, act_props, actor):
     """Moderate a message with Ollama, deleting if needed
 
     Args:
         message (cocorum.chatapi.Message): The chat message to run this action on.
+        act_props (dict): Action properties, aka metadata about what other things did with this message
         actor (RumbleChatActor): The chat actor.
 
     Returns:
@@ -105,15 +106,20 @@ class RantTTSManager():
         assert callable(new), "Must be a callable"
         self.__say = new
 
-    def action(self, message, actor):
+    def action(self, message, act_props, actor):
         """TTS rants above the manager instance's threshhold
 
     Args:
         message (cocorum.chatapi.Message): The chat message to run this action on.
+        act_props (dict): Action properties, aka metadata about what other things did with this message
         actor (RumbleChatActor): The chat actor.
 
     Returns:
-        act_props (dict): Dictionary of recorded properties from running this action."""
+        act_props (dict): Dictionary of additional recorded properties from running this action."""
+
+        #Do not overlap sounds
+        if act_props["sound"]:
+            return {}
 
         if message.is_rant and message.rant_price_cents >= self.__tts_amount_threshold:
             self.__say(message.text)
@@ -152,15 +158,16 @@ class TimedMessagesManager():
         self.sender_thread = threading.Thread(target = self.sender_loop, daemon = True)
         self.sender_thread.start()
 
-    def action(self, message, actor):
+    def action(self, message, act_props, actor):
         """Count the messages sent
 
     Args:
         message (cocorum.chatapi.Message): The chat message to run this action on.
+        act_props (dict): Action properties, aka metadata about what other things did with this message
         actor (RumbleChatActor): The chat actor.
 
     Returns:
-        act_props (dict): Dictionary of recorded properties from running this action."""
+        act_props (dict): Dictionary of additional recorded properties from running this action."""
 
         self.in_between_counter += 1
         return {}
@@ -229,15 +236,16 @@ class ChatBlipper:
         #Move the time we "were" silent forward, capping at present + stay-dead time
         self.silent_time = min((self.silent_time + self.rarity_regen_time * self.rarity_reduce, curtime + self.stay_dead_time))
 
-    def action(self, message, actor):
+    def action(self, message, act_props, actor):
         """Blip for a chat message, taking rarity into account for the volume
 
     Args:
         message (cocorum.chatapi.Message): The chat message to run this action on.
+        act_props (dict): Action properties, aka metadata about what other things did with this message
         actor (RumbleChatActor): The chat actor.
 
     Returns:
-        act_props (dict): Dictionary of recorded properties from running this action."""
+        act_props (dict): Dictionary of additional recorded properties from running this action."""
 
         self.sound.set_volume(self.current_volume)
         self.sound.play()
