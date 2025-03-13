@@ -13,6 +13,7 @@ A Python framework for setting up commands or other automated action for your Ru
     4. [rumchat_actor.misc](modules_ref/misc.md)
     5. [rumchat_actor.utils](modules_ref/utils.md)
     6. [rumchat_actor.static](modules_ref/static.md)
+    7. [Action Properties](action_properties.md)
 4. [Explanation](explanation.md)
 
 ## Acknowledgements

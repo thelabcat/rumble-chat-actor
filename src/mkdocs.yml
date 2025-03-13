@@ -18,4 +18,5 @@ nav:
     - modules_ref/misc.md
     - modules_ref/utils.md
     - modules_ref/static.md
+    - action_properties.md
   - explanation.md

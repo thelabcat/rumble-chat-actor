@@ -6,5 +6,6 @@
 4. [rumchat_actor.misc](modules_ref/misc.md), miscellaneous stuff for end use.
 5. [rumchat_actor.utils](modules_ref/utils.md), various utility functions for internal use.
 6. [rumchat_actor.static](modules_ref/static.md), static variables.
+7. [Action Properties](action_properties.md), metadata created by message actions, and passed to both actions and commands.
 
 S.D.G.
