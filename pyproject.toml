@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "rumchat_actor"
-version = "3.3.0"
+version = "3.3.1"
 keywords = ["rumble", "chat", "livestream", "bot"]
 authors = [
   { name="Wilbur Jaywright", email="zargulthewizard@outlook.com" },
@@ -31,3 +31,4 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/thelabcat/rum-chat-actor"
 Issues = "https://github.com/thelabcat/rumble-api-wrapper-py/issues"
+Documentation = "https://thelabcat.github.io/rumble-chat-actor/"
