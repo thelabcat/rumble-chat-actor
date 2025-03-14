@@ -90,3 +90,5 @@ rumchat_actor.misc.Thanker(actor)
 print("Starting mainloop...")
 actor.mainloop()
 ```
+
+S.D.G.

@@ -82,3 +82,5 @@ actor.mainloop()
 ```
 
 This should run until you press Ctrl+C AND send one last message to stop it from waiting, or just kill the Python process somehow (closing the window for example), or send "!killswitch" in the chat to run the Killswitch command.
+
+S.D.G.
