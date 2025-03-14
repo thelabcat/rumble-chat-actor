@@ -354,7 +354,7 @@ class ClipDownloadingCommand(ChatCommand):
     """Save clips of the livestream by downloading stream chunks from Rumble, works remotely"""
     def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, clip_save_path = "." + os.sep):
         """Save clips of the livestream by downloading stream chunks from Rumble, works remotely.
-    Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
+    Instance this object, optionally pass it to the init method of a ClipUploader, then pass it to RumbleChatActor().register_command().
 
     Args:
         actor (RumbleChatActor): The Rumchat Actor.
@@ -683,7 +683,7 @@ class ClipRecordingCommand(ChatCommand):
     """Save clips of the livestream by duplicating then trimming an in-progress recording by OBS"""
     def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, recording_load_path = ".", clip_save_path = "." + os.sep):
         """Save clips of the livestream by duplicating then trimming an in-progress recording by OBS.
-    Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
+    Instance this object, optionally pass it to the init method of a ClipUploader, then pass it to RumbleChatActor().register_command().
 
     Args:
         actor (RumbleChatActor): The Rumchat Actor.
@@ -838,7 +838,7 @@ class ClipReplayBufferCommand(ChatCommand):
     """Save clips of the livestream by triggering OBS to save its replay buffer"""
     def __init__(self, actor, name = "clip", cooldown = 120, addr = "localhost", port = 4455, password = "", save_format = static.Clip.save_extension):
         """Save clips of the livestream by triggering OBS to save its replay buffer.
-    Instance this object, optionally pass it to a ClipUploader, then pass it to RumbleChatActor().register_command().
+    Instance this object, optionally pass it to the init method of a ClipUploader, then pass it to RumbleChatActor().register_command().
 
     Args:
         actor (RumbleChatActor): The Rumchat Actor.

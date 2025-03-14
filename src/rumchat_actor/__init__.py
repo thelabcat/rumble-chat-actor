@@ -435,7 +435,7 @@ class RumbleChatActor():
             if message.deleted:
                 return
 
-            act_props_one = action(message, self)
+            act_props_one = action(message, act_props_all, self)
 
             #Legacy message action return support
             if act_props_one is None:

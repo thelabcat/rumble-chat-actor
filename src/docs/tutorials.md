@@ -21,13 +21,18 @@ actor = rumchat_actor.RumbleChatActor(api_url = RUMBLE_API_URL, username = USERN
 ```
 
 Once the actor is initialized, we can start registering message actions, and chat commands.
-- A message action runs on every message, and can do stuff related to it or not. It must return a dictionary of action properties (pending documentation, this is basically metadata). The most common action property is "deleted" : bool, used for when a message action deleted the message in question. Message actions are registered as functions, or objects with an action() method that takes the same arguments: message, and actor.
-- A chat command only runs when triggered, and returns nothing. It is passed the message it was launched from, and the action properties of that message from all the combined actions that ran on it.
+- A message action runs on every message, and returns a dict of any new [action properties](action_properties.md) from its run. Message actions are good for automatic moderation, for example.
+- A chat command only runs when triggered, and returns nothing.
 
-Here is an example of a message action function, and registering it:
+Both message actions and chat command targets are passed:
+1. The message we are working on,
+2. The action properties of that message from all the combined (previous) actions that ran on it, and
+3. The Rumble Chat Actor instance itself.
+
+Here is an example of a message action function, and registering it. This message action scans the message for the word "cheese" in its text, and if it's in there, it sends a message back to the user.
 
 ```
-def eat_some_cheese(message, actor):
+def eat_some_cheese(message, act_props, actor):
     """If a message mentions cheese, eat some cheese
 
     Args:
@@ -45,10 +50,12 @@ def eat_some_cheese(message, actor):
 actor.register_message_action(eat_some_cheese)
 ```
 
-And now, a basic chat command. We must specify the name of the command, and the callable to be run.
+A warning about this, though: The actor must wait to send messages to avoid rate limits by Rumble, so it has a built-in queue and auto-sending loop. As per [issue #46 on GitHub](https://github.com/thelabcat/rumble-chat-actor/issues/46), the actor can end up in extreme message debt as it were, where it is queuing to send messages faster than it is actually able to send them. If you have an extremely active chat, bear this in mind. As a more broad warning, the actor *must* be able to process all message actions before the next message arrives, or it can fall behind in that as well. As long as, on average, the actor can work faster than the chat, everything should be fine.
+
+And now, creating and registering a basic chat command. We must specify the name of the command, and the callable to be run. Again, it is passed the message, the action properties, and the actor. But this time, it does not return anything: Nothing else runs on a message after a command, so there's no need for it.
 
 ```
-def say_hi(message, act_props):
+def say_hi(message, act_props, actor):
         """Say hi to the user who ran this command
 
     Args:
@@ -61,10 +68,17 @@ def say_hi(message, act_props):
 actor.register_command(name = "hi", command = say_hi)
 ```
 
+But what about commonly used commands, especially ones with complex code? Well, I've included some pre-builts in the `rumchat_actor.commands` module. Let's register one I always think is a good idea, the Killswitch command. This command is available to staff only, and shuts down the actor immediately when it is processed. I actually use this as my usual shutdown method. Using a pre-built command is simple. We instance it, then pass it to the actor's `register_command()` method. In some cases, we also pass it to something like a [stream clip auto uploader](../modules_ref/misc/#rumchat_actor.misc.ClipUploader), which should be mentioned in the command's documentation, such as [here](../modules_ref/commands/#rumchat_actor.commands.ClipReplayBufferCommand).
+
+```
+ks_command = rumchat_actor.commands.KillswitchCommand(actor = actor)
+actor.register_command(ks_command)
+```
+
 Once everything is registered, we can start the actor:
 
 ```
 actor.mainloop()
 ```
 
-This should run until you press Ctrl+C AND send one last message to stop it from waiting, or just kill the Python process somehow (closing the window for example). For a smoother means of shutdown, see the Killswitch command.
+This should run until you press Ctrl+C AND send one last message to stop it from waiting, or just kill the Python process somehow (closing the window for example), or send "!killswitch" in the chat to run the Killswitch command.
