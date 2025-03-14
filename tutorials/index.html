@@ -1,0 +1,635 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../how-to-guides/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Tutorials - Rumble Chat Actor Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#tutorials" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="Rumble Chat Actor Docs" class="md-header__button md-logo" aria-label="Rumble Chat Actor Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Rumble Chat Actor Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Tutorials
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="Rumble Chat Actor Docs" class="md-nav__button md-logo" aria-label="Rumble Chat Actor Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Rumble Chat Actor Docs
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#a-demo-setup-with-an-educational-message-action-and-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      A demo setup with an educational message action and commands
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../how-to-guides/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    How-To Guides
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules_ref/main/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Main
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules_ref/actions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Actions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules_ref/commands/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Commands
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules_ref/misc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Misc
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules_ref/utils/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Utils
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modules_ref/static/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Static
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../action_properties/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Action properties
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../explanation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Explanation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#a-demo-setup-with-an-educational-message-action-and-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      A demo setup with an educational message action and commands
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+<h1 id="tutorials">Tutorials</h1>
+<h2 id="a-demo-setup-with-an-educational-message-action-and-commands">A demo setup with an educational message action and commands</h2>
+<p>The first thing to do is import the base module.</p>
+<pre><code>import rumchat_actor
+</code></pre>
+<p>You can also import submodules, but I have <code>rumchat_actor</code> import all of them at current, so it's not necessary.
+Next, we create the actor. You can pass it a few different combinations things to give it what it needs,which I explain below, or you can just skip to the code if you want to do the recommended way:</p>
+<ul>
+<li>It needs to know the numeric ID of the livestream it's going to act on. You can either pass that manually after obtaining it from the end of a pop-out chat URL, or just pass the actor your Rumble Live Stream API URL as obtained from <a href="https://rumble.com/account/livestream-api">the Live Stream API key management page on Rumble.com</a>. With the API URL, the actor will just automatically load the ID of the latest livestream and use that. Note, this can be either base 10 or 36, but if you make it base 10, please also make it an integer instead of a string. Base 36 can look like base 10 if it's just the right number so that only base 10 numerals are included, and there's no way for the actor to tell the difference, so it assumes base 36 for strings.</li>
+<li>It needs to be able to sign in to Rumble with a verified account to send chat messages. Since the credentials are sent directly to Rumble with no middleman service, they are as secure as the computer you're running this script on (assuming no module in this chain of support got a malicious update, only God can protect you ultimately). You can either pass it a Rumble username (NOT the email) and a password, or pass it a username and a session token (you would do that for saving logins), or pass it nothing and it will ask you to log in manually. A note about that, when you type the password, if you are in a terminal that Python can control directly, the characters will not be shown. Like, at all. Not even a dot or an asterisk, the cursor will not move. This is normal behavior, and is a security feature called "no echo" from the old teletype days. Now, if you run this script in Python's IDLE shell, the typed password WILL be shown CLEARLY VISIBLE, so don't use manual password entry and IDLE together if there is any chance that IDLE will be shown on stream. I personally recommend having the password loaded from a text file, or you can use an environment variable if you know how to do that, but never put your credentials directly into your code.</li>
+</ul>
+<p>There are other things you can specify that some commands need, but most of them are automatically obtained from the Rumble Live Stream API if it is passed. You can find all of the arguments in the reference documentation. Here is the base recommended setup:</p>
+<pre><code>actor = rumchat_actor.RumbleChatActor(api_url = RUMBLE_API_URL, username = USERNAME, password = PASSWORD)
+</code></pre>
+<p>Once the actor is initialized, we can start registering message actions, and chat commands.
+- A message action runs on every message, and returns a dict of any new <a href="../action_properties/">action properties</a> from its run. Message actions are good for automatic moderation, for example.
+- A chat command only runs when triggered, and returns nothing.</p>
+<p>Both message actions and chat command targets are passed:
+1. The message we are working on,
+2. The action properties of that message from all the combined (previous) actions that ran on it, and
+3. The Rumble Chat Actor instance itself.</p>
+<p>Here is an example of a message action function, and registering it. This message action scans the message for the word "cheese" in its text, and if it's in there, it sends a message back to the user.</p>
+<pre><code>def eat_some_cheese(message, act_props, actor):
+    &quot;&quot;&quot;If a message mentions cheese, eat some cheese
+
+    Args:
+        message (cocorum.chatapi.Message): The chat message to run this action on.
+        actor (RumbleChatActor): The chat actor.
+
+    Returns:
+        act_props (dict): Dictionary of recorded properties from running this action.&quot;&quot;&quot;
+
+    if &quot;cheese&quot; in message.text.lower():
+        actor.send_message(f&quot;@{message.user.username} Eat some cheese 🧀.&quot;)
+
+    return {}
+
+actor.register_message_action(eat_some_cheese)
+</code></pre>
+<p>A warning about this, though: The actor must wait to send messages to avoid rate limits by Rumble, so it has a built-in queue and auto-sending loop. As per <a href="https://github.com/thelabcat/rumble-chat-actor/issues/46">issue #46 on GitHub</a>, the actor can end up in extreme message debt as it were, where it is queuing to send messages faster than it is actually able to send them. If you have an extremely active chat, bear this in mind. As a more broad warning, the actor <em>must</em> be able to process all message actions before the next message arrives, or it can fall behind in that as well. As long as, on average, the actor can work faster than the chat, everything should be fine.</p>
+<p>And now, creating and registering a basic chat command. We must specify the name of the command, and the callable to be run. Again, it is passed the message, the action properties, and the actor. But this time, it does not return anything: Nothing else runs on a message after a command, so there's no need for it.</p>
+<pre><code>def say_hi(message, act_props, actor):
+        &quot;&quot;&quot;Say hi to the user who ran this command
+
+    Args:
+        message (cocorum.ChatAPI.Message): The chat message that called us.
+        act_props (dict): Message action recorded properties.&quot;&quot;&quot;
+
+    #Oh man this is broken, we shouldn't be accessing this globally, see issues #44 and #45
+    actor.send_message(f&quot;Hello, @{message.user.username}!&quot;)
+
+actor.register_command(name = &quot;hi&quot;, command = say_hi)
+</code></pre>
+<p>But what about commonly used commands, especially ones with complex code? Well, I've included some pre-builts in the <code>rumchat_actor.commands</code> module. Let's register one I always think is a good idea, the Killswitch command. This command is available to staff only, and shuts down the actor immediately when it is processed. I actually use this as my usual shutdown method. Using a pre-built command is simple. We instance it, then pass it to the actor's <code>register_command()</code> method. In some cases, we also pass it to something like a <a href="../modules_ref/misc/#rumchat_actor.misc.ClipUploader">stream clip auto uploader</a>, which should be mentioned in the command's documentation, such as <a href="../modules_ref/commands/#rumchat_actor.commands.ClipReplayBufferCommand">here</a>.</p>
+<pre><code>ks_command = rumchat_actor.commands.KillswitchCommand(actor = actor)
+actor.register_command(ks_command)
+</code></pre>
+<p>Once everything is registered, we can start the actor:</p>
+<pre><code>actor.mainloop()
+</code></pre>
+<p>This should run until you press Ctrl+C AND send one last message to stop it from waiting, or just kill the Python process somehow (closing the window for example), or send "!killswitch" in the chat to run the Killswitch command.</p>
+<p>S.D.G.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>

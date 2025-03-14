@@ -1,0 +1,1796 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../utils/">
+      
+      
+        <link rel="next" href="../../action_properties/">
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+    
+    
+      
+        <title>Static - Rumble Chat Actor Docs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.6f8fc17f.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#rumchat_actor.static" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Rumble Chat Actor Docs" class="md-header__button md-logo" aria-label="Rumble Chat Actor Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Rumble Chat Actor Docs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Static
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Rumble Chat Actor Docs" class="md-nav__button md-logo" aria-label="Rumble Chat Actor Docs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Rumble Chat Actor Docs
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tutorials/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tutorials
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../how-to-guides/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    How-To Guides
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Reference
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../main/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Main
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../actions/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Actions
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../commands/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Commands
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../misc/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Misc
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../utils/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Utils
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Static
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Static
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static" class="md-nav__link">
+    <span class="md-ellipsis">
+      static
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.AutoModerator" class="md-nav__link">
+    <span class="md-ellipsis">
+      AutoModerator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Clip" class="md-nav__link">
+    <span class="md-ellipsis">
+      Clip
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Clip">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Clip.Download" class="md-nav__link">
+    <span class="md-ellipsis">
+      Download
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Clip.Record" class="md-nav__link">
+    <span class="md-ellipsis">
+      Record
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Clip.ReplayBuffer" class="md-nav__link">
+    <span class="md-ellipsis">
+      ReplayBuffer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Clip.Upload" class="md-nav__link">
+    <span class="md-ellipsis">
+      Upload
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      Driver
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Message" class="md-nav__link">
+    <span class="md-ellipsis">
+      Message
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Moderation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Moderation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Thank" class="md-nav__link">
+    <span class="md-ellipsis">
+      Thank
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Thank">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Thank.DefaultMessages" class="md-nav__link">
+    <span class="md-ellipsis">
+      DefaultMessages
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.URI" class="md-nav__link">
+    <span class="md-ellipsis">
+      URI
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../action_properties/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Action properties
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../explanation/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Explanation
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static" class="md-nav__link">
+    <span class="md-ellipsis">
+      static
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.AutoModerator" class="md-nav__link">
+    <span class="md-ellipsis">
+      AutoModerator
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Clip" class="md-nav__link">
+    <span class="md-ellipsis">
+      Clip
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Clip">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Clip.Download" class="md-nav__link">
+    <span class="md-ellipsis">
+      Download
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Clip.Record" class="md-nav__link">
+    <span class="md-ellipsis">
+      Record
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Clip.ReplayBuffer" class="md-nav__link">
+    <span class="md-ellipsis">
+      ReplayBuffer
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Clip.Upload" class="md-nav__link">
+    <span class="md-ellipsis">
+      Upload
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Driver" class="md-nav__link">
+    <span class="md-ellipsis">
+      Driver
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Message" class="md-nav__link">
+    <span class="md-ellipsis">
+      Message
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Moderation" class="md-nav__link">
+    <span class="md-ellipsis">
+      Moderation
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Thank" class="md-nav__link">
+    <span class="md-ellipsis">
+      Thank
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Thank">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#rumchat_actor.static.Thank.DefaultMessages" class="md-nav__link">
+    <span class="md-ellipsis">
+      DefaultMessages
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rumchat_actor.static.URI" class="md-nav__link">
+    <span class="md-ellipsis">
+      URI
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  <h1>Static</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="rumchat_actor.static"></a>
+    <div class="doc doc-contents first">
+
+        <p>Static variables</p>
+<p>Absolute variable definitions not uinque to scripts.
+S.D.G.</p>
+
+
+
+
+
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="rumchat_actor.static.AutoModerator" class="doc doc-heading">
+            <code>AutoModerator</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>For automatic moderation</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">AutoModerator</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For automatic moderation&quot;&quot;&quot;</span>
+
+    <span class="c1">#LLM system message to moderate messages with</span>
+    <span class="n">llm_sys_prompt</span> <span class="o">=</span> <span class="s2">&quot;Analyze the following chat messages for appropriate-ness. Respond with either a 0 or a 1: If a message is appropriate for PG-13 SFW and not spam, or you are not sure, respond with a 1. If it is not appropriate for PG-13 or is NSFW or is spam, respond with a 0. You can only respond with these two values. Do not respond with commentary.&quot;</span>
+
+    <span class="c1">#OLLaMa model to use for auto-modetation</span>
+    <span class="n">llm_model</span> <span class="o">=</span> <span class="s2">&quot;llama3.2&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="rumchat_actor.static.Clip" class="doc doc-heading">
+            <code>Clip</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>For clipping</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Clip</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For clipping&quot;&quot;&quot;</span>
+
+    <span class="c1">#The filename extension i.e. video container to use for saved clips</span>
+    <span class="n">save_extension</span> <span class="o">=</span> <span class="s2">&quot;mp4&quot;</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">Download</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;For downloading clips&quot;&quot;&quot;</span>
+
+        <span class="c1">#Valid resolutions of a livestream and the bitrates they use / should be saved with</span>
+        <span class="n">stream_qualities</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;360p&quot;</span> <span class="p">:</span> <span class="s2">&quot;1.2M&quot;</span><span class="p">,</span> <span class="s2">&quot;720p&quot;</span> <span class="p">:</span> <span class="s2">&quot;2.8M&quot;</span><span class="p">,</span> <span class="s2">&quot;1080p&quot;</span> <span class="p">:</span> <span class="s2">&quot;4.5M&quot;</span><span class="p">}</span>
+
+        <span class="c1">#The default save quality for clips from a local recording</span>
+        <span class="n">default_save_bitrate</span> <span class="o">=</span> <span class="n">stream_qualities</span><span class="p">[</span><span class="s2">&quot;1080p&quot;</span><span class="p">]</span>
+
+        <span class="c1">#How many times to test a TS chunk download to get its average download time</span>
+        <span class="n">speed_test_iter</span> <span class="o">=</span> <span class="mi">5</span>
+
+        <span class="c1">#TS chunks must be able to download this many times faster than their duration</span>
+        <span class="c1">#to be usable in a cache. Cannot be less than 1</span>
+        <span class="n">speed_factor_req</span> <span class="o">=</span> <span class="mi">2</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">Upload</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;For uploading clips&quot;&quot;&quot;</span>
+
+        <span class="c1">#Default primary and secondary category of clips</span>
+        <span class="n">category_1</span> <span class="o">=</span> <span class="s2">&quot;Entertainment&quot;</span>
+        <span class="n">category_2</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">Record</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;For locally recorded clips&quot;&quot;&quot;</span>
+
+        <span class="c1">#Formats that the OBS recording can be in if recording-trimmed clips are to work</span>
+        <span class="c1">#Must be moviepy loadable even if copied while being recorded to</span>
+        <span class="c1">#In the format for Tkinter file picking</span>
+        <span class="n">input_options</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="p">(</span><span class="s2">&quot;Fragmented or hybrid video&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;*.&quot;</span> <span class="o">+</span> <span class="n">container</span> <span class="k">for</span> <span class="n">container</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;mov&quot;</span><span class="p">))),</span>
+            <span class="p">(</span><span class="s2">&quot;MPEG-TS stream video&quot;</span><span class="p">,</span> <span class="s2">&quot;*.ts&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="s2">&quot;All files&quot;</span><span class="p">,</span> <span class="s2">&quot;*.*&quot;</span><span class="p">),</span>
+        <span class="p">)</span>
+
+        <span class="c1">#Filename of the temporary copy of an OBS recording, used for ClipRecordingCommand</span>
+        <span class="n">temp_copy_fn</span> <span class="o">=</span> <span class="s2">&quot;.temp_recording_copy&quot;</span>
+
+    <span class="k">class</span><span class="w"> </span><span class="nc">ReplayBuffer</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;For saved replay buffer clips&quot;&quot;&quot;</span>
+
+        <span class="c1">#How OBS constructs a replay buffer name (emulate using the time.strftime() String Format Time function)</span>
+        <span class="n">save_name_format</span> <span class="o">=</span> <span class="s2">&quot;Replay %Y-%m-</span><span class="si">%d</span><span class="s2"> %H-%M-%S&quot;</span>
+
+        <span class="c1">#Just the prefix with no timestamp, use if timestamp based searching fails</span>
+        <span class="n">save_name_format_notime</span> <span class="o">=</span> <span class="s2">&quot;Replay &quot;</span>
+
+        <span class="c1">#List of keys to press at the same time to trigger OBS and save a replay buffer</span>
+        <span class="n">obs_hotkey_default</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;numdivide&quot;</span><span class="p">]</span>
+
+        <span class="c1">#Egg timer for save to initialize</span>
+        <span class="n">save_start_delay</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="c1">#Delay between checking replay buffer filesize to determine doneness</span>
+        <span class="n">size_check_delay</span> <span class="o">=</span> <span class="mf">0.3</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="rumchat_actor.static.Clip.Download" class="doc doc-heading">
+            <code>Download</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>For downloading clips</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Download</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For downloading clips&quot;&quot;&quot;</span>
+
+    <span class="c1">#Valid resolutions of a livestream and the bitrates they use / should be saved with</span>
+    <span class="n">stream_qualities</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;360p&quot;</span> <span class="p">:</span> <span class="s2">&quot;1.2M&quot;</span><span class="p">,</span> <span class="s2">&quot;720p&quot;</span> <span class="p">:</span> <span class="s2">&quot;2.8M&quot;</span><span class="p">,</span> <span class="s2">&quot;1080p&quot;</span> <span class="p">:</span> <span class="s2">&quot;4.5M&quot;</span><span class="p">}</span>
+
+    <span class="c1">#The default save quality for clips from a local recording</span>
+    <span class="n">default_save_bitrate</span> <span class="o">=</span> <span class="n">stream_qualities</span><span class="p">[</span><span class="s2">&quot;1080p&quot;</span><span class="p">]</span>
+
+    <span class="c1">#How many times to test a TS chunk download to get its average download time</span>
+    <span class="n">speed_test_iter</span> <span class="o">=</span> <span class="mi">5</span>
+
+    <span class="c1">#TS chunks must be able to download this many times faster than their duration</span>
+    <span class="c1">#to be usable in a cache. Cannot be less than 1</span>
+    <span class="n">speed_factor_req</span> <span class="o">=</span> <span class="mi">2</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="rumchat_actor.static.Clip.Record" class="doc doc-heading">
+            <code>Record</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>For locally recorded clips</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Record</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For locally recorded clips&quot;&quot;&quot;</span>
+
+    <span class="c1">#Formats that the OBS recording can be in if recording-trimmed clips are to work</span>
+    <span class="c1">#Must be moviepy loadable even if copied while being recorded to</span>
+    <span class="c1">#In the format for Tkinter file picking</span>
+    <span class="n">input_options</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s2">&quot;Fragmented or hybrid video&quot;</span><span class="p">,</span> <span class="s2">&quot; &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s2">&quot;*.&quot;</span> <span class="o">+</span> <span class="n">container</span> <span class="k">for</span> <span class="n">container</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;mp4&quot;</span><span class="p">,</span> <span class="s2">&quot;mov&quot;</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s2">&quot;MPEG-TS stream video&quot;</span><span class="p">,</span> <span class="s2">&quot;*.ts&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="s2">&quot;All files&quot;</span><span class="p">,</span> <span class="s2">&quot;*.*&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+
+    <span class="c1">#Filename of the temporary copy of an OBS recording, used for ClipRecordingCommand</span>
+    <span class="n">temp_copy_fn</span> <span class="o">=</span> <span class="s2">&quot;.temp_recording_copy&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="rumchat_actor.static.Clip.ReplayBuffer" class="doc doc-heading">
+            <code>ReplayBuffer</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>For saved replay buffer clips</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">ReplayBuffer</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For saved replay buffer clips&quot;&quot;&quot;</span>
+
+    <span class="c1">#How OBS constructs a replay buffer name (emulate using the time.strftime() String Format Time function)</span>
+    <span class="n">save_name_format</span> <span class="o">=</span> <span class="s2">&quot;Replay %Y-%m-</span><span class="si">%d</span><span class="s2"> %H-%M-%S&quot;</span>
+
+    <span class="c1">#Just the prefix with no timestamp, use if timestamp based searching fails</span>
+    <span class="n">save_name_format_notime</span> <span class="o">=</span> <span class="s2">&quot;Replay &quot;</span>
+
+    <span class="c1">#List of keys to press at the same time to trigger OBS and save a replay buffer</span>
+    <span class="n">obs_hotkey_default</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;numdivide&quot;</span><span class="p">]</span>
+
+    <span class="c1">#Egg timer for save to initialize</span>
+    <span class="n">save_start_delay</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1">#Delay between checking replay buffer filesize to determine doneness</span>
+    <span class="n">size_check_delay</span> <span class="o">=</span> <span class="mf">0.3</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="rumchat_actor.static.Clip.Upload" class="doc doc-heading">
+            <code>Upload</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>For uploading clips</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Upload</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For uploading clips&quot;&quot;&quot;</span>
+
+    <span class="c1">#Default primary and secondary category of clips</span>
+    <span class="n">category_1</span> <span class="o">=</span> <span class="s2">&quot;Entertainment&quot;</span>
+    <span class="n">category_2</span> <span class="o">=</span> <span class="kc">None</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="rumchat_actor.static.Driver" class="doc doc-heading">
+            <code>Driver</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>For the Selenium WebDriver</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Driver</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For the Selenium WebDriver&quot;&quot;&quot;</span>
+
+    <span class="c1">#How long to wait maximum for a condition to be true in the browser</span>
+    <span class="n">wait_timeout</span> <span class="o">=</span> <span class="mi">13</span>
+
+    <span class="c1">#How long it takes for the Rumble Premium banner to pop up</span>
+    <span class="n">premium_banner_delay</span> <span class="o">=</span> <span class="mi">4</span>
+
+    <span class="c1">#How often to refresh while waiting for a webpage condition to be met</span>
+    <span class="n">page_refresh_rate</span> <span class="o">=</span> <span class="mi">10</span>
+
+    <span class="c1">#default path to a Browsermob Proxy executable</span>
+    <span class="n">browsermob_exe</span> <span class="o">=</span> <span class="s1">&#39;browsermob-proxy&#39;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="rumchat_actor.static.Message" class="doc doc-heading">
+            <code>Message</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>For chat messages</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Message</span><span class="p">:</span>
+    <span class="s2">&quot;For chat messages&quot;</span>
+
+    <span class="c1">#Maximum chat message length</span>
+    <span class="n">max_len</span> <span class="o">=</span> <span class="mi">200</span>
+
+    <span class="c1">#Message split across multiple lines must not be longer than this</span>
+    <span class="n">max_multi_len</span> <span class="o">=</span> <span class="mi">1000</span>
+
+    <span class="c1">#Prefix to all actor messages</span>
+    <span class="n">bot_prefix</span> <span class="o">=</span> <span class="s2">&quot;🤖: &quot;</span>
+
+    <span class="c1">#How long to wait between checking if the send button is enabled</span>
+    <span class="n">sendable_check_interval</span> <span class="o">=</span> <span class="mf">0.01</span>
+
+    <span class="c1">#How long to wait for the send button to enable</span>
+    <span class="n">sendable_check_timeout</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="c1">#How long to wait between sending messages</span>
+    <span class="n">send_cooldown</span> <span class="o">=</span> <span class="mi">3</span>
+
+    <span class="c1">#How commands always start</span>
+    <span class="n">command_prefix</span> <span class="o">=</span> <span class="s2">&quot;!&quot;</span>
+
+    <span class="c1">#Effective max length of a message</span>
+    <span class="n">effective_max_len</span> <span class="o">=</span> <span class="n">max_len</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">bot_prefix</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="rumchat_actor.static.Moderation" class="doc doc-heading">
+            <code>Moderation</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>For moderation and related tasks</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Moderation</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For moderation and related tasks&quot;&quot;&quot;</span>
+
+    <span class="c1">#Levels of mute to discipline a user with, keyed to their HTML menu button class names</span>
+    <span class="n">mute_levels</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;5&quot;</span> <span class="p">:</span> <span class="s2">&quot;cmi js-btn-mute-current-5&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;stream&quot;</span> <span class="p">:</span> <span class="s2">&quot;cmi js-btn-mute-current&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;forever&quot;</span> <span class="p">:</span> <span class="s2">&quot;cmi js-btn-mute-for-account&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="c1">#Badges of staff chatters</span>
+    <span class="n">staff_badges</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;admin&quot;</span><span class="p">,</span> <span class="s2">&quot;moderator&quot;</span><span class="p">]</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="rumchat_actor.static.Thank" class="doc doc-heading">
+            <code>Thank</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>For saying thank-you in chat</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Thank</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;For saying thank-you in chat&quot;&quot;&quot;</span>
+
+    <span class="c1">#Default messages for the follow and subscribe thanker</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">DefaultMessages</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Default thank-you messages. Format with a Cocorum user object&quot;&quot;&quot;</span>
+        <span class="n">follower</span> <span class="o">=</span> <span class="s2">&quot;Thank you @{.username} for the follow!&quot;</span>
+        <span class="n">subscriber</span> <span class="o">=</span> <span class="s2">&quot;Thank you @{.username} for the ${.amount_cents / 100 : .2f} subscription!&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h3 id="rumchat_actor.static.Thank.DefaultMessages" class="doc doc-heading">
+            <code>DefaultMessages</code>
+
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>Default thank-you messages. Format with a Cocorum user object</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">DefaultMessages</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Default thank-you messages. Format with a Cocorum user object&quot;&quot;&quot;</span>
+    <span class="n">follower</span> <span class="o">=</span> <span class="s2">&quot;Thank you @{.username} for the follow!&quot;</span>
+    <span class="n">subscriber</span> <span class="o">=</span> <span class="s2">&quot;Thank you @{.username} for the ${.amount_cents / 100 : .2f} subscription!&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="rumchat_actor.static.URI" class="doc doc-heading">
+            <code>URI</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+        <p>Uniform Resource Identifiers</p>
+
+
+
+
+
+
+              <details class="quote">
+                <summary>Source code in <code>rumchat_actor/static.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">URI</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Uniform Resource Identifiers&quot;&quot;&quot;</span>
+
+    <span class="c1">#Rumble base URL</span>
+    <span class="n">rumble_base</span> <span class="o">=</span> <span class="n">cstatic</span><span class="o">.</span><span class="n">URI</span><span class="o">.</span><span class="n">rumble_base</span>
+
+    <span class="c1">#Popout chat url. Format with stream_id_b10</span>
+    <span class="n">chat_popout</span> <span class="o">=</span> <span class="n">rumble_base</span> <span class="o">+</span> <span class="s2">&quot;/chat/popup/</span><span class="si">{stream_id_b10}</span><span class="s2">&quot;</span>
+
+    <span class="c1">#Rumble user URL. Format with username</span>
+    <span class="n">user_page</span> <span class="o">=</span> <span class="n">rumble_base</span> <span class="o">+</span> <span class="s2">&quot;/user/</span><span class="si">{username}</span><span class="s2">&quot;</span>
+
+    <span class="c1">#Rumble channel URL. Format with channel_name</span>
+    <span class="n">channel_page</span> <span class="o">=</span> <span class="n">rumble_base</span> <span class="o">+</span> <span class="s2">&quot;/c/</span><span class="si">{channel_name}</span><span class="s2">&quot;</span>
+
+    <span class="c1">#URL of upload page at Rumble</span>
+    <span class="n">upload_page</span> <span class="o">=</span> <span class="n">rumble_base</span> <span class="o">+</span> <span class="s2">&quot;/upload.php&quot;</span>
+
+    <span class="c1">#M3U8 qualities list URL. Format with base 36 stream ID</span>
+    <span class="n">m3u8_qualities_list</span> <span class="o">=</span> <span class="s2">&quot;https://rumble.com/live-hls-dvr/</span><span class="si">{stream_id_b36}</span><span class="s2">/playlist.m3u8&quot;</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+  <div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../..", "features": [], "search": "../../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      
+    
+  </body>
+</html>
