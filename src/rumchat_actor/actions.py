@@ -251,3 +251,66 @@ class ChatBlipper:
         self.sound.play()
         self.reduce_rarity()
         return {}
+
+class Thanker(threading.Thread):
+    """Thank followers and subscribers in the chat"""
+    def __init__(self, actor, **kwargs):
+        """Thank followers and subscribers in the chat.
+    Instance this object, then pass it to RumbleChatActor().register_message_action()
+
+    Args:
+        actor (RumbleChatActor): The Rumble Chat Actor instance.
+        follower_message (str): Message to format with Cocorum Follower object.
+            Defaults to static.Thank.DefaultMessages.follower
+        subscriber_message (str): Message to format with the Cocorum Subscriber object.
+            Defaults to static.Thank.DefaultMessages.subscriber
+        gifted_subs_message (str): Message to format with the Cocorum GiftPurchaseNotification object.
+            Defaults to static.Thank.DefaultMessages.gifted_subs"""
+
+        super().__init__(daemon = True)
+        self.actor = actor
+        self.rum_api = self.actor.rum_api
+        assert self.rum_api, "Thanker cannot function if actor does not have Rumble API"
+
+        #Set up default messages
+        self.follower_message = kwargs.get("follower_message", static.Thank.DefaultMessages.follower)
+        self.subscriber_message = kwargs.get("subscriber_message", static.Thank.DefaultMessages.subscriber)
+        self.gifted_subs_message = kwargs.get("gifted_subs_message", static.Thank.DefaultMessages.gifted_subs)
+
+        #Start the thread immediately
+        self.start()
+
+    def action(self, message, act_props, actor):
+        """Check for subscription gifts, and thank for them
+
+    Args:
+        message (cocorum.chatapi.Message): The chat message to run this action on.
+        act_props (dict): Action properties, aka metadata about what other things did with this message
+        actor (RumbleChatActor): The chat actor.
+
+    Returns:
+        act_props (dict): Dictionary of additional recorded properties from running this action."""
+
+        gift = message.gift_purchase_notification
+
+        #This is not a gift purchase notification
+        if not gift:
+            return
+
+        self.actor.send_message(self.gifted_subs_message.format(gift = gift))
+
+        return {}
+
+    def run(self):
+        """Continuously check for new followers and subscribers"""
+        while self.actor.keep_running:
+            #Thank all the new followers
+            for follower in self.rum_api.new_followers:
+                self.actor.send_message(self.follower_message.format(follower = follower))
+
+            #Thank all the new subscribers
+            for subscriber in self.rum_api.new_subscribers:
+                self.actor.send_message(self.follower_message.format(subscriber = subscriber))
+
+            #Wait a bit, either the Rumble API refresh rate or the message sending cooldown
+            time.sleep(max((self.rum_api.refresh_rate, static.Message.send_cooldown)))

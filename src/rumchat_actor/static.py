@@ -164,6 +164,7 @@ class Thank:
 
     #Default messages for the follow and subscribe thanker
     class DefaultMessages:
-        """Default thank-you messages. Format with a Cocorum user / subscriber object"""
-        follower = "Thank you @{.username} for the follow!"
-        subscriber = "Thank you @{.username} for the ${.amount_cents / 100 : .2f} subscription!"
+        """Default thank-you messages. Format with a Cocorum user / subscriber / gift object"""
+        follower = "Thank you @{follower.username} for the follow!"
+        subscriber = "Thank you @{subscriber.username} for the ${subscriber.amount_cents / 100 : .2f} subscription!"
+        gifted_subs = "Thank you @{gift.purchased_by} for the {gift.total_gifts} gifted {gift.gift_type} sub{'s' if gift.total_gifts != 1 else ''}!"
