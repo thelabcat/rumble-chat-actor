@@ -33,6 +33,9 @@ class Message:
     #Message split across multiple lines must not be longer than this
     max_multi_len = 1000
 
+    #Default maximum number of messages waiting to send
+    max_outbox_size = 13
+
     #Prefix to all actor messages
     bot_prefix = "🤖: "
 
@@ -161,6 +164,6 @@ class Thank:
 
     #Default messages for the follow and subscribe thanker
     class DefaultMessages:
-        """Default thank-you messages. Format with a Cocorum user object"""
+        """Default thank-you messages. Format with a Cocorum user / subscriber object"""
         follower = "Thank you @{.username} for the follow!"
         subscriber = "Thank you @{.username} for the ${.amount_cents / 100 : .2f} subscription!"

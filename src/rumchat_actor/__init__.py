@@ -50,7 +50,9 @@ class RumbleChatActor():
         ignore_users (list): List of usernames to not act on (not a moderation feature).
             Defaults to ["TheRumbleBot"]
         invalid_command_respond (bool): Sets if we should post an error message if a command was invalid.
-            Defaults to False."""
+            Defaults to False.
+        max_outbox_size (int): How many messages can be waiting to send before we start cancelling them.
+            Defaults to static.Message.max_outbox_size"""
 
         #The info of the person streaming
         self.__streamer_username = kwargs.get("streamer_username")
@@ -144,7 +146,7 @@ class RumbleChatActor():
         self.sent_messages = []
 
         #Messages waiting to be sent
-        self.outbox = queue.Queue()
+        self.outbox = queue.Queue(kwargs.get("max_outbox_size", static.Message.max_outbox_size))
 
         #Messages that we know are actually raid alerts
         self.known_raid_alert_messages = []
@@ -262,8 +264,11 @@ class RumbleChatActor():
         assert "\n" not in text, "Message cannot contain newlines"
         assert len(text) < static.Message.max_multi_len, "Message is too long"
         for subtext in textwrap.wrap(text, width = static.Message.max_len):
-            self.outbox.put(subtext)
-            print("💬:", subtext)
+            try:
+                self.outbox.put(subtext, block = False)
+                print("💬:", subtext)
+            except queue.Full:
+                print("Error: Message send outbox is full, rejected message:\n\t", subtext)
 
     def _sender_loop(self):
         """Constantly check our outbox and send any messages in it"""
