@@ -18,7 +18,7 @@ import queue
 import textwrap
 import time
 import threading
-from cocorum import RumbleAPI, servicephp
+from cocorum import RumbleAPI, servicephp, scraping
 from cocorum.chatapi import ChatAPI
 from . import actions, commands, misc, utils, static
 
@@ -37,6 +37,8 @@ class RumbleChatActor():
             Defaults to manual entry.
         password (str): The password to log in with.
             Defaults to manual entry.
+        channel (int | str): The channel to post messages as.
+            Defaults to user posts messages, no channel.
         api_url (str): The Rumble Live Stream API URL with your key (or RumBot's passthrough).
             Defaults to no Live Stream API access.
         streamer_username (str): The username of the person streaming.
@@ -138,6 +140,35 @@ class RumbleChatActor():
 
         #Reference the chat's servicephp for commands and stuff that might go to us for it
         self.servicephp = self.chat.servicephp
+
+        #Scraper for getting some info
+        self.scraper = scraping.Scraper(self.servicephp)
+
+        #Get channels and verify the one we are using
+        self.channel = kwargs.get("channel", None)
+
+        assert isinstance(self.channel, (str, int)) or self.channel is None, \
+            f"Argument 'channel' must be str or int, not {type(self.channel)}"
+
+        #A channel was specified
+        if self.channel:
+            print(f"Channel to post messages under specified as {self.channel}. Searching for a matching slug or ID...")
+            #Get all real channels we can use
+            postable_channels = self.scraper.get_channels()
+
+            #Have we found a match?
+            found = False
+
+            #Check through all the real channels to see if one matches the choice
+            for channel in postable_channels:
+                if channel == self.channel:
+                    #Make our channel choice specifically the numeric ID, even if it already was
+                    self.channel = channel.channel_id_b10
+                    print(f"Found message posting channel match: '{channel.title}', slug '{channel.slug}', numeric ID {channel.channel_id_b10}.")
+                    found = True
+                    break
+
+            assert found, "Argument 'channel' must be a valid ID or slug, but did not find a match"
 
         #Ignore these users when processing messages
         self.ignore_users = ignore_users
@@ -292,7 +323,7 @@ class RumbleChatActor():
 
         self.sent_messages.append(text)
         self.last_message_send_time = time.time()
-        return self.chat.send_message(text, channel_id = None) #TODO send as other channels
+        return self.chat.send_message(text, channel_id = self.channel)
 
     @property
     def delete_message(self):
