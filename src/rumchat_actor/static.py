@@ -36,6 +36,9 @@ class Message:
     #Default maximum number of messages waiting to send
     max_outbox_size = 13
 
+    #Default maximum age of messages waiting to be processed
+    max_inbox_age = 60
+
     #Prefix to all actor messages
     bot_prefix = "🤖: "
 

@@ -53,8 +53,10 @@ class RumbleChatActor():
             Defaults to ["TheRumbleBot"]
         invalid_command_respond (bool): Sets if we should post an error message if a command was invalid.
             Defaults to False.
-        max_outbox_size (int): How many messages can be waiting to send before we start cancelling them.
-            Defaults to static.Message.max_outbox_size"""
+        max_outbox_size (int): How many messages can be waiting to send before we start cancelling old ones.
+            Defaults to static.Message.max_outbox_size
+        max_inbox_age (int | float): How old messages in the chat can be before we start skipping them to catch up.
+            Defaults to static.Message.max_inbox_age"""
 
         #The info of the person streaming
         self.__streamer_username = kwargs.get("streamer_username")
@@ -137,6 +139,9 @@ class RumbleChatActor():
             first_time = False
 
         self.chat.clear_mailbox()
+
+        #The maximum age of a message before we will not process it
+        self.max_inbox_age = kwargs.get("max_inbox_age", static.Message.max_inbox_age)
 
         #Reference the chat's servicephp for commands and stuff that might go to us for it
         self.servicephp = self.chat.servicephp
@@ -295,11 +300,14 @@ class RumbleChatActor():
         assert "\n" not in text, "Message cannot contain newlines"
         assert len(text) < static.Message.max_multi_len, "Message is too long"
         for subtext in textwrap.wrap(text, width = static.Message.max_len):
-            try:
-                self.outbox.put(subtext, block = False)
-                print("💬:", subtext)
-            except queue.Full:
-                print("Error: Message send outbox is full, rejected message:\n\t", subtext)
+            is_sent = False
+            while not is_sent:
+                try:
+                    self.outbox.put(subtext, block = False)
+                    print("💬:", subtext)
+                    is_sent = True
+                except queue.Full:
+                    print("Error: Message send outbox is full, dropped message:\n\t", self.outbox.get())
 
     def _sender_loop(self):
         """Constantly check our outbox and send any messages in it"""
@@ -446,6 +454,11 @@ class RumbleChatActor():
 
         Args:
             message (cocorum.ChatAPI.Message): The message to send to actions and check for commands"""
+
+        #Skip messages that are too old
+        if time.time() - message.time > self.max_inbox_age:
+            print(f"Error: Message processing is behind. Skipped message:\n{message.text}\n\t- {message.user.username}")
+            return
 
         #Ignore messages that are from our account and match ones we sent before
         if message.user.username == self.username and message.text in self.sent_messages:
