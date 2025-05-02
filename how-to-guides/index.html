@@ -528,9 +528,9 @@ S.D.G&quot;&quot;&quot;
 import rumchat_actor
 from pygame import mixer #For a sound-making command I have
 
-with open(&quot;cheeseburger.txt&quot;) as f:
+with open(&quot;my_api_url.txt&quot;) as f:
     API_URL = f.read().strip()
-with open(&quot;large_fries.txt&quot;) as f:
+with open(&quot;my_login.txt&quot;) as f:
     USERNAME, PASSWORD = f.read().splitlines()[:2]
 
 #Timed messages to send
@@ -547,6 +547,7 @@ actor = rumchat_actor.RumbleChatActor(
     api_url = API_URL,
     username = USERNAME,
     password = PASSWORD,
+    channel = &quot;MarswideBGL&quot;
     )
 
 #The Sisyphus command
@@ -601,7 +602,35 @@ tmm = rumchat_actor.actions.TimedMessagesManager(actor, messages = TIMED_MESSAGE
 actor.register_message_action(tmm.action)
 
 #Follower / subscriber / etc. thanking system
-rumchat_actor.misc.Thanker(actor)
+thanker = rumchat_actor.actions.Thanker(actor)
+actor.register_message_action(thanker)
+
+#Announce Izsak's arrival
+izsak_intro = mixer.Sound(&quot;../../../../Audio/sound_effects/izsak_intro.mp3&quot;)
+izsak_arrived = False
+def announce_izsak(message, act_props, actor):
+    &quot;&quot;&quot;Announce when Izsak arrives in the chat
+
+    Args:
+        message (cocorum.chatapi.Message): The chat message to run this action on.
+        act_props (dict): Action properties, aka metadata about what other things did with this message
+        actor (RumbleChatActor): The chat actor.
+
+    Returns:
+        act_props (dict): Dictionary of recorded properties from running this action.&quot;&quot;&quot;
+
+    global izsak_arrived
+
+    #If he has already arrived, do nothing
+    if izsak_arrived:
+        return
+
+    #If this message is from him, play his intro and note that he has arrived
+    if message.user.username == &quot;Jorash&quot;:
+        izsak_arrived = True
+        izsak_intro.play()
+
+actor.register_message_action(announce_izsak)
 
 #Run the bot continuously
 print(&quot;Starting mainloop...&quot;)
