@@ -22,8 +22,10 @@ from cocorum import RumbleAPI, servicephp, scraping
 from cocorum.chatapi import ChatAPI
 from . import actions, commands, misc, utils, static
 
+
 class RumbleChatActor():
     """Actor that interacts with Rumble chat"""
+
     def __init__(self, init_message = "Hello, Rumble!", ignore_users = ["TheRumbleBot"], **kwargs):
         """Actor that interacts with Rumble chat.
     Instance this object, register all chat commands and message actions, then call its mainloop() method.
@@ -75,62 +77,65 @@ class RumbleChatActor():
         assert isinstance(self.__streamer_main_page_url, str) or self.__streamer_main_page_url is None, \
             f"Argument streamer_main_page_url must be str or None, not {type(self.__is_channel_stream)}"
 
-        #Get Live Stream API
+        # Get Live Stream API
         if "api_url" in kwargs:
             self.rum_api = RumbleAPI(kwargs["api_url"])
         else:
             self.rum_api = None
 
-        #A stream ID was passed
+        # A stream ID was passed
         if "stream_id" in kwargs:
             self.stream_id, self.stream_id_b10 = utils.base_36_and_10(kwargs["stream_id"])
 
-            #It is not our livestream or we have no Live Stream API,
-            #so LS API functions are not available
+            # It is not our livestream or we have no Live Stream API,
+            # so LS API functions are not available
             if not self.rum_api or self.stream_id not in self.rum_api.livestreams:
                 self.api_stream = None
 
-            #It is our livestream, we can use the Live Stream API
+            # It is our livestream, we can use the Live Stream API
             else:
                 self.api_stream = self.rum_api.livestreams[self.stream_id]
 
-        #A stream ID was not passed
+        # A stream ID was not passed
         else:
             assert self.rum_api, "Cannot auto-find stream ID without a Live Stream API url"
             self.api_stream = self.rum_api.latest_livestream
 
-            #At least one live stream must be shown on the API
+            # At least one live stream must be shown on the API
             assert self.api_stream, "No stream ID was passed and you are not live"
 
             self.stream_id = self.api_stream.stream_id
             self.stream_id_b10 = utils.base_36_to_10(self.stream_id)
 
-        #Get the login credentials from arguments, or None if they were not passed
+        # Get the login credentials from arguments, or None if they were not passed
         self.username = kwargs.get("username")
         self.password = kwargs.get("password")
 
-        #Username must not be an email
+        # Username must not be an email
         if "@" in self.username:
             print("Username cannot be provided as email.")
             self.username = None
 
-        #We can get the username from the Rumble Live Stream API
+        # We can get the username from the Rumble Live Stream API
         if not self.username and self.rum_api:
             self.username = self.rum_api.username
             print("Actor username obtained from Live Stream API:", self.username)
 
-        #Sign in to chat, unless we are already. While there is a sign-in button...
+        # Sign in to chat
         first_time = True
         while first_time or not (self.username and self.password):
-            #Ask user for credentials as needed
+            # Ask user for credentials as needed
             if not self.username:
                 self.username = input("Actor username: ")
+                self.servicephp = servicephp.ServicePHP(self.username)
             if not self.password:
                 self.password = getpass("Actor password: ")
 
             try:
-                self.chat = ChatAPI(self.stream_id, self.username, self.password)
-            #Login failed
+                twofa = self.servicephp.login_basic(self.password)
+                if twofa:
+                    self.handle_2fa(twofa)
+            # Login failed
             except AssertionError:
                 print("Error. Login failed with provided credentials.")
                 self.username = None
@@ -138,36 +143,34 @@ class RumbleChatActor():
 
             first_time = False
 
+        self.chat = ChatAPI(self.stream_id, self.servicephp)
         self.chat.clear_mailbox()
 
-        #The maximum age of a message before we will not process it
+        # The maximum age of a message before we will not process it
         self.max_inbox_age = kwargs.get("max_inbox_age", static.Message.max_inbox_age)
 
-        #Reference the chat's servicephp for commands and stuff that might go to us for it
-        self.servicephp = self.chat.servicephp
-
-        #Scraper for getting some info
+        # Scraper for getting some info
         self.scraper = scraping.Scraper(self.servicephp)
 
-        #Get channels and verify the one we are using
+        # Get channels and verify the one we are using
         self.channel = kwargs.get("channel", None)
 
         assert isinstance(self.channel, (str, int)) or self.channel is None, \
             f"Argument 'channel' must be str or int, not {type(self.channel)}"
 
-        #A channel was specified
+        # A channel was specified
         if self.channel:
             print(f"Channel to post messages under specified as {self.channel}. Searching for a matching slug or ID...")
-            #Get all real channels we can use
+            # Get all real channels we can use
             postable_channels = self.scraper.get_channels()
 
-            #Have we found a match?
+            # Have we found a match?
             found = False
 
-            #Check through all the real channels to see if one matches the choice
+            # Check through all the real channels to see if one matches the choice
             for channel in postable_channels:
                 if channel == self.channel:
-                    #Make our channel choice specifically the numeric ID, even if it already was
+                    # Make our channel choice specifically the numeric ID, even if it already was
                     self.channel = channel.channel_id_b10
                     print(f"Found message posting channel match: '{channel.title}', slug '{channel.slug}', numeric ID {channel.channel_id_b10}.")
                     found = True
@@ -175,45 +178,45 @@ class RumbleChatActor():
 
             assert found, "Argument 'channel' must be a valid ID or slug, but did not find a match"
 
-        #Ignore these users when processing messages
+        # Ignore these users when processing messages
         self.ignore_users = ignore_users
 
-        #History of the bot's messages so they do not get loop processed
+        # History of the bot's messages so they do not get loop processed
         self.sent_messages = []
 
-        #Messages waiting to be sent
+        # Messages waiting to be sent
         self.outbox = queue.Queue(kwargs.get("max_outbox_size", static.Message.max_outbox_size))
 
-        #Messages that we know are actually raid alerts
+        # Messages that we know are actually raid alerts
         self.known_raid_alert_messages = []
 
-        #Action to be taken when raids occur
+        # Action to be taken when raids occur
         self.__raid_action = print
 
 
-        #Loop condition of the mainloop() and sender_loop() methods
+        # Loop condition of the mainloop() and sender_loop() methods
         self.keep_running = True
 
-        #Send an initialization message to get wether we are moderator or not
+        # Send an initialization message to get wether we are moderator or not
         _, user = self.__send_message(static.Message.bot_prefix + init_message)
         assert utils.is_staff(user), \
             "Actor cannot function without being channel staff"
 
-        #Time that the last message we sent was sent
+        # Time that the last message we sent was sent
         self.last_message_send_time = time.time()
 
-        #thread to send messages at timed intervals
+        # thread to send messages at timed intervals
         self.sender_thread = threading.Thread(target = self._sender_loop, daemon = True)
         self.sender_thread.start()
 
-        #Functions that are to be called on each message,
-        #must return False if the message was deleted
+        # Functions that are to be called on each message,
+        # must return False if the message was deleted
         self.message_actions = []
 
-        #Instances of ChatCommand, by name
+        # Instances of ChatCommand, by name
         self.chat_commands = {}
 
-        #Wether or not to post an error message if an invalid command was called
+        # Wether or not to post an error message if an invalid command was called
         self.invalid_command_respond = kwargs.get("invalid_command_respond", False)
         assert isinstance(self.invalid_command_respond, bool), \
             f"Argument invalid_command_respond must be bool, not {type(self.invalid_command_respond)}"
@@ -222,7 +225,7 @@ class RumbleChatActor():
     def streamer_username(self):
         """The username of the streamer"""
         if not self.__streamer_username:
-            #We are the ones streaming
+            # We are the ones streaming
             if self.api_stream:
                 self.__streamer_username = self.rum_api.username
             else:
@@ -233,15 +236,15 @@ class RumbleChatActor():
     @property
     def streamer_channel(self):
         """The channel of the streamer"""
-        #We don't yet have the streamer channel, and this is a channel stream
+        # We don't yet have the streamer channel, and this is a channel stream
         if not self.__streamer_channel and self.is_channel_stream:
-            #We are the ones streaming, and the API URL is under the channel
+            # We are the ones streaming, and the API URL is under the channel
             if self.api_stream and self.rum_api.channel_name:
                 self.__streamer_channel = self.rum_api.channel_name
 
-            #We are not the ones streaming,
-            #or the API URL was not under our channel,
-            #and we are sure this is a channel stream
+            # We are not the ones streaming,
+            # or the API URL was not under our channel,
+            # and we are sure this is a channel stream
             else:
                 self.__streamer_channel = input("Enter the channel of the person streaming: ")
 
@@ -250,13 +253,13 @@ class RumbleChatActor():
     @property
     def is_channel_stream(self):
         """Is the stream under a channel?"""
-        #We do not know yet
+        # We do not know yet
         if self.__is_channel_stream is None:
-            #We know that this is a channel stream because it showed up in the channel-specific API
+            # We know that this is a channel stream because it showed up in the channel-specific API
             if self.api_stream and self.rum_api.channel_name:
                 self.__is_channel_stream = True
 
-            #We will ask the user
+            # We will ask the user
             else:
                 self.__is_channel_stream = "y" in input("Is this a channel stream? y/[N]:").lower()
 
@@ -265,30 +268,43 @@ class RumbleChatActor():
     @property
     def streamer_main_page_url(self):
         """The URL of the main page of the streamer"""
-        #We do not yet know the URL
+        # We do not yet know the URL
         if not self.__streamer_main_page_url:
             if self.is_channel_stream:
-                #This stream is on the API
+                # This stream is on the API
                 if self.api_stream:
-                    #We know our channel ID from the API
+                    # We know our channel ID from the API
                     if self.rum_api.channel_id:
                         self.__streamer_main_page_url = static.URI.channel_page.format(channel_name = f"c-{self.rum_api.channel_id}")
 
-                    #Is a channel stream and on the API but API is not for channel, use the user page instead
+                    # Is a channel stream and on the API but API is not for channel, use the user page instead
                     else:
                         self.__streamer_main_page_url = static.URI.user_page.format(username = self.streamer_username)
 
-                #Is not an API stream and we don't know the username
+                # Is not an API stream and we don't know the username
                 elif not self.__streamer_username:
                     while not (specified := input("Enter streamer main page URL: ")).startswith(static.URI.rumble_base):
                         print("ERROR: Must be a Rumble URL.")
                     self.__streamer_main_page_url = specified
 
-            #Not a channel stream, go by username
+            # Not a channel stream, go by username
             else:
                 self.__streamer_main_page_url = static.URI.user_page.format(username = self.streamer_username)
 
         return self.__streamer_main_page_url
+
+    def handle_2fa(self, twofa: servicephp.TwoFacAuth):
+        """Handle 2FA login
+
+        Args:
+            twofa (servicephp.TwoFacAuth): The 2FA information handler from the first login step."""
+
+        option = utils.multiple_choice("Select option for 2FA:", twofa.options)
+        sent_to = twofa.request_2fa_code(option)
+        if sent_to:
+            print(f"A code was sent to \"{sent_to}\".")
+        code = input("Enter the 2FA code: ")
+        self.servicephp.login_second_factor(twofa, code)
 
     def send_message(self, text):
         """Send a message in chat (splits across lines if necessary)
