@@ -31,45 +31,45 @@ def ollama_message_moderate(message, act_props, actor):
 
     assert OLLAMA_IMPORTED, "The Ollama library and a working Ollama installation are required for ollama_message_moderate"
 
-    #Message was blank
+    # Message was blank
     if not message.text.strip():
         print("Message was blank.")
         return {}
 
-    #User has an immunity badge
+    # User has an immunity badge
     if True in [badge in message.user.badges for badge in static.Moderation.staff_badges]:
         print(f"{message.user.username} is staff, skipping LLM check.")
         return {}
 
-    #Get the LLM verdict
-    response = ollama.chat(model = static.AutoModerator.llm_model, messages = [
-        {"role" : "system", "content" : static.AutoModerator.llm_sys_prompt},
-        {"role" : "user", "content" : message.text},
+    # Get the LLM verdict
+    response = ollama.chat(model=static.AutoModerator.llm_model, messages=[
+        {"role": "system", "content": static.AutoModerator.llm_sys_prompt},
+        {"role": "user", "content": message.text},
         ])
 
-    #Parse the verdict
+    # Parse the verdict
     try:
         verdict = int(response["message"]["content"])
 
-    #Verdict was not valid
+    # Verdict was not valid
     except ValueError:
         print(f"Bad verdict for {message.text} : {response["message"]["content"]}")
         return {}
 
-    #Response was not in expected format
+    # Response was not in expected format
     except KeyError:
         print(f"Could not get verdict for {message.text} : Response: {response}")
         return {}
 
-    #Returned 1 for SFW
+    # Returned 1 for SFW
     if verdict:
         print("LLM verdicted as clean: " + message.text)
         return {}
 
-    #Returned 0 for NSFW
+    # Returned 0 for NSFW
     print("LLM verdicted as dirty: " + message.text)
     actor.delete_message(message)
-    return {"deleted" : True}
+    return {"deleted": True}
 
 
 class RantTTSManager():
@@ -79,10 +79,10 @@ class RantTTSManager():
         """System to TTS rant messages, with threshhold settings.
     Instance this object, then pass it to RumbleChatActor().register_message_action()"""
 
-        #The amount a rant must be to be TTS-ed
+        # The amount a rant must be to be TTS-ed
         self.__tts_amount_threshold = 0
 
-        #The TTS callable to use
+        # The TTS callable to use
         self.__say = talkey.Talkey().say
 
     @property
@@ -120,20 +120,20 @@ class RantTTSManager():
     Returns:
         act_props (dict): Dictionary of additional recorded properties from running this action."""
 
-        #Do not overlap sounds
+        # Do not overlap sounds
         if act_props["sound"]:
             return {}
 
         if message.is_rant and message.rant_price_cents >= self.__tts_amount_threshold:
             self.__say(message.text)
-            return {"sound" : True}
+            return {"sound": True}
         return {}
 
 
 class TimedMessagesManager():
     """System to send messages on a timed basis"""
 
-    def __init__(self, actor, messages: iter, delay = 60, in_between = 0):
+    def __init__(self, actor, messages: iter, delay=60, in_between=0):
         """System to send messages on a timed basis. Instance this object, then pass it to RumbleChatActor().register_message_action()
 
     Args:
@@ -149,18 +149,18 @@ class TimedMessagesManager():
         self.delay = delay
         self.in_between = in_between
 
-        #Next message to send
+        # Next message to send
         self.up_next_index = 0
 
-        #Time of last send
+        # Time of last send
         self.last_send_time = 0
 
-        #Counter for messages sent since our last announcement
+        # Counter for messages sent since our last announcement
         self.in_between_counter = 0
 
-        #Start the sender loop thread
+        # Start the sender loop thread
         self.running = True
-        self.sender_thread = threading.Thread(target = self.sender_loop, daemon = True)
+        self.sender_thread = threading.Thread(target=self.sender_loop, daemon=True)
         self.sender_thread.start()
 
     def action(self, message, act_props, actor):
@@ -180,17 +180,17 @@ class TimedMessagesManager():
     def sender_loop(self):
         """Continuously wait till it is time to send another message"""
         while self.running:
-            #time to send a message?
+            # time to send a message?
             if self.in_between_counter >= self.in_between and time.time() - self.last_send_time >= self.delay:
-                #Send a message
+                # Send a message
                 self.actor.send_message(self.messages[self.up_next_index])
 
-                #Up the index of the next message, with wrapping
+                # Up the index of the next message, with wrapping
                 self.up_next_index += 1
                 if self.up_next_index >= len(self.messages):
                     self.up_next_index = 0
 
-                #Reset wait counters
+                # Reset wait counters
                 self.in_between_counter = 0
                 self.last_send_time = time.time()
 
@@ -200,7 +200,7 @@ class TimedMessagesManager():
 class ChatBlipper:
     """Blip with chat activity, getting fainter as activity gets more common"""
 
-    def __init__(self, sound_filename: str, rarity_regen_time = 60, stay_dead_time = 10, rarity_reduce = 0.1):
+    def __init__(self, sound_filename: str, rarity_regen_time=60, stay_dead_time=10, rarity_reduce=0.1):
         """Blip with chat activity, getting fainter as activity gets more common.
     Instance this object, then pass it to RumbleChatActor().register_message_action()
 
@@ -216,12 +216,12 @@ class ChatBlipper:
         self.stay_dead_time = stay_dead_time
         self.rarity_reduce = rarity_reduce
 
-        #Time in the past at which we would have been silent
+        # Time in the past at which we would have been silent
         self.silent_time = 0
 
     def load_sound(self, fn):
         """Load a sound from a file to use as a blip"""
-        #Make sure PyGame mixer is initialized
+        # Make sure PyGame mixer is initialized
         if not mixer.get_init():
             mixer.init()
 
@@ -236,11 +236,11 @@ class ChatBlipper:
         """Reduce the remembered rarity of a message"""
         curtime = time.time()
 
-        #Limit the effective regen to 100%
+        # Limit the effective regen to 100%
         if curtime - self.silent_time > self.rarity_regen_time:
             self.silent_time = curtime - self.rarity_regen_time
 
-        #Move the time we "were" silent forward, capping at present + stay-dead time
+        # Move the time we "were" silent forward, capping at present + stay-dead time
         self.silent_time = min((self.silent_time + self.rarity_regen_time * self.rarity_reduce, curtime + self.stay_dead_time))
 
     def action(self, message, act_props, actor):
@@ -276,17 +276,17 @@ class Thanker(threading.Thread):
         gifted_subs_message (str): Message to format with the Cocorum GiftPurchaseNotification object.
             Defaults to static.Thank.DefaultMessages.gifted_subs"""
 
-        super().__init__(daemon = True)
+        super().__init__(daemon=True)
         self.actor = actor
         self.rum_api = self.actor.rum_api
         assert self.rum_api, "Thanker cannot function if actor does not have Rumble API"
 
-        #Set up default messages
+        # Set up default messages
         self.follower_message = kwargs.get("follower_message", static.Thank.DefaultMessages.follower)
         self.subscriber_message = kwargs.get("subscriber_message", static.Thank.DefaultMessages.subscriber)
         self.gifted_subs_message = kwargs.get("gifted_subs_message", static.Thank.DefaultMessages.gifted_subs)
 
-        #Start the thread immediately
+        # Start the thread immediately
         self.start()
 
     def action(self, message, act_props, actor):
@@ -302,26 +302,26 @@ class Thanker(threading.Thread):
 
         gift = message.gift_purchase_notification
 
-        #This is not a gift purchase notification
+        # This is not a gift purchase notification
         if not gift:
             return
 
-        self.actor.send_message(self.gifted_subs_message.format(gift = gift))
+        self.actor.send_message(self.gifted_subs_message.format(gift=gift))
 
         return {}
 
     def run(self):
         """Continuously check for new followers and subscribers"""
         while self.actor.keep_running:
-            #Thank all the new followers
+            # Thank all the new followers
             for follower in self.rum_api.new_followers:
-                self.actor.send_message(self.follower_message.format(follower = follower))
+                self.actor.send_message(self.follower_message.format(follower=follower))
 
-            #Thank all the new subscribers
+            # Thank all the new subscribers
             for subscriber in self.rum_api.new_subscribers:
-                self.actor.send_message(self.follower_message.format(subscriber = subscriber))
+                self.actor.send_message(self.follower_message.format(subscriber=subscriber))
 
-            #Wait a bit, either the Rumble API refresh rate or the message sending cooldown
+            # Wait a bit, either the Rumble API refresh rate or the message sending cooldown
             time.sleep(max((self.rum_api.refresh_rate, static.Message.send_cooldown)))
 
 
