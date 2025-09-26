@@ -17,6 +17,7 @@ try:
 except ModuleNotFoundError:
     OLLAMA_IMPORTED = False
 
+
 def ollama_message_moderate(message, act_props, actor):
     """Moderate a message with Ollama, deleting if needed
 
@@ -70,8 +71,10 @@ def ollama_message_moderate(message, act_props, actor):
     actor.delete_message(message)
     return {"deleted" : True}
 
+
 class RantTTSManager():
     """System to TTS rant messages, with threshhold settings"""
+
     def __init__(self):
         """System to TTS rant messages, with threshhold settings.
     Instance this object, then pass it to RumbleChatActor().register_message_action()"""
@@ -126,8 +129,10 @@ class RantTTSManager():
             return {"sound" : True}
         return {}
 
+
 class TimedMessagesManager():
     """System to send messages on a timed basis"""
+
     def __init__(self, actor, messages: iter, delay = 60, in_between = 0):
         """System to send messages on a timed basis. Instance this object, then pass it to RumbleChatActor().register_message_action()
 
@@ -191,8 +196,10 @@ class TimedMessagesManager():
 
             time.sleep(1)
 
+
 class ChatBlipper:
     """Blip with chat activity, getting fainter as activity gets more common"""
+
     def __init__(self, sound_filename: str, rarity_regen_time = 60, stay_dead_time = 10, rarity_reduce = 0.1):
         """Blip with chat activity, getting fainter as activity gets more common.
     Instance this object, then pass it to RumbleChatActor().register_message_action()
@@ -252,8 +259,10 @@ class ChatBlipper:
         self.reduce_rarity()
         return {}
 
+
 class Thanker(threading.Thread):
     """Thank followers and subscribers in the chat"""
+
     def __init__(self, actor, **kwargs):
         """Thank followers and subscribers in the chat.
     Instance this object, then pass it to RumbleChatActor().register_message_action()
@@ -314,3 +323,52 @@ class Thanker(threading.Thread):
 
             #Wait a bit, either the Rumble API refresh rate or the message sending cooldown
             time.sleep(max((self.rum_api.refresh_rate, static.Message.send_cooldown)))
+
+
+class UserAnnouncer:
+    """Announce new users as they arrive in the chat"""
+
+    def __init__(self, announcer: callable, known_users=[], special_announcers={}):
+        """Announce new users as they arrive in the chat
+
+        Args:
+            announcer (callable): Function or method to call. Will be passed
+                the message action special of message, act_props, and actor.
+                Should return act_props dict likewise.
+            known_users (list): List of users not to announce. Useful if you
+                only want this announcer to go off for brand new chatters. You
+                can save this list after actor exit from this object's
+                `.known_users` attribute.
+            special_announcers (dict[str, callable]): Dict of username to
+                announcer callable pairs. Should take same args as regular
+                announcers, but they will only be called on the username that
+                matches them."""
+
+        self.announcer = announcer
+        self.known_users = known_users
+        self.special_announcers = special_announcers
+
+    def action(self, message, act_props, actor):
+        """Announce the user if they are new
+
+    Args:
+        message (cocorum.chatapi.Message): The chat message to run this action on.
+        act_props (dict): Action properties, aka metadata about what other things did with this message
+        actor (RumbleChatActor): The chat actor.
+
+    Returns:
+        act_props (dict): Dictionary of additional recorded properties from running this action."""
+
+        # We already announced this user
+        if message.user.username in self.known_users:
+            return
+
+        # Remember this user
+        self.known_users.append(message.user.username)
+
+        # We might have a special announcer for this user
+        ann = self.special_announcers.get(message.user.username, self.announcer)
+
+        props = ann(message, act_props, actor)
+        props["announced"] = True
+        return props
