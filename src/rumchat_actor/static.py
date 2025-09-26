@@ -9,6 +9,8 @@ from cocorum import static as cstatic
 
 REQUEST_TIMEOUT = cstatic.Delays.request_timeout
 
+KNOWN_BOTS = ["TheRumbleBot", "RumLiveAlerts"]
+
 class Driver:
     """For the Selenium WebDriver"""
 
@@ -23,6 +25,7 @@ class Driver:
 
     #default path to a Browsermob Proxy executable
     browsermob_exe = 'browsermob-proxy'
+
 
 class Message:
     "For chat messages"
@@ -57,6 +60,7 @@ class Message:
     #Effective max length of a message
     effective_max_len = max_len - len(bot_prefix)
 
+
 class URI:
     """Uniform Resource Identifiers"""
 
@@ -78,6 +82,7 @@ class URI:
     #M3U8 qualities list URL. Format with base 36 stream ID
     m3u8_qualities_list = "https://rumble.com/live-hls-dvr/{stream_id_b36}/playlist.m3u8"
 
+
 class Moderation:
     """For moderation and related tasks"""
 
@@ -90,6 +95,7 @@ class Moderation:
 
     #Badges of staff chatters
     staff_badges = ["admin", "moderator"]
+
 
 class Clip:
     """For clipping"""
@@ -153,6 +159,7 @@ class Clip:
         #Delay between checking replay buffer filesize to determine doneness
         size_check_delay = 0.3
 
+
 class AutoModerator:
     """For automatic moderation"""
 
@@ -161,6 +168,7 @@ class AutoModerator:
 
     #OLLaMa model to use for auto-modetation
     llm_model = "llama3.2"
+
 
 class Thank:
     """For saying thank-you in chat"""

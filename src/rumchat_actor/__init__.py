@@ -23,10 +23,10 @@ from cocorum.chatapi import ChatAPI
 from . import actions, commands, misc, utils, static
 
 
-class RumbleChatActor():
+class RumbleChatActor:
     """Actor that interacts with Rumble chat"""
 
-    def __init__(self, init_message = "Hello, Rumble!", ignore_users = ["TheRumbleBot"], **kwargs):
+    def __init__(self, init_message="Hello, Rumble!", ignore_users=static.KNOWN_BOTS, **kwargs):
         """Actor that interacts with Rumble chat.
     Instance this object, register all chat commands and message actions, then call its mainloop() method.
 
@@ -52,7 +52,7 @@ class RumbleChatActor():
         streamer_main_page_url (str): The URL of the streamer's main page.
             Defaults to automatic determination if possible.
         ignore_users (list): List of usernames to not act on (not a moderation feature).
-            Defaults to ["TheRumbleBot"]
+            Defaults to static.KNOWN_BOTS
         invalid_command_respond (bool): Sets if we should post an error message if a command was invalid.
             Defaults to False.
         max_outbox_size (int): How many messages can be waiting to send before we start cancelling old ones.
