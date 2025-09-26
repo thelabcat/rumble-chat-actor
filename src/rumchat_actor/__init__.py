@@ -377,8 +377,7 @@ class RumbleChatActor():
     def quit(self):
         """Shut down everything"""
         self.keep_running = False
-        # TODO how to close an SSEClient?
-        # self.chat.client.close()
+        self.chat.close()
 
     def __run_if_command(self, message, act_props: dict):
         """Check if a message is a command, and run it if so
