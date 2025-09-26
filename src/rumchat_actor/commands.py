@@ -13,7 +13,7 @@ import tempfile
 import time
 import threading
 from tkinter import filedialog, Tk
-from moviepy.editor import VideoFileClip, concatenate_videoclips
+from moviepy import VideoFileClip, concatenate_videoclips
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 import obsws_python as obs
 import requests

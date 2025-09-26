@@ -127,11 +127,11 @@ class RumbleChatActor:
             # Ask user for credentials as needed
             if not self.username:
                 self.username = input("Actor username: ")
-                self.servicephp = servicephp.ServicePHP(self.username)
             if not self.password:
                 self.password = getpass("Actor password: ")
 
             try:
+                self.servicephp = servicephp.ServicePHP(self.username)
                 twofa = self.servicephp.login_basic(self.password)
                 if twofa:
                     self.handle_2fa(twofa)

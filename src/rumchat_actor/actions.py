@@ -328,13 +328,14 @@ class Thanker(threading.Thread):
 class UserAnnouncer:
     """Announce new users as they arrive in the chat"""
 
-    def __init__(self, announcer: callable, known_users=[], special_announcers={}):
+    def __init__(self, announcer: callable = None, known_users=[], special_announcers={}):
         """Announce new users as they arrive in the chat
 
         Args:
             announcer (callable): Function or method to call. Will be passed
                 the message action special of message, act_props, and actor.
                 Should return act_props dict likewise.
+                Defaults to None.
             known_users (list): List of users not to announce. Useful if you
                 only want this announcer to go off for brand new chatters. You
                 can save this list after actor exit from this object's
@@ -368,6 +369,10 @@ class UserAnnouncer:
 
         # We might have a special announcer for this user
         ann = self.special_announcers.get(message.user.username, self.announcer)
+
+        # Our main announcer may be None
+        if not ann:
+            return
 
         props = ann(message, act_props, actor)
         props["announced"] = True
