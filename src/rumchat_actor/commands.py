@@ -20,8 +20,10 @@ import requests
 import talkey
 from . import utils, static
 
+
 class ChatCommand():
     """Chat command abstract class"""
+
     def __init__(self, name, actor, target = None, **kwargs):
         """Chat command abstract class
     Instance this object, then pass it to RumbleChatActor().register_command().
@@ -1000,11 +1002,15 @@ class ClipReplayBufferCommand(ChatCommand):
         if self.clip_uploader:
             self.clip_uploader.upload_clip(filename, complete_path)
 
+
 class RaffleCommand(ChatCommand):
     """Create, enter, and draw from raffles"""
-    def __init__(self, actor, name = "raffle"):
+
+    def __init__(self, actor, name="raffle"):
         """Create, enter, and draw from raffles.
     Instance this object, then pass it to RumbleChatActor().register_command().
+    Additionally, you can pass the same instance to RumbleChatActor().register_message_action()
+    to auto-enroll all chatters.
 
     Args:
         actor (RumbleChatActor): The Rumchat Actor.
@@ -1012,22 +1018,22 @@ class RaffleCommand(ChatCommand):
             Defaults to "raffle"
 """
 
-        super().__init__(name = name, actor = actor)
+        super().__init__(name=name, actor=actor)
 
-        #Username entries in the raffle
+        # Username entries in the raffle
         self.entries = []
 
-        #Winner of last raffle
+        # Winner of last raffle
         self.winner = None
 
-        #Arguments we can take and associated methods
+        # Arguments we can take and associated methods
         self.operations = {
-            "enter" : self.make_entry,
-            "remove" : self.remove_entry,
-            "count" : self.count_entries,
-            "draw" : self.draw_entry,
-            "winner" : self.report_winner,
-            "reset" : self.reset,
+            "enter": self.make_entry,
+            "remove": self.remove_entry,
+            "count": self.count_entries,
+            "draw": self.draw_entry,
+            "winner": self.report_winner,
+            "reset": self.reset,
             }
 
     @property
@@ -1036,6 +1042,21 @@ class RaffleCommand(ChatCommand):
         return "Do raffles in the chat. " + \
             f"Use {static.Message.command_prefix}{self.name} [argument]. " + \
             f"Valid arguments are: {", ".join(self.operations)}"
+
+    def action(self, message, act_props_all, actor):
+        """Action method to register so that all chatting users are enrolled
+
+    Args:
+        message (cocorum.chatapi.Message): The chat message to run this action on.
+        act_props (dict): Action properties, aka metadata about what other things did with this message
+        actor (RumbleChatActor): The chat actor.
+
+    Returns:
+        act_props (dict): Dictionary of recorded properties from running this action."""
+
+        if message.user.username not in self.entries:
+            self.entries.append(message.user.username)
+            print(f"User '{message.user.username}' has been auto-enrolled in the raffle.")
 
     def run(self, message, act_props: dict):
         """Run the raffle command
@@ -1079,15 +1100,15 @@ class RaffleCommand(ChatCommand):
         message (cocorum.ChatAPI.Message): The message of the removal request."""
 
         segs = message.text.split()
-        #No username argument, the user wishes to remove themselves
+        # No username argument, the user wishes to remove themselves
         if len(segs) == 2:
             removal = message.user.username
         else:
             removal = segs[2].removesuffix("@")
 
-        #Non-staff is trying to remove someone besides themselves
+        # Non-staff is trying to remove someone besides themselves
         if not utils.is_staff(message.user) and removal != message.user.username:
-            #self.actor.send_message(f"@{message.user.username} You cannot remove another user from the raffle since you are not staff.")
+            # self.actor.send_message(f"@{message.user.username} You cannot remove another user from the raffle since you are not staff.")
             print(f"{message.user.username} Tried to remove {removal} from the raffle without the authority to do so.")
             return
 
@@ -1106,11 +1127,11 @@ class RaffleCommand(ChatCommand):
 
         count = len(self.entries)
 
-        #Some formatting here to make the grammar of the message always correct
+        # Some formatting here to make the grammar of the message always correct
         self.actor.send_message(f"@{message.user.username} There {("are", "is")[count == 1]} currently {("no", count)[count != 0]} {("entries", "entry")[count == 1]} in the raffle.")
 
     def draw_entry(self, message):
-        """Draw a winner
+        """Draw a winner (does not delete their name from the hat)
 
     Args:
         message (cocorum.ChatAPI.Message): The message of the winner draw request."""
@@ -1150,4 +1171,4 @@ class RaffleCommand(ChatCommand):
 
         self.entries = []
         self.winner = None
-        self.actor.send_message(f"@{message.user.username} Raffle reset.")
+        self.actor.send_message(f"@{message.user.username} Raffle reset. All entries cleared.")
