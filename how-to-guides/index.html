@@ -16,7 +16,7 @@
       
       
       <link rel="icon" href="../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.5.49">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.20">
     
     
       
@@ -24,7 +24,7 @@
       
     
     
-      <link rel="stylesheet" href="../assets/stylesheets/main.6f8fc17f.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.e53b48f4.min.css">
       
       
 
@@ -159,8 +159,10 @@
       <a href=".." class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Home
+    
   </span>
   
 
@@ -179,8 +181,10 @@
       <a href="../tutorials/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Tutorials
+    
   </span>
   
 
@@ -208,8 +212,10 @@
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
   
+  
   <span class="md-ellipsis">
     How-To Guides
+    
   </span>
   
 
@@ -219,8 +225,10 @@
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
+  
   <span class="md-ellipsis">
     How-To Guides
+    
   </span>
   
 
@@ -268,6 +276,7 @@
     
     
     
+    
     <li class="md-nav__item md-nav__item--nested">
       
         
@@ -278,8 +287,10 @@
           <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
             
   
+  
   <span class="md-ellipsis">
     Reference
+    
   </span>
   
 
@@ -303,8 +314,10 @@
       <a href="../modules_ref/main/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Main
+    
   </span>
   
 
@@ -324,8 +337,10 @@
       <a href="../modules_ref/actions/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Actions
+    
   </span>
   
 
@@ -345,8 +360,10 @@
       <a href="../modules_ref/commands/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Commands
+    
   </span>
   
 
@@ -366,8 +383,10 @@
       <a href="../modules_ref/misc/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Misc
+    
   </span>
   
 
@@ -387,8 +406,10 @@
       <a href="../modules_ref/utils/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Utils
+    
   </span>
   
 
@@ -408,8 +429,10 @@
       <a href="../modules_ref/static/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Static
+    
   </span>
   
 
@@ -429,8 +452,10 @@
       <a href="../action_properties/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Action properties
+    
   </span>
   
 
@@ -457,8 +482,10 @@
       <a href="../explanation/" class="md-nav__link">
         
   
+  
   <span class="md-ellipsis">
     Explanation
+    
   </span>
   
 
@@ -517,6 +544,7 @@
                   
 
 
+
 <h1 id="how-to-guides">How-To Guides</h1>
 <h2 id="my-own-personal-setup">My own personal setup</h2>
 <pre><code>#!/usr/bin/env/python3
@@ -525,34 +553,52 @@
 My RumChat Actor live stream configuration.
 S.D.G&quot;&quot;&quot;
 
+import glob
+import os.path as op
+import subprocess
 import rumchat_actor
-from pygame import mixer #For a sound-making command I have
+import pyaudio  # For Piper TTS
+from pygame import mixer  # For a sound-making command I have
 
-with open(&quot;my_api_url.txt&quot;) as f:
+with open(&quot;../../rumble_thelabcat_api_url_wkey.txt&quot;) as f:
     API_URL = f.read().strip()
-with open(&quot;my_login.txt&quot;) as f:
+with open(&quot;../../rumble_thelabcat_credentials.txt&quot;) as f:
     USERNAME, PASSWORD = f.read().splitlines()[:2]
 
-#Timed messages to send
+# Timed messages to send
 TIMED_MESSAGES = [
     &quot;There are lots of buttons under the video. Press some of them if you haven't already. :-)&quot;,
     &quot;Want some subtitles for a video, but aren't satisfied with auto-generated? I sell handmade subtitles on Fiverr! https://www.fiverr.com/s/qDDKm9V&quot;,
     &quot;I have chat commands. Send \&quot;!help\&quot; to see them, send \&quot;!help commandName\&quot; for more information on that command.&quot;,
     ]
 
+# Piper TTS settings
+MODEL_PATH = &quot;/home/wilbur/bin/pipertts/voices/&quot;
+PIPER_DEFAULT = &quot;troutt&quot;
+PIPER_MODELS = {
+    f.split(&quot;-&quot;)[1]: f
+    for f in glob.glob(&quot;*.onnx&quot;, root_dir=MODEL_PATH)
+    }
+
+# Directory where my sound effects are
+SOUND_EFFECTS_DIR = &quot;/run/media/wilbur/WJHDD1/Audio/sound_effects&quot;
+
 mixer.init()
+PA = pyaudio.PyAudio()
 
 print(&quot;Setting up actor...&quot;)
 actor = rumchat_actor.RumbleChatActor(
-    api_url = API_URL,
-    username = USERNAME,
-    password = PASSWORD,
-    channel = &quot;MarswideBGL&quot;
+    api_url=API_URL,
+    username=USERNAME,
+    password=PASSWORD,
+    channel=&quot;MarswideBGL&quot;
     )
 
-#The Sisyphus command
-sisyphus_music = mixer.Sound(&quot;../../../../Audio/sound_effects/sisyphus_short.mp3&quot;)
-sisyphus_music.set_volume(0.15) #Just my arbitrary volume preference
+# The Sisyphus command
+sisyphus_music = mixer.Sound(op.join(SOUND_EFFECTS_DIR, &quot;sisyphus_short.mp3&quot;))
+sisyphus_music.set_volume(0.15)  # Just my arbitrary volume preference
+
+
 def sisyphus(message, act_props, actor):
     &quot;&quot;&quot;One must imagine a gamer happy
 
@@ -564,50 +610,113 @@ def sisyphus(message, act_props, actor):
     sisyphus_music.play()
     actor.send_message(f&quot;@{message.user.username} One must imagine a gamer happy.&quot;)
 
-actor.register_command(rumchat_actor.commands.ChatCommand(name = &quot;sisyphus&quot;, actor = actor, cooldown = 120, target = sisyphus))
 
-#TTS command
-actor.register_command(rumchat_actor.commands.TTSCommand(actor = actor))
-
-#Killswitch command
-actor.register_command(rumchat_actor.commands.KillswitchCommand(actor = actor))
-
-#Lurk command
-actor.register_command(rumchat_actor.commands.MessageCommand(
-    actor = actor,
-    name = &quot;lurk&quot;,
-    text = &quot;@{} is lurking in the chat&quot;,
-    ))
-
-#Clip command
-clip_command = rumchat_actor.commands.ClipRecordingCommand(
-    actor = actor,
-    recording_load_path = &quot;/home/wilbur/Videos/&quot;,
-    clip_save_path = &quot;/home/wilbur/Videos/stream_clips/&quot;,
+actor.register_command(
+    rumchat_actor.commands.ChatCommand(
+        name=&quot;sisyphus&quot;,
+        actor=actor,
+        cooldown=120,
+        target=sisyphus
+        )
     )
 
-clip_uploader = rumchat_actor.misc.ClipUploader( #Auto-upload clips to my clips channel on Rumble
+
+# TTS command
+def piper_tts(text, voice=PIPER_DEFAULT):
+    &quot;&quot;&quot;Synthesize text with Piper TTS&quot;&quot;&quot;
+    assert voice in PIPER_MODELS, &quot;Invalid voice selection&quot;
+    # The format here is always 8, but just to show how I got it, it is the
+    # format for unsigned 16-bit (i.e. 2 byte, hence the 2).
+    stream = PA.open(
+        format=PA.get_format_from_width(2), channels=1, rate=22050, output=True
+        )
+    try:
+        # Run Piper TTS via a command
+        cp = subprocess.run(
+            [
+                &quot;piper&quot;,
+                &quot;--model&quot;,
+                op.join(MODEL_PATH, PIPER_MODELS[voice]),
+                &quot;--output-raw&quot;
+                ],
+
+            # Send Piper the text to speak
+            input=text.encode(),
+
+            # Grab the output raw sound data
+            capture_output=True
+            )
+
+        # Play the sound data
+        stream.write(cp.stdout)
+
+    # Make sure we always close the PyAudio stream
+    finally:
+        stream.close()
+
+
+tts_command = rumchat_actor.commands.TTSCommand(
+    actor=actor,
+    voices={
+        voice: eval(f&quot;lambda text: piper_tts(text, \&quot;{voice}\&quot;)&quot;)
+        for voice in PIPER_MODELS
+        }
+    )
+
+tts_command.voices[&quot;default&quot;] = lambda text: piper_tts(text, PIPER_DEFAULT)
+
+actor.register_command(tts_command)
+
+# Killswitch command
+actor.register_command(rumchat_actor.commands.KillswitchCommand(actor=actor))
+
+# Lurk command
+actor.register_command(rumchat_actor.commands.MessageCommand(
+    actor=actor,
+    name=&quot;lurk&quot;,
+    text=&quot;@{} is lurking in the chat&quot;,
+    ))
+
+# Clip command
+clip_command = rumchat_actor.commands.ClipRecordingCommand(
+    actor=actor,
+    recording_load_path=&quot;/home/wilbur/Videos/&quot;,
+    clip_save_path=&quot;/home/wilbur/Videos/stream_clips/&quot;,
+    )
+
+# Auto-upload clips to my clips channel on Rumble
+clip_uploader = rumchat_actor.misc.ClipUploader(
     actor,
     clip_command,
-    channel_id = 6350778, #Marswide BGL Clips
+    channel_id=6350778,  # Marswide BGL Clips
     )
 
 actor.register_command(clip_command)
 
-#Help command
-actor.register_command(rumchat_actor.commands.HelpCommand(actor = actor))
+# Help command
+actor.register_command(rumchat_actor.commands.HelpCommand(actor=actor))
 
-#Send timed messages
-tmm = rumchat_actor.actions.TimedMessagesManager(actor, messages = TIMED_MESSAGES, delay = 300, in_between = 5)
+# Send timed messages
+tmm = rumchat_actor.actions.TimedMessagesManager(
+    actor, messages=TIMED_MESSAGES, delay=300, in_between=5
+    )
 actor.register_message_action(tmm.action)
 
-#Follower / subscriber / etc. thanking system
+# Follower / subscriber / etc. thanking system
 thanker = rumchat_actor.actions.Thanker(actor)
 actor.register_message_action(thanker)
 
-#Announce Izsak's arrival
-izsak_intro = mixer.Sound(&quot;../../../../Audio/sound_effects/izsak_intro.mp3&quot;)
-izsak_arrived = False
+# Message blipper
+actor.register_message_action(
+    rumchat_actor.actions.ChatBlipper(op.join(SOUND_EFFECTS_DIR, &quot;pop.wav&quot;))
+    )
+
+
+# User announcer
+# Announce Izsak's arrival
+izsak_intro = mixer.Sound(op.join(SOUND_EFFECTS_DIR, &quot;izsak_intro.mp3&quot;))
+
+
 def announce_izsak(message, act_props, actor):
     &quot;&quot;&quot;Announce when Izsak arrives in the chat
 
@@ -619,22 +728,23 @@ def announce_izsak(message, act_props, actor):
     Returns:
         act_props (dict): Dictionary of recorded properties from running this action.&quot;&quot;&quot;
 
-    global izsak_arrived
+    izsak_intro.play()
+    return {&quot;sound&quot;: True}
 
-    #If he has already arrived, do nothing
-    if izsak_arrived:
-        return
 
-    #If this message is from him, play his intro and note that he has arrived
-    if message.user.username == &quot;Jorash&quot;:
-        izsak_arrived = True
-        izsak_intro.play()
+announcer = rumchat_actor.actions.UserAnnouncer(
+    special_announcers={
+        &quot;Jorash&quot;: announce_izsak,
+        }
+    )
 
-actor.register_message_action(announce_izsak)
 
-#Run the bot continuously
+actor.register_message_action(announcer)
+
+# Run the bot continuously
 print(&quot;Starting mainloop...&quot;)
 actor.mainloop()
+PA.terminate()
 </code></pre>
 <p>S.D.G.</p>
 
@@ -683,10 +793,12 @@ actor.mainloop()
     </div>
     
     
-    <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.6ce7567c.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+      
+      <script id="__config" type="application/json">{"base": "..", "features": [], "search": "../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../assets/javascripts/bundle.88dd0f4e.min.js"></script>
+      <script src="../assets/javascripts/bundle.f55a23d4.min.js"></script>
       
     
   </body>
