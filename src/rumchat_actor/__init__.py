@@ -139,8 +139,8 @@ class RumbleChatActor:
                 if twofa:
                     self.handle_2fa(twofa)
             # Login failed
-            except AssertionError:
-                print("Error. Login failed with provided credentials.")
+            except AssertionError as e:
+                print("Error. Login failed with provided credentials:", e)
                 self.username = None
                 self.password = None
 
