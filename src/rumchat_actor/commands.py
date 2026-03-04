@@ -354,6 +354,7 @@ class KillswitchCommand(ChatCommand):
 
 class ClipDownloadingCommand(ChatCommand):
     """Save clips of the livestream by downloading stream chunks from Rumble, works remotely"""
+
     def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, clip_save_path = "." + os.sep):
         """Save clips of the livestream by downloading stream chunks from Rumble, works remotely.
     Instance this object, optionally pass it to the init method of a ClipUploader, then pass it to RumbleChatActor().register_command().
@@ -370,26 +371,29 @@ class ClipDownloadingCommand(ChatCommand):
             Defaults to "."
         """
 
-        super().__init__(name = name, actor = actor, cooldown = default_duration)
+        super().__init__(name=name, actor=actor, cooldown=default_duration)
         self.default_duration = default_duration
         self.max_duration = max_duration
         self.clip_save_path = clip_save_path.removesuffix(os.sep) + os.sep #Where to save the completed clips
         self.ready_to_clip = False
-        #self.streamer_main_page_url = self.actor.streamer_main_page_url #Make sure we have this before we try to start recording
-        #self.stream_is_live = False #Wether or not the stream is live, we find this later
-        self.running_clipsaves = 0 #How many clip save operations are running
-        self.unavailable_qualities = [] #Stream qualities that are not available (cause a 404)
-        self.average_ts_download_times = {} #The average time it takes to download a TS chunk of a given stream quality
-        self.ts_durations = {} #The duration of a TS chunk of a given stream quality
-        self.is_dvr = False #Wether the stream is a DVR or not, detected later. No TS cache is needed if it is
-        self.use_quality = None #The quality of stream to use, detected later, based on download speeds
-        self.ts_url_start = "" #The start of the m3u8 and TS URLs, to be formatted with the selected quality, detected later
-        self.m3u8_filename = "" #The filename of the m3u8 playlist, will be either chunklist.m3u8 or chunklist_DVR.m3u8, detected later
-        self.saved_ts = {} #TS filenames : Tempfile objects containing TS chunks
-        self.discarded_ts = [] #TS names that were saved then deleted
-        self.save_format = static.Clip.save_extension #Format that clips are saved in. For ClipUploader
-        self.clip_uploader = None #An object to upload the clips when they are complete
-        self.recorder_thread = threading.Thread(target = self.record_loop, daemon = True)
+
+        # WARNING: These variables are used within threads. DO NOT REFERENCE EXTERNALLY WITHOUT MUTEX!
+        self.unavailable_qualities = []  # Stream qualities that are not available (cause a 404)
+        self.average_ts_download_times = {}  # The average time it takes to download a TS chunk of a given stream quality
+
+        # These are also used within a thread, but are mutex locked inside it and should be safe
+        self.running_clipsaves = 0  # How many clip save operations are running
+        self.ts_durations = {}  # The duration of a TS chunk of a given stream quality
+        self.saved_ts = {}  # TS filenames : Tempfile objects containing TS chunks
+        self.discarded_ts = []  # TS names that were saved then deleted
+
+        self.is_dvr = False  # Wether the stream is a DVR or not, detected later. No TS cache is needed if it is
+        self.use_quality = None  # The quality of stream to use, detected later, based on download speeds
+        self.ts_url_start = ""  # The start of the m3u8 and TS URLs, to be formatted with the selected quality, detected later
+        self.m3u8_filename = ""  # The filename of the m3u8 playlist, will be either chunklist.m3u8 or chunklist_DVR.m3u8, detected later
+        self.save_format = static.Clip.save_extension  # Format that clips are saved in. For ClipUploader
+        self.clip_uploader = None  # An object to upload the clips when they are complete (WARNING: Used within thread)
+        self.recorder_thread = threading.Thread(target=self.record_loop, daemon=True)
         self.run_recorder = True
         self.recorder_thread.start()
 
@@ -435,6 +439,7 @@ class ClipDownloadingCommand(ChatCommand):
         self.get_quality_info()
 
         if self.is_dvr:
+            # Since this is a simple variable being assigned to something calculated within thread, I think it's thread-safe
             self.use_quality = [q for q in static.Clip.Download.stream_qualities if q not in self.unavailable_qualities][-1]
             print("Not using TS cache for clips since stream is DVR. Ready to clip.")
             self.run_recorder = False
@@ -445,6 +450,8 @@ class ClipDownloadingCommand(ChatCommand):
         for quality in static.Clip.Download.stream_qualities:
             if quality in self.unavailable_qualities:
                 continue
+
+            # Just reading should be thread-safe, right?
             if self.average_ts_download_times[quality] > self.ts_durations[quality] / static.Clip.Download.speed_factor_req:
                 continue
             self.use_quality = quality
@@ -456,38 +463,42 @@ class ClipDownloadingCommand(ChatCommand):
         self.ready_to_clip = True
         print("Starting ring buffer TS cache...")
         while self.run_recorder:
-            #Get the list of TS chunks, filtering out TS chunks that we already have / had
+            # Get the list of TS chunks, filtering out TS chunks that we already have / had
             try:
-                new_ts_list = [ts for ts in self.get_ts_list(self.use_quality) if ts not in self.saved_ts.values() and ts not in self.discarded_ts]
+                with self.actor.mutex:
+                    new_ts_list = [ts for ts in self.get_ts_list(self.use_quality) if ts not in self.saved_ts.values() and ts not in self.discarded_ts]
             except (AttributeError, requests.exceptions.ReadTimeout):
                 print("Failed to get m3u8 playlist")
                 continue
 
-            #We just started recording, only download the latest TS
+            # We just started recording, only download the latest TS
             if not self.saved_ts:
-                self.discarded_ts = new_ts_list[:-1]
+                with self.actor.mutex:
+                    self.discarded_ts = new_ts_list[:-1]
                 new_ts_list = new_ts_list[-1:]
 
-            #Save the unsaved TS chunks to temporary files
+            # Save the unsaved TS chunks to temporary files
             for ts_name in new_ts_list:
                 try:
-                    data = requests.get(self.ts_url_start.format(quality = self.use_quality) + ts_name, timeout = static.REQUEST_TIMEOUT).content
-                except (AttributeError, requests.exceptions.ReadTimeout): #The request failed or has no content
+                    data = requests.get(self.ts_url_start.format(quality=self.use_quality) + ts_name, timeout=static.REQUEST_TIMEOUT).content
+                except (AttributeError, requests.exceptions.ReadTimeout):  # The request failed or has no content
                     print("Failed to save ", ts_name)
                     continue
                 f = tempfile.NamedTemporaryFile()
                 f.write(data)
                 f.file.close()
-                self.saved_ts[ts_name] = f
+                with self.actor.mutex:
+                    self.saved_ts[ts_name] = f
 
-            #We should be deleting old clips, and we have more than enough to fill the max duration
-            while not self.running_clipsaves and (len(self.saved_ts) - 1) * self.ts_durations[self.use_quality] > self.max_duration:
-                oldest_ts = list(self.saved_ts.keys())[0]
-                self.saved_ts[oldest_ts].close() #close the tempfile
-                del self.saved_ts[oldest_ts]
-                self.discarded_ts.append(oldest_ts)
+            # We should be deleting old clips, and we have more than enough to fill the max duration
+            with self.actor.mutex:
+                while not self.running_clipsaves and (len(self.saved_ts) - 1) * self.ts_durations[self.use_quality] > self.max_duration:
+                    oldest_ts = list(self.saved_ts.keys())[0]
+                    self.saved_ts[oldest_ts].close()  # close the tempfile
+                    del self.saved_ts[oldest_ts]
+                    self.discarded_ts.append(oldest_ts)
 
-            #Wait a moment before the next m3u8 download
+            # Wait a moment before the next m3u8 download
             time.sleep(1)
 
     def get_quality_info(self):
@@ -497,18 +508,18 @@ class ClipDownloadingCommand(ChatCommand):
         assert self.ts_url_start, "Must have start of TS URL before this runs"
         for quality in static.Clip.Download.stream_qualities:
             download_times = []
-            chunk_content = None #The content of a successful chunk download. used for duration checking
+            chunk_content = None  # The content of a successful chunk download. used for duration checking
             for _ in range(static.Clip.Download.speed_test_iter):
                 r1 = None
                 try:
-                    r1 = requests.get(self.ts_url_start.format(quality = quality) + self.m3u8_filename, timeout = static.REQUEST_TIMEOUT)
+                    r1 = requests.get(self.ts_url_start.format(quality=quality) + self.m3u8_filename, timeout=static.REQUEST_TIMEOUT)
                 except requests.exceptions.ReadTimeout:
                     print("Timeout for m3u8 playlist download")
                     download_times.append(static.REQUEST_TIMEOUT + 1)
                     continue
 
                 if r1.status_code == 404:
-                    print("404 for", self.ts_url_start.format(quality = quality) + self.m3u8_filename, "so assuming", quality, "quality is not available.")
+                    print("404 for", self.ts_url_start.format(quality=quality) + self.m3u8_filename, "so assuming", quality, "quality is not available.")
                     self.unavailable_qualities.append(quality)
                     break
 
@@ -537,7 +548,8 @@ class ClipDownloadingCommand(ChatCommand):
             ts = tempfile.NamedTemporaryFile()
             ts.write(chunk_content)
             ts.file.close()
-            self.ts_durations[quality] = VideoFileClip(ts.name).duration
+            with self.actor.mutex:
+                self.ts_durations[quality] = VideoFileClip(ts.name).duration
             ts.close()
 
             #Calculate average download time
@@ -550,7 +562,7 @@ class ClipDownloadingCommand(ChatCommand):
         message (cocorum.ChatAPI.Message): The chat message that called us.
         act_props (dict): Message action recorded properties."""
 
-        #We are not ready for clipping
+        # We are not ready for clipping
         if not self.ready_to_clip or not (self.is_dvr or self.saved_ts):
             self.actor.send_message(f"@{message.user.username} Not ready for clip saving yet.")
             return
@@ -635,10 +647,10 @@ class ClipDownloadingCommand(ChatCommand):
             tempfiles = []
             for ts_name in use_ts:
                 try:
-                    data = requests.get(self.ts_url_start.format(quality = self.use_quality) + ts_name, timeout = static.REQUEST_TIMEOUT).content
+                    data = requests.get(self.ts_url_start.format(quality=self.use_quality) + ts_name, timeout=static.REQUEST_TIMEOUT).content
                     if not data:
                         raise ValueError
-                except (ValueError, requests.exceptions.ReadTimeout): #The request failed or has no content
+                except (ValueError, requests.exceptions.ReadTimeout):  # The request failed or has no content
                     print("Failed to get", ts_name)
                     continue
                 tf = tempfile.NamedTemporaryFile()
@@ -648,7 +660,9 @@ class ClipDownloadingCommand(ChatCommand):
 
         #Select the tempfiles from the TS cache
         else:
-            tempfiles = [self.saved_ts[ts_name] for ts_name in use_ts]
+            # TODO: This could hold up the recorder thread
+            with self.actor.muted:
+                tempfiles = [self.saved_ts[ts_name] for ts_name in use_ts]
 
         #Load the TS chunks
         chunks = [VideoFileClip(tf.name) for tf in tempfiles]
@@ -665,10 +679,12 @@ class ClipDownloadingCommand(ChatCommand):
             logger = None
         )
 
-        self.running_clipsaves -= 1
-        if self.running_clipsaves < 0:
-            print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
-            self.running_clipsaves = 0
+        # TODO: This could hold up the recorder thread
+        with self.actor.mutex:
+            self.running_clipsaves -= 1
+            if self.running_clipsaves < 0:
+                print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
+                self.running_clipsaves = 0
 
         #We are responsible for DVR tempfile closing
         if self.is_dvr:
@@ -681,8 +697,12 @@ class ClipDownloadingCommand(ChatCommand):
 
         print("Complete")
 
+## STOPPED WORK ON ISSUE 54
+## Next is utils, misc, and static
+
 class ClipRecordingCommand(ChatCommand):
     """Save clips of the livestream by duplicating then trimming an in-progress recording by OBS"""
+
     def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, recording_load_path = ".", clip_save_path = "." + os.sep):
         """Save clips of the livestream by duplicating then trimming an in-progress recording by OBS.
     Instance this object, optionally pass it to the init method of a ClipUploader, then pass it to RumbleChatActor().register_command().

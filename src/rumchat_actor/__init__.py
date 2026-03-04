@@ -77,6 +77,9 @@ class RumbleChatActor:
         assert isinstance(self.__streamer_main_page_url, str) or self.__streamer_main_page_url is None, \
             f"Argument streamer_main_page_url must be str or None, not {type(self.__is_channel_stream)}"
 
+        # Create mutual exclusivity lock for safe-ifying threads
+        self.mutex = threading.Lock()
+
         # Get Live Stream API
         if "api_url" in kwargs:
             self.rum_api = RumbleAPI(kwargs["api_url"])
@@ -320,6 +323,7 @@ class RumbleChatActor:
             while not is_sent:
                 try:
                     self.outbox.put(subtext, block = False)
+                    # TODO: Print is not quite thread safe... sort of? It won't crash at least
                     print("💬:", subtext)
                     is_sent = True
                 except queue.Full:
@@ -345,7 +349,9 @@ class RumbleChatActor:
         assert len(text) < static.Message.max_len, \
             f"Message with prefix cannot be longer than {static.Message.max_len} characters"
 
-        self.sent_messages.append(text)
+        with self.mutex:
+            self.sent_messages.append(text)
+
         self.last_message_send_time = time.time()
         return self.chat.send_message(text, channel_id = self.channel)
 

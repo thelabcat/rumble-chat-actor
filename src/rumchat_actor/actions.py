@@ -187,6 +187,7 @@ class TimedMessagesManager():
 
                 # Up the index of the next message, with wrapping
                 self.up_next_index += 1
+                # self.messages should theoretically never change, so this is thread-safe
                 if self.up_next_index >= len(self.messages):
                     self.up_next_index = 0
 

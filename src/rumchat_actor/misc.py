@@ -42,6 +42,7 @@ class ClipUploader():
 
     def upload_clip(self, name, complete_path):
         """Add the clip filename to the queue
+        TODO: MUST BE THREAD-SAFE
 
     Args:
         name (str): The base name of the clip.
