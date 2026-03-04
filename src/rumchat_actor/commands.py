@@ -697,13 +697,12 @@ class ClipDownloadingCommand(ChatCommand):
 
         print("Complete")
 
-## STOPPED WORK ON ISSUE 54
-## Next is utils, misc, and static
 
 class ClipRecordingCommand(ChatCommand):
+
     """Save clips of the livestream by duplicating then trimming an in-progress recording by OBS"""
 
-    def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, recording_load_path = ".", clip_save_path = "." + os.sep):
+    def __init__(self, actor, name="clip", default_duration=60, max_duration=120, recording_load_path=".", clip_save_path="." + os.sep):
         """Save clips of the livestream by duplicating then trimming an in-progress recording by OBS.
     Instance this object, optionally pass it to the init method of a ClipUploader, then pass it to RumbleChatActor().register_command().
 
@@ -721,15 +720,15 @@ class ClipRecordingCommand(ChatCommand):
             Defaults to "."
         """
 
-        super().__init__(name = name, actor = actor, cooldown = default_duration)
+        super().__init__(name=name, actor=actor, cooldown=default_duration)
         self.default_duration = default_duration
         self.max_duration = max_duration
-        self.recording_load_path = recording_load_path.removesuffix(os.sep) #Where to first look for the OBS recording
-        self.clip_save_path = clip_save_path.removesuffix(os.sep) + os.sep #Where to save the completed clips
-        self.running_clipsaves = 0 #How many clip save operations are running
-        self.__recording_filename = None #The filename of the running OBS recording, asked later
-        print(self.recording_filename) #...now is later
-        self.clip_uploader = None #An object to upload the clips when they are complete
+        self.recording_load_path = recording_load_path.removesuffix(os.sep)  # Where to first look for the OBS recording
+        self.clip_save_path = clip_save_path.removesuffix(os.sep) + os.sep  # Where to save the completed clips
+        self.running_clipsaves = 0  # How many clip save operations are running, WARNING: Used within thread without mutex!
+        self.__recording_filename = None  # The filename of the running OBS recording, asked later
+        print(self.recording_filename)  # ...now is later
+        self.clip_uploader = None  # An object to upload the clips when they are complete
 
     @property
     def help_message(self):
@@ -740,20 +739,20 @@ class ClipRecordingCommand(ChatCommand):
     @property
     def recording_filename(self):
         """The filename of the running OBS recording"""
-        #We do not know the filename yet
+        # We do not know the filename yet
         while not self.__recording_filename:
-            #Make and hide a background Tk window to allow filedialogs to appear
+            # Make and hide a background Tk window to allow filedialogs to appear
             root = Tk()
             root.withdraw()
 
-            #Ask for the OBS recording in progress
+            # Ask for the OBS recording in progress
             self.__recording_filename = filedialog.askopenfilename(
-                title = "Select OBS recording in progress",
-                initialdir = self.recording_load_path,
-                filetypes = static.Clip.Record.input_options,
+                title="Select OBS recording in progress",
+                initialdir=self.recording_load_path,
+                filetypes=static.Clip.Record.input_options,
                 )
 
-            #Destroy the background window
+            # Destroy the background window
             root.destroy()
 
         return self.__recording_filename
@@ -776,32 +775,32 @@ class ClipRecordingCommand(ChatCommand):
         act_props (dict): Message action recorded properties."""
 
         segs = message.text.split()
-        #Only called clip, no arguments
+        # Only called clip, no arguments
         if len(segs) == 1:
             self.save_clip(self.default_duration)
 
-        #Arguments were passed
+        # Arguments were passed
         else:
-            #The first argument is a number
+            # The first argument is a number
             if segs[1].isnumeric():
-                #Invalid length passed
+                # Invalid length passed
                 if not 0 < int(segs[1]) <= self.max_duration:
                     self.actor.send_message(f"@{message.user.username} Invalid clip length.")
                     return
 
-                #Only length was specified
+                # Only length was specified
                 if len(segs) == 2:
                     self.save_clip(int(segs[1]))
 
-                #A name was also specified
+                # A name was also specified
                 else:
                     self.save_clip(int(segs[1]), "_".join(segs[2:]))
 
-            #The first argument is not a number, treat it as a filename
+            # The first argument is not a number, treat it as a filename
             else:
                 self.save_clip(self.default_duration, "_".join(segs[1:]))
 
-    def save_clip(self, duration, filename = None):
+    def save_clip(self, duration, filename: str = None):
         """Start a clip saver thread with the given parameters
 
     Args:
@@ -809,19 +808,19 @@ class ClipRecordingCommand(ChatCommand):
         filename (str): The base filename of the clip, with no path or extension.
             Defaults to None, auto-generate the filename."""
 
-        #No filename specified, construct from time values
+        # No filename specified, construct from time values
         if not filename:
             t = time.time()
             filename = f"{round(t - duration)}-{round(t)}"
 
-        #Avoid overwriting other clips
+        # Avoid overwriting other clips
         safe_filename = utils.get_safe_filename(self.clip_save_path, filename)
 
-        #Report clip save
+        # Report clip save
         self.actor.send_message(f"Saving clip {safe_filename}, duration of {duration} seconds.")
 
-        #Run the clip save in a thread
-        saveclip_thread = threading.Thread(target = self.form_recording_into_clip, args = (duration, safe_filename), daemon = True)
+        # Run the clip save in a thread
+        saveclip_thread = threading.Thread(target=self.form_recording_into_clip, args=(duration, safe_filename), daemon=True)
         saveclip_thread.start()
 
     def form_recording_into_clip(self, duration, filename):
@@ -856,9 +855,11 @@ class ClipRecordingCommand(ChatCommand):
         if self.clip_uploader:
             self.clip_uploader.upload_clip(filename, complete_path)
 
+
 class ClipReplayBufferCommand(ChatCommand):
     """Save clips of the livestream by triggering OBS to save its replay buffer"""
-    def __init__(self, actor, name = "clip", cooldown = 120, addr = "localhost", port = 4455, password = "", save_format = static.Clip.save_extension):
+
+    def __init__(self, actor, name="clip", cooldown=120, addr="localhost", port=4455, password="", save_format=static.Clip.save_extension):
         """Save clips of the livestream by triggering OBS to save its replay buffer.
     Instance this object, optionally pass it to the init method of a ClipUploader, then pass it to RumbleChatActor().register_command().
 
@@ -876,16 +877,16 @@ class ClipReplayBufferCommand(ChatCommand):
         save_format (str): Filename extension for the format that replay buffers are saved in.
             Defaults to static.Clip.save_extension"""
 
-        super().__init__(name = name, actor = actor, cooldown = cooldown)
+        super().__init__(name=name, actor=actor, cooldown=cooldown)
         self.addr, self.port, self.password = addr, port, password
         self.save_format = save_format.removeprefix(".")
-        self.__running_clipsaves = 0 #How many clip save operations are running
-        self.clip_uploader = None #An object to upload the clips when they are complete
+        self.__running_clipsaves = 0  # How many clip save operations are running. WARNING: Used in thread without mutex!
+        self.clip_uploader = None  # An object to upload the clips when they are complete
 
-        #Connect to OBS
-        self.obsclient = obs.ReqClient(host = self.addr, port = self.port, password = self.password, timeout = 3)
+        # Connect to OBS
+        self.obsclient = obs.ReqClient(host=self.addr, port=self.port, password=self.password, timeout=3)
 
-        #Make sure the replay buffer is running
+        # Make sure the replay buffer is running
         if not self.obsclient.get_replay_buffer_status().output_active:
             self.obsclient.start_replay_buffer()
             print("Replay buffer was not started, autostarting. OK.")
@@ -893,7 +894,7 @@ class ClipReplayBufferCommand(ChatCommand):
         else:
             print("Replay buffer was already started. OK.")
 
-        #Query the clip save location automatically while we're at it
+        # Query the clip save location automatically while we're at it
         self.clip_save_path = self.obsclient.get_record_directory().record_directory + os.sep
         print("OBS says recordings will save to", self.clip_save_path)
 
@@ -930,15 +931,15 @@ class ClipReplayBufferCommand(ChatCommand):
         act_props (dict): Message action recorded properties."""
 
         segs = message.text.split()
-        #Only called clip, no arguments
+        # Only called clip, no arguments
         if len(segs) == 1:
             self.save_clip()
 
-        #A name was passed
+        # A name was passed
         else:
             self.save_clip("_".join(segs[1:]))
 
-    def save_clip(self, filename = None):
+    def save_clip(self, filename=None):
         """Start a clip saver thread with the given parameters
 
     Args:
@@ -946,20 +947,20 @@ class ClipReplayBufferCommand(ChatCommand):
             Defaults to None, auto-generate the filename."""
 
         if filename:
-            #Avoid overwriting other clips
-            safe_filename = utils.get_safe_filename(self.clip_save_path, filename, extension = self.save_format)
+            # Avoid overwriting other clips
+            safe_filename = utils.get_safe_filename(self.clip_save_path, filename, extension=self.save_format)
 
-            #Report clip save
+            # Report clip save
             self.actor.send_message(f"Saving clip {safe_filename}.")
 
             filename = safe_filename
 
         else:
-            #Report clip save
+            # Report clip save
             self.actor.send_message("Saving clip with default filename.")
 
-        #Run the clip save in a thread
-        saveclip_thread = threading.Thread(target = self.save_buffer_as_clip, args = [filename], daemon = True)
+        # Run the clip save in a thread
+        saveclip_thread = threading.Thread(target=self.save_buffer_as_clip, args=[filename], daemon=True)
         saveclip_thread.start()
 
     def save_buffer_as_clip(self, desired_filename):
@@ -969,13 +970,14 @@ class ClipReplayBufferCommand(ChatCommand):
     Args:
         filename (str): The base filename of the clip, with no path or extension, renamed from whatever OBS named it."""
 
-        #Keep a counter of running clipsaves, may not be needed
+        # Keep a counter of running clipsaves, may not be needed
         self.running_clipsaves += 1
 
         print("Signaling OBS to save the replay buffer")
+        # WARNING: If issue 43 is completed, we must mutex this!
         self.obsclient.save_replay_buffer()
 
-        #Time the clip was saved
+        # Time the clip was saved
         marktime = time.time()
 
         print("Egg timer for save to initialize")
@@ -1014,9 +1016,9 @@ class ClipReplayBufferCommand(ChatCommand):
             complete_path = os.path.join(self.clip_save_path, desired_filename + "." + self.save_format)
             shutil.move(old_complete_path, complete_path)
             filename = desired_filename
-            del filename_wext #This is no longer valid, so remove from memory for debug
+            del filename_wext  # This is no longer valid, so remove from memory for debug
 
-        #Make note that the clipsave has finished
+        # Make note that the clipsave has finished
         self.running_clipsaves -= 1
 
         if self.clip_uploader:
@@ -1086,17 +1088,17 @@ class RaffleCommand(ChatCommand):
         act_props (dict): Message action recorded properties."""
 
         segs = message.text.split()
-        #Only called command, no arguments
+        # Only called command, no arguments
         if len(segs) == 1:
-            #self.actor.send_message(self.help_message)
+            # self.actor.send_message(self.help_message)
             print(f"{message.user.username} called the raffle command but without an argument. No action taken.")
             return
 
-        #Valid argument
+        # Valid argument
         if segs[1] in self.operations:
             self.operations[segs[1]](message)
 
-        #Invalid argument
+        # Invalid argument
         else:
             print(f"{message.user.username} called the raffle command but with invalid argument(s): {", ".join(segs[1:])}. No action taken.")
 
