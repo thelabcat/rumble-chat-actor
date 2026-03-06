@@ -469,17 +469,19 @@ class ClipDownloadingCommand(ChatCommand):
         while self.run_recorder:
             # Get the list of TS chunks, filtering out TS chunks that we already have / had
             try:
-                with self.saved_ts_mutex, self.discarded_ts_mutex:
-                    new_ts_list = [ts for ts in self.get_ts_list(self.use_quality) if ts not in self.saved_ts.values() and ts not in self.discarded_ts]
+                with self.saved_ts_mutex:
+                    with self.discarded_ts_mutex:
+                        new_ts_list = [ts for ts in self.get_ts_list(self.use_quality) if ts not in self.saved_ts.values() and ts not in self.discarded_ts]
             except (AttributeError, requests.exceptions.ReadTimeout):
                 print("Failed to get m3u8 playlist")
                 continue
 
             # We just started recording, only download the latest TS
-            with self.saved_ts_mutex, self.discarded_ts_mutex:
-                if not self.saved_ts:
-                    self.discarded_ts = new_ts_list[:-1]
-                    new_ts_list = new_ts_list[-1:]
+            with self.saved_ts_mutex:
+                with self.discarded_ts_mutex:
+                    if not self.saved_ts:
+                        self.discarded_ts = new_ts_list[:-1]
+                        new_ts_list = new_ts_list[-1:]
 
             # Save the unsaved TS chunks to temporary files
             for ts_name in new_ts_list:
@@ -495,12 +497,15 @@ class ClipDownloadingCommand(ChatCommand):
                     self.saved_ts[ts_name] = f
 
             # We should be deleting old clips, and we have more than enough to fill the max duration
-            with self.ts_durations_mutex, self.saved_ts_mutex, self.discarded_ts_mutex, self.running_clipsaves_mutex:
-                while not self.running_clipsaves and (len(self.saved_ts) - 1) * self.ts_durations[self.use_quality] > self.max_duration:
-                    oldest_ts = list(self.saved_ts.keys())[0]
-                    self.saved_ts[oldest_ts].close()  # close the tempfile
-                    del self.saved_ts[oldest_ts]
-                    self.discarded_ts.append(oldest_ts)
+            with self.ts_durations_mutex:
+                with self.saved_ts_mutex:
+                    with self.running_clipsaves_mutex:
+                        while not self.running_clipsaves and (len(self.saved_ts) - 1) * self.ts_durations[self.use_quality] > self.max_duration:
+                            oldest_ts = list(self.saved_ts.keys())[0]
+                            self.saved_ts[oldest_ts].close()  # close the tempfile
+                            del self.saved_ts[oldest_ts]
+                            with self.discarded_ts_mutex:
+                                self.discarded_ts.append(oldest_ts)
 
             # Wait a moment before the next m3u8 download
             time.sleep(1)
