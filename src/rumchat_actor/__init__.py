@@ -77,9 +77,6 @@ class RumbleChatActor:
         assert isinstance(self.__streamer_main_page_url, str) or self.__streamer_main_page_url is None, \
             f"Argument streamer_main_page_url must be str or None, not {type(self.__is_channel_stream)}"
 
-        # Create mutual exclusivity lock for safe-ifying threads
-        self.mutex = threading.Lock()
-
         # Get Live Stream API
         if "api_url" in kwargs:
             self.rum_api = RumbleAPI(kwargs["api_url"])
@@ -186,6 +183,9 @@ class RumbleChatActor:
 
         # History of the bot's messages so they do not get loop processed
         self.sent_messages = []
+
+        # Thread exit pipe for above
+        self.__sent_messages_queue = queue.Queue()
 
         # Messages waiting to be sent
         self.outbox = queue.Queue(kwargs.get("max_outbox_size", static.Message.max_outbox_size))
@@ -349,11 +349,10 @@ class RumbleChatActor:
         assert len(text) < static.Message.max_len, \
             f"Message with prefix cannot be longer than {static.Message.max_len} characters"
 
-        with self.mutex:
-            self.sent_messages.append(text)
+        self.__sent_messages_queue.put(text)
 
         self.last_message_send_time = time.time()
-        return self.chat.send_message(text, channel_id = self.channel)
+        return self.chat.send_message(text, channel_id=self.channel)
 
     @property
     def delete_message(self):
@@ -520,12 +519,19 @@ class RumbleChatActor:
 
         self.__run_if_command(message, act_props_all)
 
+    def empty_sent_message_queue(self):
+        """Move sent messages from the thread exit pipe to the list"""
+        #WARNING: This is only safe if nobody else gets from this queue!
+        while not self.__sent_messages_queue.empty():
+            self.sent_messages.append(self.__sent_messages_queue.get())
+
     def mainloop(self):
         """Run the actor forever"""
         try:
             while self.keep_running:
+                self.empty_sent_message_queue()
                 m = self.chat.get_message()
-                if not m: #Chat has closed
+                if not m:  # Chat has closed
                     self.keep_running = False
                     return
                 self.__process_message(m)

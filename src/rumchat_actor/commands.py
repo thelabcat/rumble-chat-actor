@@ -377,15 +377,19 @@ class ClipDownloadingCommand(ChatCommand):
         self.clip_save_path = clip_save_path.removesuffix(os.sep) + os.sep #Where to save the completed clips
         self.ready_to_clip = False
 
-        # WARNING: These variables are used within threads. DO NOT REFERENCE EXTERNALLY WITHOUT MUTEX!
+        # WARNING: These variables are used within threads without mutex. DO NOT REFERENCE EXTERNALLY!
         self.unavailable_qualities = []  # Stream qualities that are not available (cause a 404)
-        self.average_ts_download_times = {}  # The average time it takes to download a TS chunk of a given stream quality
+        self.avg_ts_download_times = {}  # The average time it takes to download a TS chunk of a given stream quality
 
-        # These are also used within a thread, but are mutex locked inside it and should be safe
-        self.running_clipsaves = 0  # How many clip save operations are running
+        # WARNING: These variables are used within threads with mutex.
         self.ts_durations = {}  # The duration of a TS chunk of a given stream quality
+        self.ts_durations_mutex = threading.Lock()
         self.saved_ts = {}  # TS filenames : Tempfile objects containing TS chunks
+        self.saved_ts_mutex = threading.Lock()
         self.discarded_ts = []  # TS names that were saved then deleted
+        self.discarded_ts_mutex = threading.Lock()
+        self.running_clipsaves = 0  # How many clip save operations are running
+        self.running_clipsaves_mutex = threading.Lock()
 
         self.is_dvr = False  # Wether the stream is a DVR or not, detected later. No TS cache is needed if it is
         self.use_quality = None  # The quality of stream to use, detected later, based on download speeds
@@ -451,9 +455,9 @@ class ClipDownloadingCommand(ChatCommand):
             if quality in self.unavailable_qualities:
                 continue
 
-            # Just reading should be thread-safe, right?
-            if self.average_ts_download_times[quality] > self.ts_durations[quality] / static.Clip.Download.speed_factor_req:
-                continue
+            with self.ts_durations_mutex:
+                if self.avg_ts_download_times[quality] > self.ts_durations[quality] / static.Clip.Download.speed_factor_req:
+                    continue
             self.use_quality = quality
 
         if not self.use_quality:
@@ -465,17 +469,17 @@ class ClipDownloadingCommand(ChatCommand):
         while self.run_recorder:
             # Get the list of TS chunks, filtering out TS chunks that we already have / had
             try:
-                with self.actor.mutex:
+                with self.saved_ts_mutex, self.discarded_ts_mutex:
                     new_ts_list = [ts for ts in self.get_ts_list(self.use_quality) if ts not in self.saved_ts.values() and ts not in self.discarded_ts]
             except (AttributeError, requests.exceptions.ReadTimeout):
                 print("Failed to get m3u8 playlist")
                 continue
 
             # We just started recording, only download the latest TS
-            if not self.saved_ts:
-                with self.actor.mutex:
+            with self.saved_ts_mutex, self.discarded_ts_mutex:
+                if not self.saved_ts:
                     self.discarded_ts = new_ts_list[:-1]
-                new_ts_list = new_ts_list[-1:]
+                    new_ts_list = new_ts_list[-1:]
 
             # Save the unsaved TS chunks to temporary files
             for ts_name in new_ts_list:
@@ -487,11 +491,11 @@ class ClipDownloadingCommand(ChatCommand):
                 f = tempfile.NamedTemporaryFile()
                 f.write(data)
                 f.file.close()
-                with self.actor.mutex:
+                with self.saved_ts_mutex:
                     self.saved_ts[ts_name] = f
 
             # We should be deleting old clips, and we have more than enough to fill the max duration
-            with self.actor.mutex:
+            with self.ts_durations_mutex, self.saved_ts_mutex, self.discarded_ts_mutex, self.running_clipsaves_mutex:
                 while not self.running_clipsaves and (len(self.saved_ts) - 1) * self.ts_durations[self.use_quality] > self.max_duration:
                     oldest_ts = list(self.saved_ts.keys())[0]
                     self.saved_ts[oldest_ts].close()  # close the tempfile
@@ -548,12 +552,12 @@ class ClipDownloadingCommand(ChatCommand):
             ts = tempfile.NamedTemporaryFile()
             ts.write(chunk_content)
             ts.file.close()
-            with self.actor.mutex:
+            with self.ts_durations_mutex:
                 self.ts_durations[quality] = VideoFileClip(ts.name).duration
             ts.close()
 
             #Calculate average download time
-            self.average_ts_download_times[quality] = sum(download_times) / len(download_times)
+            self.avg_ts_download_times[quality] = sum(download_times) / len(download_times)
 
     def run(self, message, act_props: dict):
         """Make a clip
@@ -563,9 +567,10 @@ class ClipDownloadingCommand(ChatCommand):
         act_props (dict): Message action recorded properties."""
 
         # We are not ready for clipping
-        if not self.ready_to_clip or not (self.is_dvr or self.saved_ts):
-            self.actor.send_message(f"@{message.user.username} Not ready for clip saving yet.")
-            return
+        with self.saved_ts_mutex:
+            if not self.ready_to_clip or not (self.is_dvr or self.saved_ts):
+                self.actor.send_message(f"@{message.user.username} Not ready for clip saving yet.")
+                return
 
         segs = message.text.split()
         #Only called clip, no arguments
@@ -593,7 +598,7 @@ class ClipDownloadingCommand(ChatCommand):
             else:
                 self.save_clip(self.default_duration, "_".join(segs[1:]))
 
-    def save_clip(self, duration, filename = None):
+    def save_clip(self, duration, filename=None):
         """Start a clip saver thread with the given parameters
 
     Args:
@@ -602,34 +607,39 @@ class ClipDownloadingCommand(ChatCommand):
             Defaults to None, auto-generate a filename.
     """
 
-        self.running_clipsaves += 1
+        with self.running_clipsaves_mutex:
+            self.running_clipsaves += 1
 
-        #This is a DVR stream
+        # This is a DVR stream
         if self.is_dvr:
             available_chunks = self.get_ts_list(self.use_quality)
 
-        #this is a passthrough stream
+        # this is a passthrough stream
         else:
-            available_chunks = list(self.saved_ts.keys())
+            with self.saved_ts_mutex:
+                available_chunks = list(self.saved_ts.keys())
 
-        #Not enough TS for the full clip duration
-        if len(available_chunks) * self.ts_durations[self.use_quality] < duration:
-            print("Not enough TS to fulfil full duration")
-            use_ts = available_chunks
+        # Not enough TS for the full clip duration
+        with self.ts_durations_mutex:
+            if len(available_chunks) * self.ts_durations[self.use_quality] < duration:
+                print("Not enough TS to fulfil full duration")
+                use_ts = available_chunks
 
-        #We have enough TS
-        else:
-            use_ts = available_chunks[- int(duration / self.ts_durations[self.use_quality] + 0.5):]
+            # We have enough TS
+            else:
+                use_ts = available_chunks[- int(duration / self.ts_durations[self.use_quality] + 0.5):]
 
-        #No filename specified, construct from time values
-        if not filename:
-            t = time.time()
-            filename = f"{round(t - self.ts_durations[self.use_quality] * len(use_ts))}-{round(t)}"
+            # No filename specified, construct from time values
+            if not filename:
+                t = time.time()
+                filename = f"{round(t - self.ts_durations[self.use_quality] * len(use_ts))}-{round(t)}"
 
         #Avoid overwriting other clips
         safe_filename = utils.get_safe_filename(self.clip_save_path, filename)
 
-        self.actor.send_message(f"Saving clip {safe_filename}, duration of {round(self.ts_durations[self.use_quality] * len(use_ts))} seconds.")
+        with self.ts_durations_mutex:
+            self.actor.send_message(f"Saving clip {safe_filename}, duration of {round(self.ts_durations[self.use_quality] * len(use_ts))} seconds.")
+
         saveclip_thread = threading.Thread(target = self.form_ts_into_clip, args = (safe_filename, use_ts), daemon = True)
         saveclip_thread.start()
 
@@ -658,10 +668,9 @@ class ClipDownloadingCommand(ChatCommand):
                 tf.file.close()
                 tempfiles.append(tf)
 
-        #Select the tempfiles from the TS cache
+        # Select the tempfiles from the TS cache
         else:
-            # TODO: This could hold up the recorder thread
-            with self.actor.muted:
+            with self.saved_ts_mutex:
                 tempfiles = [self.saved_ts[ts_name] for ts_name in use_ts]
 
         #Load the TS chunks
@@ -679,8 +688,7 @@ class ClipDownloadingCommand(ChatCommand):
             logger = None
         )
 
-        # TODO: This could hold up the recorder thread
-        with self.actor.mutex:
+        with self.running_clipsaves_mutex:
             self.running_clipsaves -= 1
             if self.running_clipsaves < 0:
                 print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
