@@ -16,8 +16,9 @@ S.D.G."""
 from getpass import getpass
 import queue
 import textwrap
-import time
 import threading
+import time
+from typing import Sequence
 from cocorum import RumbleAPI, servicephp, scraping
 from cocorum.chatapi import ChatAPI
 from . import actions, commands, misc, utils, static
@@ -26,7 +27,7 @@ from . import actions, commands, misc, utils, static
 class RumbleChatActor:
     """Actor that interacts with Rumble chat"""
 
-    def __init__(self, init_message="Hello, Rumble!", ignore_users=static.KNOWN_BOTS, **kwargs):
+    def __init__(self, init_message: str = "Hello, Rumble!", ignore_users: Sequence[str] = static.KNOWN_BOTS, **kwargs):
         """Actor that interacts with Rumble chat.
     Instance this object, register all chat commands and message actions, then call its mainloop() method.
 
@@ -35,6 +36,8 @@ class RumbleChatActor:
             Defaults to latest livestream.
         init_message (str): What to say when the actor starts up.
             Defaults to "Hello, Rumble!"
+        session (str | dict[str, str): A saved session token we are already logged in with.
+            Defaults to None, we must perform login now.
         username (str): The username to log in with.
             Defaults to manual entry.
         password (str): The password to log in with.
@@ -53,7 +56,7 @@ class RumbleChatActor:
             Defaults to automatic determination if possible.
         streamer_main_page_url (str): The URL of the streamer's main page.
             Defaults to automatic determination if possible.
-        ignore_users (list): List of usernames to not act on (not a moderation feature).
+        ignore_users (Sequence[str]): List of usernames to not act on (not a moderation feature).
             Defaults to static.KNOWN_BOTS
         invalid_command_respond (bool): Sets if we should post an error message if a command was invalid.
             Defaults to False.
@@ -80,10 +83,9 @@ class RumbleChatActor:
             f"Argument streamer_main_page_url must be str or None, not {type(self.__is_channel_stream)}"
 
         # Get Live Stream API
-        if "api_url" in kwargs:
-            self.rum_api = RumbleAPI(kwargs["api_url"])
-        else:
-            self.rum_api = None
+        self.rum_api = RumbleAPI(
+            kwargs["api_url"]) if "api_url" in kwargs else None
+        """A Rumble Live Stream API wrapper instance, if we have a URL"""
 
         # A stream ID was passed
         if "stream_id" in kwargs:
@@ -113,6 +115,7 @@ class RumbleChatActor:
         # Get the login credentials from arguments, or None if they were not passed
         self.username = kwargs.get("username")
         self.password = kwargs.get("password")
+        session = kwargs.get("session")
 
         # Username must not be an email
         if "@" in self.username:
@@ -120,9 +123,16 @@ class RumbleChatActor:
             self.username = None
 
         # We can get the username from the Rumble Live Stream API
-        if not self.username and self.rum_api:
-            self.username = self.rum_api.username
-            print("Actor username obtained from Live Stream API:", self.username)
+        if self.rum_api:
+            # ...and we need to
+            if not self.username:
+                self.username = self.rum_api.username
+                print("Actor username obtained from Live Stream API:", self.username)
+
+            # ...and it matches what we were given, right?
+            else:
+                assert self.rum_api.username == self.username, \
+                    f"Rumble Live Stream API username is `{self.rum_api.username}` but provided userame is `{self.username}`"
 
         # Sign in to chat
         first_time = True
@@ -130,19 +140,33 @@ class RumbleChatActor:
             # Ask user for credentials as needed
             if not self.username:
                 self.username = input("Actor username: ")
-            if not self.password:
+            else:
+                print("Actor username:", self.username)
+            if not (self.password or session):
                 self.password = getpass("Actor password: ")
 
             try:
-                self.servicephp = servicephp.ServicePHP(self.username)
-                twofa = self.servicephp.login_basic(self.password)
-                if twofa:
-                    self.handle_2fa(twofa)
+                # If session is None, this will not cause an error
+                # If session is invalid, this will raise AssertionError
+                self.servicephp = servicephp.ServicePHP(
+                    self.username, session=session)
+
+                # We did not receive a session token, so we must log in
+                if not session:
+                    twofa = self.servicephp.login_basic(self.password)
+                    if twofa:
+                        self.handle_2fa(twofa)
+
             # Login failed
             except AssertionError as e:
                 print("Error. Login failed with provided credentials:", e)
-                self.username = None
+
+                # We haven't vetted this username via the RLS API, so reset it
+                if not self.rum_api:
+                    self.username = None
+
                 self.password = None
+                session = None
 
             first_time = False
 
