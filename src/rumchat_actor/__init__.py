@@ -39,6 +39,8 @@ class RumbleChatActor:
             Defaults to manual entry.
         password (str): The password to log in with.
             Defaults to manual entry.
+        logout_on_exit (bool): Wether or not to log out when the actor quits.
+            Defaults to True.
         channel (int | str): The channel to post messages as.
             Defaults to user posts messages, no channel.
         api_url (str): The Rumble Live Stream API URL with your key (or RumBot's passthrough).
@@ -60,7 +62,7 @@ class RumbleChatActor:
         max_inbox_age (int | float): How old messages in the chat can be before we start skipping them to catch up.
             Defaults to static.Message.max_inbox_age"""
 
-        #The info of the person streaming
+        # The info of the person streaming
         self.__streamer_username = kwargs.get("streamer_username")
         assert isinstance(self.__streamer_username, str) or self.__streamer_username is None, \
             f"Streamer username must be str or None, not {type(self.__streamer_username)}"
@@ -85,7 +87,8 @@ class RumbleChatActor:
 
         # A stream ID was passed
         if "stream_id" in kwargs:
-            self.stream_id, self.stream_id_b10 = utils.base_36_and_10(kwargs["stream_id"])
+            self.stream_id, self.stream_id_b10 = utils.base_36_and_10(
+                kwargs["stream_id"])
 
             # It is not our livestream or we have no Live Stream API,
             # so LS API functions are not available
@@ -147,7 +150,8 @@ class RumbleChatActor:
         self.chat.clear_mailbox()
 
         # The maximum age of a message before we will not process it
-        self.max_inbox_age = kwargs.get("max_inbox_age", static.Message.max_inbox_age)
+        self.max_inbox_age = kwargs.get(
+            "max_inbox_age", static.Message.max_inbox_age)
 
         # Scraper for getting some info
         self.scraper = scraping.Scraper(self.servicephp)
@@ -160,7 +164,8 @@ class RumbleChatActor:
 
         # A channel was specified
         if self.channel:
-            print(f"Channel to post messages under specified as {self.channel}. Searching for a matching slug or ID...")
+            print(
+                f"Channel to post messages under specified as {self.channel}. Searching for a matching slug or ID...")
             # Get all real channels we can use
             postable_channels = self.scraper.get_channels()
 
@@ -172,7 +177,8 @@ class RumbleChatActor:
                 if channel == self.channel:
                     # Make our channel choice specifically the numeric ID, even if it already was
                     self.channel = channel.channel_id_b10
-                    print(f"Found message posting channel match: '{channel.title}', slug '{channel.slug}', numeric ID {channel.channel_id_b10}.")
+                    print(
+                        f"Found message posting channel match: '{channel.title}', slug '{channel.slug}', numeric ID {channel.channel_id_b10}.")
                     found = True
                     break
 
@@ -188,14 +194,14 @@ class RumbleChatActor:
         self.__sent_messages_queue = queue.Queue()
 
         # Messages waiting to be sent
-        self.outbox = queue.Queue(kwargs.get("max_outbox_size", static.Message.max_outbox_size))
+        self.outbox = queue.Queue(kwargs.get(
+            "max_outbox_size", static.Message.max_outbox_size))
 
         # Messages that we know are actually raid alerts
         self.known_raid_alert_messages = []
 
         # Action to be taken when raids occur
         self.__raid_action = print
-
 
         # Loop condition of the mainloop() and sender_loop() methods
         self.keep_running = True
@@ -209,7 +215,8 @@ class RumbleChatActor:
         self.last_message_send_time = time.time()
 
         # thread to send messages at timed intervals
-        self.sender_thread = threading.Thread(target = self._sender_loop, daemon = True)
+        self.sender_thread = threading.Thread(
+            target=self._sender_loop, daemon=True)
         self.sender_thread.start()
 
         # Functions that are to be called on each message,
@@ -220,9 +227,13 @@ class RumbleChatActor:
         self.chat_commands = {}
 
         # Wether or not to post an error message if an invalid command was called
-        self.invalid_command_respond = kwargs.get("invalid_command_respond", False)
+        self.invalid_command_respond = kwargs.get(
+            "invalid_command_respond", False)
         assert isinstance(self.invalid_command_respond, bool), \
             f"Argument invalid_command_respond must be bool, not {type(self.invalid_command_respond)}"
+
+        # Finally, get the logout setting
+        self.logout_on_exit = kwargs.get("logout_on_exit", True)
 
     @property
     def streamer_username(self):
@@ -232,7 +243,8 @@ class RumbleChatActor:
             if self.api_stream:
                 self.__streamer_username = self.rum_api.username
             else:
-                self.__streamer_username = input("Enter the username of the person streaming: ")
+                self.__streamer_username = input(
+                    "Enter the username of the person streaming: ")
 
         return self.__streamer_username
 
@@ -249,7 +261,8 @@ class RumbleChatActor:
             # or the API URL was not under our channel,
             # and we are sure this is a channel stream
             else:
-                self.__streamer_channel = input("Enter the channel of the person streaming: ")
+                self.__streamer_channel = input(
+                    "Enter the channel of the person streaming: ")
 
         return self.__streamer_channel
 
@@ -264,7 +277,8 @@ class RumbleChatActor:
 
             # We will ask the user
             else:
-                self.__is_channel_stream = "y" in input("Is this a channel stream? y/[N]:").lower()
+                self.__is_channel_stream = "y" in input(
+                    "Is this a channel stream? y/[N]:").lower()
 
         return self.__is_channel_stream
 
@@ -278,11 +292,13 @@ class RumbleChatActor:
                 if self.api_stream:
                     # We know our channel ID from the API
                     if self.rum_api.channel_id:
-                        self.__streamer_main_page_url = static.URI.channel_page.format(channel_name = f"c-{self.rum_api.channel_id}")
+                        self.__streamer_main_page_url = static.URI.channel_page.format(
+                            channel_name=f"c-{self.rum_api.channel_id}")
 
                     # Is a channel stream and on the API but API is not for channel, use the user page instead
                     else:
-                        self.__streamer_main_page_url = static.URI.user_page.format(username = self.streamer_username)
+                        self.__streamer_main_page_url = static.URI.user_page.format(
+                            username=self.streamer_username)
 
                 # Is not an API stream and we don't know the username
                 elif not self.__streamer_username:
@@ -292,7 +308,8 @@ class RumbleChatActor:
 
             # Not a channel stream, go by username
             else:
-                self.__streamer_main_page_url = static.URI.user_page.format(username = self.streamer_username)
+                self.__streamer_main_page_url = static.URI.user_page.format(
+                    username=self.streamer_username)
 
         return self.__streamer_main_page_url
 
@@ -318,23 +335,24 @@ class RumbleChatActor:
         text = static.Message.bot_prefix + text
         assert "\n" not in text, "Message cannot contain newlines"
         assert len(text) < static.Message.max_multi_len, "Message is too long"
-        for subtext in textwrap.wrap(text, width = static.Message.max_len):
+        for subtext in textwrap.wrap(text, width=static.Message.max_len):
             is_sent = False
             while not is_sent:
                 try:
-                    self.outbox.put(subtext, block = False)
+                    self.outbox.put(subtext, block=False)
                     # TODO: Print is not quite thread safe... sort of? It won't crash at least
                     print("💬:", subtext)
                     is_sent = True
                 except queue.Full:
-                    print("Error: Message send outbox is full, dropped message:\n\t", self.outbox.get())
+                    print(
+                        "Error: Message send outbox is full, dropped message:\n\t", self.outbox.get())
 
     def _sender_loop(self):
         """Constantly check our outbox and send any messages in it"""
         while self.keep_running:
-            #We have messages to send and it is time to send one
+            # We have messages to send and it is time to send one
             if time.time() - self.last_message_send_time > static.Message.send_cooldown:
-                try: #Must be nonblocking so we can shut down
+                try:  # Must be nonblocking so we can shut down
                     self.__send_message(self.outbox.get_nowait())
                 except queue.Empty:
                     pass
@@ -383,6 +401,8 @@ class RumbleChatActor:
         """Shut down everything"""
         self.keep_running = False
         self.chat.close()
+        if self.logout_on_exit:
+            self.servicephp.logout()
 
     def __run_if_command(self, message, act_props: dict):
         """Check if a message is a command, and run it if so
@@ -391,22 +411,24 @@ class RumbleChatActor:
             message (cocorum.ChatAPI.Message): The message in question.
             act_props (dict): Properties of this message as recorded by message actors."""
 
-        #Not a command
+        # Not a command
         if not message.text.startswith(static.Message.command_prefix):
             return
 
-        #Get command name
-        name = message.text.split()[0].removeprefix(static.Message.command_prefix)
+        # Get command name
+        name = message.text.split()[0].removeprefix(
+            static.Message.command_prefix)
 
-        #Is not a valid command
+        # Is not a valid command
         if name not in self.chat_commands:
             if self.invalid_command_respond:
-                self.send_message(f"@{message.user.username} That is not a registered command.")
+                self.send_message(
+                    f"@{message.user.username} That is not a registered command.")
             return
 
         self.chat_commands[name].call(message, act_props)
 
-    def register_command(self, command, name = None, help_message = None):
+    def register_command(self, command, name=None, help_message=None):
         """Register a command
 
         Args:
@@ -416,24 +438,27 @@ class RumbleChatActor:
             help_message (str): Help message for this command.
                 Defaults to None, use the ChatCommand help message (cannot override).
             """
-        #Is a ChatCommand instance
+        # Is a ChatCommand instance
         if isinstance(command, commands.ChatCommand):
             if name and name != command.name:
-                print(f"Overriding command name ''{command.name}' with '{name}'")
+                print(
+                    f"Overriding command name ''{command.name}' with '{name}'")
                 command.name = name
 
             self.chat_commands[command.name] = command
 
-        #Is a callable
+        # Is a callable
         elif callable(command):
             assert name, "Name cannot be None if command is a callable"
             assert " " not in name, "Name cannot contain spaces"
-            self.chat_commands[name] = commands.ChatCommand(name = name, actor = self, target = command)
+            self.chat_commands[name] = commands.ChatCommand(
+                name=name, actor=self, target=command)
 
         else:
-            raise TypeError(f"Command must be of type ChatCommand or a callable, not {type(command)}.")
+            raise TypeError(
+                f"Command must be of type ChatCommand or a callable, not {type(command)}.")
 
-        #A specific help message was provided
+        # A specific help message was provided
         if help_message:
             assert not self.chat_commands[name].help_message, "ChatCommand has internal help message already set, cannot override"
             self.chat_commands[name].help_message = help_message
@@ -450,7 +475,8 @@ class RumbleChatActor:
         if hasattr(action, "action"):
             action = action.action
 
-        assert callable(action), "Action must be a callable or have an action() attribute"
+        assert callable(
+            action), "Action must be a callable or have an action() attribute"
         self.message_actions.append(action)
 
     @property
@@ -475,42 +501,45 @@ class RumbleChatActor:
         Args:
             message (cocorum.ChatAPI.Message): The message to send to actions and check for commands"""
 
-        #Skip messages that are too old
+        # Skip messages that are too old
         if time.time() - message.time > self.max_inbox_age:
-            print(f"Error: Message processing is behind. Skipped message:\n{message.text}\n\t- {message.user.username}")
+            print(
+                f"Error: Message processing is behind. Skipped message:\n{message.text}\n\t- {message.user.username}")
             return
 
-        #Ignore messages that are from our account and match ones we sent before
+        # Ignore messages that are from our account and match ones we sent before
         if message.user.username == self.username and message.text in self.sent_messages:
             return
 
-        #the message is actually a raid alert, take raid action on it, nothing more
+        # the message is actually a raid alert, take raid action on it, nothing more
         if message.raid_notification:
             self.known_raid_alert_messages.append(message)
             self.raid_action(message, self)
             return
 
-        #If the message is from the same account as us, consider it in message send cooldown
+        # If the message is from the same account as us, consider it in message send cooldown
         if message.user.username == self.username:
-            self.last_message_send_time = max((self.last_message_send_time, message.time))
+            self.last_message_send_time = max(
+                (self.last_message_send_time, message.time))
 
-        #Ignore messages that are in the ignore_users list
+        # Ignore messages that are in the ignore_users list
         if message.user.username in self.ignore_users:
             return
 
         act_props_all = {}
         for action in self.message_actions:
-            #The message got deleted
+            # The message got deleted
             if message.deleted:
                 return
 
             act_props_one = action(message, act_props_all, self)
 
-            #Legacy message action return support
+            # Legacy message action return support
             if act_props_one is None:
                 act_props_one = {}
             elif not isinstance(act_props_one, dict):
-                print(f"Warning: message action {action} did not return valid action properties, but rather {act_props_one}. Compensating with blank action properties.")
+                print(
+                    f"Warning: message action {action} did not return valid action properties, but rather {act_props_one}. Compensating with blank action properties.")
                 act_props_one = {}
 
             act_props_all.update(act_props_one)
@@ -521,7 +550,7 @@ class RumbleChatActor:
 
     def empty_sent_message_queue(self):
         """Move sent messages from the thread exit pipe to the list"""
-        #WARNING: This is only safe if nobody else gets from this queue!
+        # WARNING: This is only safe if nobody else gets from this queue!
         while not self.__sent_messages_queue.empty():
             self.sent_messages.append(self.__sent_messages_queue.get())
 
