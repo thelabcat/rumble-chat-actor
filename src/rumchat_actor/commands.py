@@ -24,7 +24,7 @@ from . import utils, static
 class ChatCommand():
     """Chat command abstract class"""
 
-    def __init__(self, name, actor, target = None, **kwargs):
+    def __init__(self, name, actor, target=None, **kwargs):
         """Chat command abstract class
     Instance this object, then pass it to RumbleChatActor().register_command().
 
@@ -50,28 +50,29 @@ class ChatCommand():
         self.name = name
         self.actor = actor
 
-        #Don't let the cooldown be shorter than we can send messages
+        # Don't let the cooldown be shorter than we can send messages
         self.cooldown = kwargs.get("cooldown", static.Message.send_cooldown)
         assert self.cooldown >= static.Message.send_cooldown, \
             f"Cannot set a cooldown shorter than {static.Message.send_cooldown}"
 
-        #Cost of the command
+        # Cost of the command
         self.amount_cents = kwargs.get("amount_cents", 0)
 
-        #Is this command exclusive to only certain user badges?
+        # Is this command exclusive to only certain user badges?
         self.exclusive = kwargs.get("exclusive", False)
 
-        #Allowed badges if this is exclusive
-        #Admin can always run any command
-        self.allowed_badges = ["admin"] + kwargs.get("allowed_badges", ["subscriber"])
+        # Allowed badges if this is exclusive
+        # Admin can always run any command
+        self.allowed_badges = ["admin"] + \
+            kwargs.get("allowed_badges", ["subscriber"])
 
-        #Free-of-charge access badges if this command is paid
-        #Admin always has free-of-charge usage
+        # Free-of-charge access badges if this command is paid
+        # Admin always has free-of-charge usage
         self.free_badges = ["admin"] + kwargs.get("free_badges", ["moderator"])
 
-        self.last_use_time = 0 #Last time the command was called
-        self.target = target #Callable to run
-        self.__set_help_message = None #The externally set help message of this command
+        self.last_use_time = 0  # Last time the command was called
+        self.target = target  # Callable to run
+        self.__set_help_message = None  # The externally set help message of this command
 
     @property
     def help_message(self):
@@ -95,9 +96,9 @@ class ChatCommand():
         message (cocorum.ChatAPI.Message): The chat message that called us.
         act_props (dict): Message action recorded properties."""
 
-        #this command is exclusive, and the user does not have the required badge
+        # this command is exclusive, and the user does not have the required badge
         if self.exclusive and \
-            not (True in [badge.slug in self.allowed_badges for badge in message.user.badges]):
+                not (True in [badge.slug in self.allowed_badges for badge in message.user.badges]):
 
             self.actor.send_message(f"@{message.user.username} That command is exclusive to: " +
                                     ", ".join(self.allowed_badges)
@@ -105,28 +106,28 @@ class ChatCommand():
 
             return
 
-        #The command is still on cooldown
+        # The command is still on cooldown
         if (curtime := time.time()) - self.last_use_time < self.cooldown:
             self.actor.send_message(
                 f"@{message.user.username} That command is still on cooldown. " +
                 f"Try again in {int(self.last_use_time + self.cooldown - curtime + 0.5)} seconds."
-                )
+            )
 
             return
 
-        #the user did not pay enough for the command and they do not have a free pass
+        # the user did not pay enough for the command and they do not have a free pass
         if message.rant_price_cents < self.amount_cents and \
-            not (True in [badge.slug in self.free_badges for badge in message.user.badges]):
+                not (True in [badge.slug in self.free_badges for badge in message.user.badges]):
 
             self.actor.send_message("@" + message.user.username +
                                     f" That command costs ${self.amount_cents/100:.2f}."
                                     )
             return
 
-        #the command was called successfully
+        # the command was called successfully
         self.run(message, act_props)
 
-        #Mark the last use time for cooldown
+        # Mark the last use time for cooldown
         self.last_use_time = time.time()
 
     def run(self, message, act_props: dict):
@@ -140,14 +141,16 @@ class ChatCommand():
             self.target(message, act_props, self.actor)
             return
 
-        #Run method was never defined
+        # Run method was never defined
         self.actor.send_message("@" + message.user.username +
                                 "This command never had a target defined, so it doesn't do anything. :-)"
                                 )
 
+
 class TTSCommand(ChatCommand):
     """Text-to-speech command"""
-    def __init__(self, *args, name = "tts", no_double_sound = True, voices = {}, **kwargs):
+
+    def __init__(self, *args, name="tts", no_double_sound=True, voices={}, **kwargs):
         """Text-to-speech command.
     Instance this object, then pass it to RumbleChatActor().register_command().
 
@@ -172,12 +175,12 @@ class TTSCommand(ChatCommand):
             Defaults to ["moderator"]
     """
 
-        super().__init__(*args, name = name, **kwargs)
+        super().__init__(*args, name=name, **kwargs)
 
         self.no_double_sound = no_double_sound
         self.voices = voices
 
-        #Make sure we have a default voice
+        # Make sure we have a default voice
         if "default" not in self.voices:
             self.voices["default"] = talkey.Talkey().say
 
@@ -185,14 +188,15 @@ class TTSCommand(ChatCommand):
     def help_message(self):
         """The help message for this command"""
         return f"Speak your message{f" for ${self.amount_cents/100: .2%}" if self.amount_cents else ""}." + \
-            f"Use {static.Message.command_prefix}{self.name} [voice] Your message. Available voices are: " + ", ".join(self.voices)
+            f"Use {static.Message.command_prefix}{self.name} [voice] Your message. Available voices are: " + ", ".join(
+                self.voices)
 
     @property
     def default_voice(self):
         """The default TTS voice as a say(text) callable"""
         return self.voices["default"]
 
-    def speak(self, text, voice = None):
+    def speak(self, text, voice=None):
         """Speak text with voice
 
     Args:
@@ -202,7 +206,7 @@ class TTSCommand(ChatCommand):
         if not voice:
             self.default_voice(text)
 
-        #Voice was not actually in our list of voices
+        # Voice was not actually in our list of voices
         elif voice not in self.voices:
             self.default_voice(voice + " " + text)
 
@@ -216,32 +220,34 @@ class TTSCommand(ChatCommand):
         message (cocorum.ChatAPI.Message): The chat message that called us.
         act_props (dict): Message action recorded properties."""
 
-        #Do not create more sound if a message action already made some
+        # Do not create more sound if a message action already made some
         if self.no_double_sound and act_props.get("sound"):
             return
 
         segs = message.text.split()
 
-        #No args for the tts command
+        # No args for the tts command
         if len(segs) < 2:
             return
 
-        #Only one word for tts
+        # Only one word for tts
         if len(segs) == 2:
             self.speak(segs[1])
             return
 
-        #A voice was selected
+        # A voice was selected
         if segs[1] in self.voices:
             self.speak(" ".join(segs[2:]), segs[1])
             return
 
-        #No voice was selected
+        # No voice was selected
         self.speak(" ".join(segs[1:]))
+
 
 class MessageCommand(ChatCommand):
     """Post a single message in chat"""
-    def __init__(self, actor, name, text, help_message = None):
+
+    def __init__(self, actor, name, text, help_message=None):
         """Post a single message in chat.
     Instance this object, then pass it to RumbleChatActor().register_command().
 
@@ -252,7 +258,7 @@ class MessageCommand(ChatCommand):
         help_message (str): The message that the help command will display.
             Defaults to None"""
 
-        super().__init__(name = name, actor = actor)
+        super().__init__(name=name, actor=actor)
         self.text = text
         if help_message:
             self.help_message = help_message
@@ -266,9 +272,11 @@ class MessageCommand(ChatCommand):
 
         self.actor.send_message(self.text.format(message.user.username))
 
+
 class HelpCommand(ChatCommand):
     """List available commands, or show help for a specific command"""
-    def __init__(self, actor, name = "help"):
+
+    def __init__(self, actor, name="help"):
         """List available commands, or show help for a specific command.
     Instance this object, then pass it to RumbleChatActor().register_command().
 
@@ -276,7 +284,7 @@ class HelpCommand(ChatCommand):
         actor (RumbleChatActor): The Rumble chat actor host.
         name (str): The command name."""
 
-        super().__init__(name = name, actor = actor)
+        super().__init__(name=name, actor=actor)
 
     @property
     def help_message(self):
@@ -294,33 +302,37 @@ class HelpCommand(ChatCommand):
 
         segs = message.text.split()
 
-        #Command was run without arguments
+        # Command was run without arguments
         if len(segs) == 1:
             self.actor.send_message(
-                "The following commands are registered: " + \
+                "The following commands are registered: " +
                 ", ".join(self.actor.chat_commands)
             )
 
-        #Command had one argument
+        # Command had one argument
         elif len(segs) == 2:
-            #Argument is a valid command
+            # Argument is a valid command
             if segs[-1] in self.actor.chat_commands:
                 hm = self.actor.chat_commands[segs[-1]].help_message
                 if not hm:
                     hm = "No specific help for this command."
                 self.actor.send_message(segs[-1] + " command: " + hm)
 
-            #Argument is something else
+            # Argument is something else
             else:
-                self.actor.send_message(f"Cannot provide help for '{segs[-1]}' as it is not a registered command.")
+                self.actor.send_message(
+                    f"Cannot provide help for '{segs[-1]}' as it is not a registered command.")
 
-        #Command has more than one argument
+        # Command has more than one argument
         else:
-            self.actor.send_message("Invalid number of arguments for help command.")
+            self.actor.send_message(
+                "Invalid number of arguments for help command.")
+
 
 class KillswitchCommand(ChatCommand):
     """A killswitch for Rumchat Actor, in case moderators or admin need to shut it down from the chat"""
-    def __init__(self, actor, name = "killswitch", allowed_badges = ["moderator"]):
+
+    def __init__(self, actor, name="killswitch", allowed_badges=["moderator"]):
         """A killswitch for Rumchat Actor, in case moderators or admin need to shut it down from the chat.
     Instance this object, then pass it to RumbleChatActor().register_command().
 
@@ -331,7 +343,7 @@ class KillswitchCommand(ChatCommand):
             "admin" is added internally.
             Defaults to ["moderator"]"""
 
-        super().__init__(name = name, actor = actor, exclusive = True, allowed_badges = allowed_badges)
+        super().__init__(name=name, actor=actor, exclusive=True, allowed_badges=allowed_badges)
 
     @property
     def help_message(self):
@@ -352,10 +364,11 @@ class KillswitchCommand(ChatCommand):
             print("Killswitch thrown.")
             sys.exit()
 
+
 class ClipDownloadingCommand(ChatCommand):
     """Save clips of the livestream by downloading stream chunks from Rumble, works remotely"""
 
-    def __init__(self, actor, name = "clip", default_duration = 60, max_duration = 120, clip_save_path = "." + os.sep):
+    def __init__(self, actor, name="clip", default_duration=60, max_duration=120, clip_save_path="." + os.sep):
         """Save clips of the livestream by downloading stream chunks from Rumble, works remotely.
     Instance this object, optionally pass it to the init method of a ClipUploader, then pass it to RumbleChatActor().register_command().
 
@@ -374,12 +387,15 @@ class ClipDownloadingCommand(ChatCommand):
         super().__init__(name=name, actor=actor, cooldown=default_duration)
         self.default_duration = default_duration
         self.max_duration = max_duration
-        self.clip_save_path = clip_save_path.removesuffix(os.sep) + os.sep #Where to save the completed clips
+        self.clip_save_path = clip_save_path.removesuffix(
+            os.sep) + os.sep  # Where to save the completed clips
         self.ready_to_clip = False
 
         # WARNING: These variables are used within threads without mutex. DO NOT REFERENCE EXTERNALLY!
-        self.unavailable_qualities = []  # Stream qualities that are not available (cause a 404)
-        self.avg_ts_download_times = {}  # The average time it takes to download a TS chunk of a given stream quality
+        # Stream qualities that are not available (cause a 404)
+        self.unavailable_qualities = []
+        # The average time it takes to download a TS chunk of a given stream quality
+        self.avg_ts_download_times = {}
 
         # WARNING: These variables are used within threads with mutex.
         self.ts_durations = {}  # The duration of a TS chunk of a given stream quality
@@ -391,13 +407,20 @@ class ClipDownloadingCommand(ChatCommand):
         self.running_clipsaves = 0  # How many clip save operations are running
         self.running_clipsaves_mutex = threading.Lock()
 
-        self.is_dvr = False  # Wether the stream is a DVR or not, detected later. No TS cache is needed if it is
-        self.use_quality = None  # The quality of stream to use, detected later, based on download speeds
-        self.ts_url_start = ""  # The start of the m3u8 and TS URLs, to be formatted with the selected quality, detected later
-        self.m3u8_filename = ""  # The filename of the m3u8 playlist, will be either chunklist.m3u8 or chunklist_DVR.m3u8, detected later
-        self.save_format = static.Clip.save_extension  # Format that clips are saved in. For ClipUploader
-        self.clip_uploader = None  # An object to upload the clips when they are complete (WARNING: Used within thread)
-        self.recorder_thread = threading.Thread(target=self.record_loop, daemon=True)
+        # Wether the stream is a DVR or not, detected later. No TS cache is needed if it is
+        self.is_dvr = False
+        # The quality of stream to use, detected later, based on download speeds
+        self.use_quality = None
+        # The start of the m3u8 and TS URLs, to be formatted with the selected quality, detected later
+        self.ts_url_start = ""
+        # The filename of the m3u8 playlist, will be either chunklist.m3u8 or chunklist_DVR.m3u8, detected later
+        self.m3u8_filename = ""
+        # Format that clips are saved in. For ClipUploader
+        self.save_format = static.Clip.save_extension
+        # An object to upload the clips when they are complete (WARNING: Used within thread)
+        self.clip_uploader = None
+        self.recorder_thread = threading.Thread(
+            target=self.record_loop, daemon=True)
         self.run_recorder = True
         self.recorder_thread.start()
 
@@ -418,39 +441,44 @@ class ClipDownloadingCommand(ChatCommand):
 
         assert self.ts_url_start and self.m3u8_filename, \
             "Must have the TS URL start and the m3u8 filename before this runs"
-        m3u8 = requests.get(self.ts_url_start.format(quality = quality) + \
-            self.m3u8_filename, timeout = static.REQUEST_TIMEOUT).text
+        m3u8 = requests.get(self.ts_url_start.format(quality=quality) +
+                            self.m3u8_filename, timeout=static.REQUEST_TIMEOUT).text
         return [line for line in m3u8.splitlines() if not line.startswith("#")]
 
     def record_loop(self):
         """Start and run the recorder system"""
 
-        #Get the base URL for the wualities listing
-        m3u8_qualities_url = static.URI.m3u8_qualities_list.format(stream_id_b36 = self.actor.stream_id_b36)
+        # Get the base URL for the wualities listing
+        m3u8_qualities_url = static.URI.m3u8_qualities_list.format(
+            stream_id_b36=self.actor.stream_id_b36)
 
-        m3u8_qualities_raw = requests.get(m3u8_qualities_url, timeout = static.REQUEST_TIMEOUT).text
+        m3u8_qualities_raw = requests.get(
+            m3u8_qualities_url, timeout=static.REQUEST_TIMEOUT).text
 
-        m3u8_quality_urls_all = [line for line in m3u8_qualities_raw.splitlines() if not line.startswith("#")]
+        m3u8_quality_urls_all = [
+            line for line in m3u8_qualities_raw.splitlines() if not line.startswith("#")]
         ts_url_default = m3u8_quality_urls_all[-1]
 
-        #Is this a DVR stream?
+        # Is this a DVR stream?
         self.is_dvr = ts_url_default.endswith("DVR.m3u8")
 
-        self.ts_url_start = ts_url_default[:ts_url_default.rfind("/")] + "_{quality}/"
+        self.ts_url_start = ts_url_default[:ts_url_default.rfind(
+            "/")] + "_{quality}/"
 
-        self.m3u8_filename = ts_url_default[ts_url_default.rfind("/") + 1 ]
+        self.m3u8_filename = ts_url_default[ts_url_default.rfind("/") + 1]
 
         self.get_quality_info()
 
         if self.is_dvr:
             # Since this is a simple variable being assigned to something calculated within thread, I think it's thread-safe
-            self.use_quality = [q for q in static.Clip.Download.stream_qualities if q not in self.unavailable_qualities][-1]
+            self.use_quality = [
+                q for q in static.Clip.Download.stream_qualities if q not in self.unavailable_qualities][-1]
             print("Not using TS cache for clips since stream is DVR. Ready to clip.")
             self.run_recorder = False
             self.ready_to_clip = True
             return
 
-        #Find the best quality we can use
+        # Find the best quality we can use
         for quality in static.Clip.Download.stream_qualities:
             if quality in self.unavailable_qualities:
                 continue
@@ -471,7 +499,8 @@ class ClipDownloadingCommand(ChatCommand):
             try:
                 with self.saved_ts_mutex:
                     with self.discarded_ts_mutex:
-                        new_ts_list = [ts for ts in self.get_ts_list(self.use_quality) if ts not in self.saved_ts.values() and ts not in self.discarded_ts]
+                        new_ts_list = [ts for ts in self.get_ts_list(
+                            self.use_quality) if ts not in self.saved_ts.values() and ts not in self.discarded_ts]
             except (AttributeError, requests.exceptions.ReadTimeout):
                 print("Failed to get m3u8 playlist")
                 continue
@@ -486,8 +515,10 @@ class ClipDownloadingCommand(ChatCommand):
             # Save the unsaved TS chunks to temporary files
             for ts_name in new_ts_list:
                 try:
-                    data = requests.get(self.ts_url_start.format(quality=self.use_quality) + ts_name, timeout=static.REQUEST_TIMEOUT).content
-                except (AttributeError, requests.exceptions.ReadTimeout):  # The request failed or has no content
+                    data = requests.get(self.ts_url_start.format(
+                        quality=self.use_quality) + ts_name, timeout=static.REQUEST_TIMEOUT).content
+                # The request failed or has no content
+                except (AttributeError, requests.exceptions.ReadTimeout):
                     print("Failed to save ", ts_name)
                     continue
                 f = tempfile.NamedTemporaryFile()
@@ -502,7 +533,8 @@ class ClipDownloadingCommand(ChatCommand):
                     with self.running_clipsaves_mutex:
                         while not self.running_clipsaves and (len(self.saved_ts) - 1) * self.ts_durations[self.use_quality] > self.max_duration:
                             oldest_ts = list(self.saved_ts.keys())[0]
-                            self.saved_ts[oldest_ts].close()  # close the tempfile
+                            # close the tempfile
+                            self.saved_ts[oldest_ts].close()
                             del self.saved_ts[oldest_ts]
                             with self.discarded_ts_mutex:
                                 self.discarded_ts.append(oldest_ts)
@@ -517,27 +549,31 @@ class ClipDownloadingCommand(ChatCommand):
         assert self.ts_url_start, "Must have start of TS URL before this runs"
         for quality in static.Clip.Download.stream_qualities:
             download_times = []
-            chunk_content = None  # The content of a successful chunk download. used for duration checking
+            # The content of a successful chunk download. used for duration checking
+            chunk_content = None
             for _ in range(static.Clip.Download.speed_test_iter):
                 r1 = None
                 try:
-                    r1 = requests.get(self.ts_url_start.format(quality=quality) + self.m3u8_filename, timeout=static.REQUEST_TIMEOUT)
+                    r1 = requests.get(self.ts_url_start.format(
+                        quality=quality) + self.m3u8_filename, timeout=static.REQUEST_TIMEOUT)
                 except requests.exceptions.ReadTimeout:
                     print("Timeout for m3u8 playlist download")
                     download_times.append(static.REQUEST_TIMEOUT + 1)
                     continue
 
                 if r1.status_code == 404:
-                    print("404 for", self.ts_url_start.format(quality=quality) + self.m3u8_filename, "so assuming", quality, "quality is not available.")
+                    print("404 for", self.ts_url_start.format(quality=quality) +
+                          self.m3u8_filename, "so assuming", quality, "quality is not available.")
                     self.unavailable_qualities.append(quality)
                     break
 
-                #Download a chunk and time it
+                # Download a chunk and time it
                 ts_chunk_names = [l for l in r1.text if not l.startswith("#")]
                 start_time = time.time()
                 r2 = None
                 try:
-                    r2 = requests.get(self.ts_url_start.format(quality = quality) + ts_chunk_names[-1], timeout = static.REQUEST_TIMEOUT)
+                    r2 = requests.get(self.ts_url_start.format(
+                        quality=quality) + ts_chunk_names[-1], timeout=static.REQUEST_TIMEOUT)
                 except requests.exceptions.ReadTimeout:
                     print("Timeout for TS chunk download")
                     download_times.append(static.REQUEST_TIMEOUT + 1)
@@ -549,11 +585,12 @@ class ClipDownloadingCommand(ChatCommand):
                 chunk_content = r2.content
 
             if not download_times and quality not in self.unavailable_qualities:
-                print("No successful chunk downloads for", quality, "so setting it as unavailable")
+                print("No successful chunk downloads for",
+                      quality, "so setting it as unavailable")
                 self.unavailable_qualities.append(quality)
                 continue
 
-            #Get chunk duration
+            # Get chunk duration
             ts = tempfile.NamedTemporaryFile()
             ts.write(chunk_content)
             ts.file.close()
@@ -561,8 +598,9 @@ class ClipDownloadingCommand(ChatCommand):
                 self.ts_durations[quality] = VideoFileClip(ts.name).duration
             ts.close()
 
-            #Calculate average download time
-            self.avg_ts_download_times[quality] = sum(download_times) / len(download_times)
+            # Calculate average download time
+            self.avg_ts_download_times[quality] = sum(
+                download_times) / len(download_times)
 
     def run(self, message, act_props: dict):
         """Make a clip
@@ -574,32 +612,34 @@ class ClipDownloadingCommand(ChatCommand):
         # We are not ready for clipping
         with self.saved_ts_mutex:
             if not self.ready_to_clip or not (self.is_dvr or self.saved_ts):
-                self.actor.send_message(f"@{message.user.username} Not ready for clip saving yet.")
+                self.actor.send_message(
+                    f"@{message.user.username} Not ready for clip saving yet.")
                 return
 
         segs = message.text.split()
-        #Only called clip, no arguments
+        # Only called clip, no arguments
         if len(segs) == 1:
             self.save_clip(self.default_duration)
 
-        #Arguments were passed
+        # Arguments were passed
         else:
-            #The first argument is a number
+            # The first argument is a number
             if segs[1].isnumeric():
-                #Invalid length passed
+                # Invalid length passed
                 if not 0 < int(segs[1]) <= self.max_duration:
-                    self.actor.send_message(f"@{message.user.username} Invalid clip length.")
+                    self.actor.send_message(
+                        f"@{message.user.username} Invalid clip length.")
                     return
 
-                #Only length was specified
+                # Only length was specified
                 if len(segs) == 2:
                     self.save_clip(int(segs[1]))
 
-                #A name was also specified
+                # A name was also specified
                 else:
                     self.save_clip(int(segs[1]), "_".join(segs[2:]))
 
-            #The first argument is not a number, treat it as a filename
+            # The first argument is not a number, treat it as a filename
             else:
                 self.save_clip(self.default_duration, "_".join(segs[1:]))
 
@@ -632,20 +672,23 @@ class ClipDownloadingCommand(ChatCommand):
 
             # We have enough TS
             else:
-                use_ts = available_chunks[- int(duration / self.ts_durations[self.use_quality] + 0.5):]
+                use_ts = available_chunks[- int(duration /
+                                                self.ts_durations[self.use_quality] + 0.5):]
 
             # No filename specified, construct from time values
             if not filename:
                 t = time.time()
                 filename = f"{round(t - self.ts_durations[self.use_quality] * len(use_ts))}-{round(t)}"
 
-        #Avoid overwriting other clips
+        # Avoid overwriting other clips
         safe_filename = utils.get_safe_filename(self.clip_save_path, filename)
 
         with self.ts_durations_mutex:
-            self.actor.send_message(f"Saving clip {safe_filename}, duration of {round(self.ts_durations[self.use_quality] * len(use_ts))} seconds.")
+            self.actor.send_message(
+                f"Saving clip {safe_filename}, duration of {round(self.ts_durations[self.use_quality] * len(use_ts))} seconds.")
 
-        saveclip_thread = threading.Thread(target = self.form_ts_into_clip, args = (safe_filename, use_ts), daemon = True)
+        saveclip_thread = threading.Thread(
+            target=self.form_ts_into_clip, args=(safe_filename, use_ts), daemon=True)
         saveclip_thread.start()
 
     def form_ts_into_clip(self, filename, use_ts):
@@ -656,16 +699,18 @@ class ClipDownloadingCommand(ChatCommand):
         filename (str): The base name to save the clip file with, with no extension or path.
         use_ts (list): The list of TS file names to use for this clip."""
 
-        #Download the TS chunks if this is a DVR stream
+        # Download the TS chunks if this is a DVR stream
         if self.is_dvr:
             print("Downloading TS for clip")
             tempfiles = []
             for ts_name in use_ts:
                 try:
-                    data = requests.get(self.ts_url_start.format(quality=self.use_quality) + ts_name, timeout=static.REQUEST_TIMEOUT).content
+                    data = requests.get(self.ts_url_start.format(
+                        quality=self.use_quality) + ts_name, timeout=static.REQUEST_TIMEOUT).content
                     if not data:
                         raise ValueError
-                except (ValueError, requests.exceptions.ReadTimeout):  # The request failed or has no content
+                # The request failed or has no content
+                except (ValueError, requests.exceptions.ReadTimeout):
                     print("Failed to get", ts_name)
                     continue
                 tf = tempfile.NamedTemporaryFile()
@@ -678,33 +723,35 @@ class ClipDownloadingCommand(ChatCommand):
             with self.saved_ts_mutex:
                 tempfiles = [self.saved_ts[ts_name] for ts_name in use_ts]
 
-        #Load the TS chunks
+        # Load the TS chunks
         chunks = [VideoFileClip(tf.name) for tf in tempfiles]
 
-        #Concatenate the chunks into a clip
+        # Concatenate the chunks into a clip
         clip = concatenate_videoclips(chunks)
 
-        #Save
+        # Save
         print("Saving clip")
-        complete_filepath = os.path.join(self.clip_save_path, filename + "." + static.Clip.save_extension)
+        complete_filepath = os.path.join(
+            self.clip_save_path, filename + "." + static.Clip.save_extension)
         clip.write_videofile(
             complete_filepath,
-            bitrate = static.Clip.Download.stream_qualities[self.use_quality],
-            logger = None
+            bitrate=static.Clip.Download.stream_qualities[self.use_quality],
+            logger=None
         )
 
         with self.running_clipsaves_mutex:
             self.running_clipsaves -= 1
             if self.running_clipsaves < 0:
-                print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
+                print(
+                    "ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
                 self.running_clipsaves = 0
 
-        #We are responsible for DVR tempfile closing
+        # We are responsible for DVR tempfile closing
         if self.is_dvr:
             for tf in tempfiles:
                 tf.close()
 
-        #Upload the clip
+        # Upload the clip
         if self.clip_uploader:
             self.clip_uploader.upload_clip(filename, complete_filepath)
 
@@ -736,10 +783,14 @@ class ClipRecordingCommand(ChatCommand):
         super().__init__(name=name, actor=actor, cooldown=default_duration)
         self.default_duration = default_duration
         self.max_duration = max_duration
-        self.recording_load_path = recording_load_path.removesuffix(os.sep)  # Where to first look for the OBS recording
-        self.clip_save_path = clip_save_path.removesuffix(os.sep) + os.sep  # Where to save the completed clips
-        self.running_clipsaves = 0  # How many clip save operations are running, WARNING: Used within thread without mutex!
-        self.__recording_filename = None  # The filename of the running OBS recording, asked later
+        self.recording_load_path = recording_load_path.removesuffix(
+            os.sep)  # Where to first look for the OBS recording
+        self.clip_save_path = clip_save_path.removesuffix(
+            os.sep) + os.sep  # Where to save the completed clips
+        # How many clip save operations are running, WARNING: Used within thread without mutex!
+        self.running_clipsaves = 0
+        # The filename of the running OBS recording, asked later
+        self.__recording_filename = None
         print(self.recording_filename)  # ...now is later
         self.clip_uploader = None  # An object to upload the clips when they are complete
 
@@ -763,7 +814,7 @@ class ClipRecordingCommand(ChatCommand):
                 title="Select OBS recording in progress",
                 initialdir=self.recording_load_path,
                 filetypes=static.Clip.Record.input_options,
-                )
+            )
 
             # Destroy the background window
             root.destroy()
@@ -798,7 +849,8 @@ class ClipRecordingCommand(ChatCommand):
             if segs[1].isnumeric():
                 # Invalid length passed
                 if not 0 < int(segs[1]) <= self.max_duration:
-                    self.actor.send_message(f"@{message.user.username} Invalid clip length.")
+                    self.actor.send_message(
+                        f"@{message.user.username} Invalid clip length.")
                     return
 
                 # Only length was specified
@@ -830,10 +882,12 @@ class ClipRecordingCommand(ChatCommand):
         safe_filename = utils.get_safe_filename(self.clip_save_path, filename)
 
         # Report clip save
-        self.actor.send_message(f"Saving clip {safe_filename}, duration of {duration} seconds.")
+        self.actor.send_message(
+            f"Saving clip {safe_filename}, duration of {duration} seconds.")
 
         # Run the clip save in a thread
-        saveclip_thread = threading.Thread(target=self.form_recording_into_clip, args=(duration, safe_filename), daemon=True)
+        saveclip_thread = threading.Thread(target=self.form_recording_into_clip, args=(
+            duration, safe_filename), daemon=True)
         saveclip_thread.start()
 
     def form_recording_into_clip(self, duration, filename):
@@ -844,7 +898,7 @@ class ClipRecordingCommand(ChatCommand):
         duration (int): The length of the clip in seconds.
         filename (str): The base filename of the clip, with no path or extension."""
 
-        #Keep a counter of running clipsaves, may not be needed
+        # Keep a counter of running clipsaves, may not be needed
         self.running_clipsaves += 1
 
         print("Making frozen copy of recording")
@@ -852,17 +906,20 @@ class ClipRecordingCommand(ChatCommand):
         print("Loading copy")
         recording = VideoFileClip(self.recording_copy_fn)
         print("Saving trimmed clip")
-        complete_path = os.path.join(self.clip_save_path, filename + "." + static.Clip.save_extension)
-        ffmpeg_extract_subclip(self.recording_copy_fn, max((recording.duration - duration, 0)), recording.duration, targetname = complete_path)
+        complete_path = os.path.join(
+            self.clip_save_path, filename + "." + static.Clip.save_extension)
+        ffmpeg_extract_subclip(self.recording_copy_fn, max(
+            (recording.duration - duration, 0)), recording.duration, targetname=complete_path)
         print("Closing and deleting frozen copy")
         recording.close()
         os.system("rm " + self.recording_copy_fn)
         print("Done.")
 
-        #Make note that the clipsave has finished
+        # Make note that the clipsave has finished
         self.running_clipsaves -= 1
         if self.running_clipsaves < 0:
-            print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
+            print(
+                "ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
             self.running_clipsaves = 0
 
         if self.clip_uploader:
@@ -872,7 +929,7 @@ class ClipRecordingCommand(ChatCommand):
 class ClipReplayBufferCommand(ChatCommand):
     """Save clips of the livestream by triggering OBS to save its replay buffer"""
 
-    def __init__(self, actor, name="clip", cooldown=120, addr="localhost", port=4455, password="", save_format=static.Clip.save_extension):
+    def __init__(self, actor, name="clip", cooldown=120, addr="localhost", port=4455, password="", save_format=static.Clip.save_extension, loose_match: bool = False):
         """Save clips of the livestream by triggering OBS to save its replay buffer.
     Instance this object, optionally pass it to the init method of a ClipUploader, then pass it to RumbleChatActor().register_command().
 
@@ -888,16 +945,22 @@ class ClipReplayBufferCommand(ChatCommand):
         password (str): OBS WebSocket password, if you have one set.
             Defaults to empty.
         save_format (str): Filename extension for the format that replay buffers are saved in.
-            Defaults to static.Clip.save_extension"""
+            Defaults to static.Clip.save_extension
+        loose_match (bool): If an exact match for the saved clip is not found, use the most recently created file at the correct path that looks like an OBS replay buffer save.
+            Defaults to False.
+        """
 
         super().__init__(name=name, actor=actor, cooldown=cooldown)
         self.addr, self.port, self.password = addr, port, password
         self.save_format = save_format.removeprefix(".")
-        self.__running_clipsaves = 0  # How many clip save operations are running. WARNING: Used in thread without mutex!
+        self.loose_match = loose_match
+        # How many clip save operations are running. WARNING: Used in thread without mutex!
+        self.__running_clipsaves = 0
         self.clip_uploader = None  # An object to upload the clips when they are complete
 
         # Connect to OBS
-        self.obsclient = obs.ReqClient(host=self.addr, port=self.port, password=self.password, timeout=3)
+        self.obsclient = obs.ReqClient(
+            host=self.addr, port=self.port, password=self.password, timeout=3)
 
         # Make sure the replay buffer is running
         if not self.obsclient.get_replay_buffer_status().output_active:
@@ -908,7 +971,8 @@ class ClipReplayBufferCommand(ChatCommand):
             print("Replay buffer was already started. OK.")
 
         # Query the clip save location automatically while we're at it
-        self.clip_save_path = self.obsclient.get_record_directory().record_directory + os.sep
+        self.clip_save_path = self.obsclient.get_record_directory().record_directory + \
+            os.sep
         print("OBS says recordings will save to", self.clip_save_path)
 
     @property
@@ -931,7 +995,8 @@ class ClipReplayBufferCommand(ChatCommand):
 
         assert int(new) == new, "Running clipsaves count must be an integer value"
         if new < 0:
-            print("ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
+            print(
+                "ERROR: Running clipsaves is now negative. Resetting it to zero, but this should not happen.")
             self.__running_clipsaves = 0
             return
         self.__running_clipsaves = new
@@ -961,7 +1026,8 @@ class ClipReplayBufferCommand(ChatCommand):
 
         if filename:
             # Avoid overwriting other clips
-            safe_filename = utils.get_safe_filename(self.clip_save_path, filename, extension=self.save_format)
+            safe_filename = utils.get_safe_filename(
+                self.clip_save_path, filename, extension=self.save_format)
 
             # Report clip save
             self.actor.send_message(f"Saving clip {safe_filename}.")
@@ -973,7 +1039,8 @@ class ClipReplayBufferCommand(ChatCommand):
             self.actor.send_message("Saving clip with default filename.")
 
         # Run the clip save in a thread
-        saveclip_thread = threading.Thread(target=self.save_buffer_as_clip, args=[filename], daemon=True)
+        saveclip_thread = threading.Thread(
+            target=self.save_buffer_as_clip, args=[filename], daemon=True)
         saveclip_thread.start()
 
     def save_buffer_as_clip(self, desired_filename):
@@ -998,21 +1065,29 @@ class ClipReplayBufferCommand(ChatCommand):
 
         print("Locating saved replay buffer")
         search_string = f"{static.Clip.ReplayBuffer.save_name_format_notime}**.{self.save_format}"
-        potential_files = glob.glob(search_string, root_dir = self.clip_save_path)
-        potential_files.sort()
+        potential_files = glob.glob(
+            search_string, root_dir=self.clip_save_path)
+        potential_files.sort(key=os.path.getmtime)
 
         if not potential_files:
-            print(f"ERROR: No files matched search for '{search_string}' in {self.clip_save_path}")
+            print(
+                f"ERROR: No files matched search for '{search_string}' in {self.clip_save_path}")
             self.running_clipsaves -= 1
             return
 
-        believed_filename = time.strftime(static.Clip.ReplayBuffer.save_name_format, time.localtime(marktime))
+        believed_filename = time.strftime(
+            static.Clip.ReplayBuffer.save_name_format, time.localtime(marktime))
         if believed_filename in potential_files:
             print("Found exact match for", believed_filename)
             filename_wext = believed_filename
         else:
             print("Did not find exact match for", believed_filename)
             filename_wext = potential_files[-1]
+            print("Possible filename is", filename_wext)
+            if not self.loose_match:
+                print("Too risky! Not using", filename_wext)
+                return
+            print("Using", filename_wext)
 
         filename = filename_wext.removesuffix("." + self.save_format)
         complete_path = os.path.join(self.clip_save_path, filename_wext)
@@ -1026,7 +1101,8 @@ class ClipReplayBufferCommand(ChatCommand):
         if desired_filename:
             print(f"Renaming {filename} to {desired_filename}")
             old_complete_path = complete_path
-            complete_path = os.path.join(self.clip_save_path, desired_filename + "." + self.save_format)
+            complete_path = os.path.join(
+                self.clip_save_path, desired_filename + "." + self.save_format)
             shutil.move(old_complete_path, complete_path)
             filename = desired_filename
             del filename_wext  # This is no longer valid, so remove from memory for debug
@@ -1069,7 +1145,7 @@ class RaffleCommand(ChatCommand):
             "draw": self.draw_entry,
             "winner": self.report_winner,
             "reset": self.reset,
-            }
+        }
 
     @property
     def help_message(self):
@@ -1091,7 +1167,8 @@ class RaffleCommand(ChatCommand):
 
         if message.user.username not in self.entries:
             self.entries.append(message.user.username)
-            print(f"User '{message.user.username}' has been auto-enrolled in the raffle.")
+            print(
+                f"User '{message.user.username}' has been auto-enrolled in the raffle.")
 
     def run(self, message, act_props: dict):
         """Run the raffle command
@@ -1104,7 +1181,8 @@ class RaffleCommand(ChatCommand):
         # Only called command, no arguments
         if len(segs) == 1:
             # self.actor.send_message(self.help_message)
-            print(f"{message.user.username} called the raffle command but without an argument. No action taken.")
+            print(
+                f"{message.user.username} called the raffle command but without an argument. No action taken.")
             return
 
         # Valid argument
@@ -1113,7 +1191,8 @@ class RaffleCommand(ChatCommand):
 
         # Invalid argument
         else:
-            print(f"{message.user.username} called the raffle command but with invalid argument(s): {", ".join(segs[1:])}. No action taken.")
+            print(
+                f"{message.user.username} called the raffle command but with invalid argument(s): {", ".join(segs[1:])}. No action taken.")
 
     def make_entry(self, message):
         """Make an entry
@@ -1144,15 +1223,18 @@ class RaffleCommand(ChatCommand):
         # Non-staff is trying to remove someone besides themselves
         if not utils.is_staff(message.user) and removal != message.user.username:
             # self.actor.send_message(f"@{message.user.username} You cannot remove another user from the raffle since you are not staff.")
-            print(f"{message.user.username} Tried to remove {removal} from the raffle without the authority to do so.")
+            print(
+                f"{message.user.username} Tried to remove {removal} from the raffle without the authority to do so.")
             return
 
         if removal not in self.entries:
-            self.actor.send_message(f"@{message.user.username} The user {removal} was not entered in the raffle.")
+            self.actor.send_message(
+                f"@{message.user.username} The user {removal} was not entered in the raffle.")
             return
 
         self.entries.remove(removal)
-        self.actor.send_message(f"@{message.user.username} The user {removal} was removed from the raffle.")
+        self.actor.send_message(
+            f"@{message.user.username} The user {removal} was removed from the raffle.")
 
     def count_entries(self, message):
         """Report the number of entries made so far
@@ -1163,7 +1245,8 @@ class RaffleCommand(ChatCommand):
         count = len(self.entries)
 
         # Some formatting here to make the grammar of the message always correct
-        self.actor.send_message(f"@{message.user.username} There {("are", "is")[count == 1]} currently {("no", count)[count != 0]} {("entries", "entry")[count == 1]} in the raffle.")
+        self.actor.send_message(
+            f"@{message.user.username} There {("are", "is")[count == 1]} currently {("no", count)[count != 0]} {("entries", "entry")[count == 1]} in the raffle.")
 
     def draw_entry(self, message):
         """Draw a winner (does not delete their name from the hat)
@@ -1172,11 +1255,13 @@ class RaffleCommand(ChatCommand):
         message (cocorum.ChatAPI.Message): The message of the winner draw request."""
 
         if not utils.is_staff(message.user):
-            print(f"{message.user.username} tried to draw a raffle winner without the authority to do so.")
+            print(
+                f"{message.user.username} tried to draw a raffle winner without the authority to do so.")
             return
 
         if len(self.entries) < 2:
-            self.actor.send_message(f"@{message.user.username} Cannot draw from raffle yet, need at least two entries.")
+            self.actor.send_message(
+                f"@{message.user.username} Cannot draw from raffle yet, need at least two entries.")
             return
 
         self.winner = random.choice(self.entries)
@@ -1189,10 +1274,12 @@ class RaffleCommand(ChatCommand):
         message (cocorum.ChatAPI.Message): The message of the winner display request."""
 
         if not self.winner:
-            self.actor.send_message(f"@{message.user.username} There is no current winner.")
+            self.actor.send_message(
+                f"@{message.user.username} There is no current winner.")
             return
 
-        self.actor.send_message(f"@{message.user.username} The winner of the raffle is @{self.winner}")
+        self.actor.send_message(
+            f"@{message.user.username} The winner of the raffle is @{self.winner}")
 
     def reset(self, message):
         """Reset the raffle
@@ -1201,9 +1288,11 @@ class RaffleCommand(ChatCommand):
         message (cocorum.ChatAPI.Message): The message of the reset request."""
 
         if not utils.is_staff(message.user):
-            print(f"{message.user.username} tried to reset the raffle without the authority to do so.")
+            print(
+                f"{message.user.username} tried to reset the raffle without the authority to do so.")
             return
 
         self.entries = []
         self.winner = None
-        self.actor.send_message(f"@{message.user.username} Raffle reset. All entries cleared.")
+        self.actor.send_message(
+            f"@{message.user.username} Raffle reset. All entries cleared.")
