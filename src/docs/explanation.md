@@ -6,4 +6,13 @@ This started off as a substitute to The Rumble Bot by Henry. I don't remember ex
 ## Example use cases
 The big advantage or Rumble Chat Actor is that it's not a boxed-up app, but a framework. While the script for setting up basic commands and actions could be fairly simple, you can also make them as complex as you like. Basically anything Python can do, a Rumble Chat Actor command can. It is not sandboxed at all. You could signal a Raspberry Pi to switch on solid-state relays to a 13.8V power supply and honk a car horn, change some file on your PC to switch around how the game your playing works, or do more complex interactions with OBS via it's WebSocket interface. It's more suited to the super custom commander than the average everyday game streamer. I am also at this time still supporting operation by a third party, such as your moderator, in case you don't have enough horsepower or something.
 
-# Solo Deo Gloria.
+<small>This file is part of Rumble Chat Actor.
+
+Rumble Chat Actor is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+Rumble Chat Actor is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with Rumble Chat Actor. If not, see <https://www.gnu.org/licenses/>.
+</small>
+
+**S.D.G.**

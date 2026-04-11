@@ -2,6 +2,15 @@
 """Common message actions
 
 Actions commonly run on chat messages
+
+This file is part of Rumble Chat Actor.
+
+Rumble Chat Actor is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+Rumble Chat Actor is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with Rumble Chat Actor. If not, see <https://www.gnu.org/licenses/>.
+
 S.D.G"""
 
 # import socket
@@ -45,7 +54,7 @@ def ollama_message_moderate(message, act_props, actor):
     response = ollama.chat(model=static.AutoModerator.llm_model, messages=[
         {"role": "system", "content": static.AutoModerator.llm_sys_prompt},
         {"role": "user", "content": message.text},
-        ])
+    ])
 
     # Parse the verdict
     try:
@@ -53,12 +62,14 @@ def ollama_message_moderate(message, act_props, actor):
 
     # Verdict was not valid
     except ValueError:
-        print(f"Bad verdict for {message.text} : {response["message"]["content"]}")
+        print(
+            f"Bad verdict for {message.text} : {response["message"]["content"]}")
         return {}
 
     # Response was not in expected format
     except KeyError:
-        print(f"Could not get verdict for {message.text} : Response: {response}")
+        print(
+            f"Could not get verdict for {message.text} : Response: {response}")
         return {}
 
     # Returned 1 for SFW
@@ -97,7 +108,8 @@ class RantTTSManager():
     Args:
         new (int): The new threshold in cents."""
 
-        assert isinstance(new, (int, float)) and new >= 0, "Value must be a number greater than zero"
+        assert isinstance(
+            new, (int, float)) and new >= 0, "Value must be a number greater than zero"
         self.__tts_amount_threshold = new
 
     def set_rant_tts_sayer(self, new):
@@ -160,7 +172,8 @@ class TimedMessagesManager():
 
         # Start the sender loop thread
         self.running = True
-        self.sender_thread = threading.Thread(target=self.sender_loop, daemon=True)
+        self.sender_thread = threading.Thread(
+            target=self.sender_loop, daemon=True)
         self.sender_thread.start()
 
     def action(self, message, act_props, actor):
@@ -242,7 +255,8 @@ class ChatBlipper:
             self.silent_time = curtime - self.rarity_regen_time
 
         # Move the time we "were" silent forward, capping at present + stay-dead time
-        self.silent_time = min((self.silent_time + self.rarity_regen_time * self.rarity_reduce, curtime + self.stay_dead_time))
+        self.silent_time = min((self.silent_time + self.rarity_regen_time *
+                               self.rarity_reduce, curtime + self.stay_dead_time))
 
     def action(self, message, act_props, actor):
         """Blip for a chat message, taking rarity into account for the volume
@@ -283,9 +297,12 @@ class Thanker(threading.Thread):
         assert self.rum_api, "Thanker cannot function if actor does not have Rumble API"
 
         # Set up default messages
-        self.follower_message = kwargs.get("follower_message", static.Thank.DefaultMessages.follower)
-        self.subscriber_message = kwargs.get("subscriber_message", static.Thank.DefaultMessages.subscriber)
-        self.gifted_subs_message = kwargs.get("gifted_subs_message", static.Thank.DefaultMessages.gifted_subs)
+        self.follower_message = kwargs.get(
+            "follower_message", static.Thank.DefaultMessages.follower)
+        self.subscriber_message = kwargs.get(
+            "subscriber_message", static.Thank.DefaultMessages.subscriber)
+        self.gifted_subs_message = kwargs.get(
+            "gifted_subs_message", static.Thank.DefaultMessages.gifted_subs)
 
         # Start the thread immediately
         self.start()
@@ -316,14 +333,17 @@ class Thanker(threading.Thread):
         while self.actor.keep_running:
             # Thank all the new followers
             for follower in self.rum_api.new_followers:
-                self.actor.send_message(self.follower_message.format(follower=follower))
+                self.actor.send_message(
+                    self.follower_message.format(follower=follower))
 
             # Thank all the new subscribers
             for subscriber in self.rum_api.new_subscribers:
-                self.actor.send_message(self.follower_message.format(subscriber=subscriber))
+                self.actor.send_message(
+                    self.follower_message.format(subscriber=subscriber))
 
             # Wait a bit, either the Rumble API refresh rate or the message sending cooldown
-            time.sleep(max((self.rum_api.refresh_rate, static.Message.send_cooldown)))
+            time.sleep(
+                max((self.rum_api.refresh_rate, static.Message.send_cooldown)))
 
 
 class UserAnnouncer:
@@ -369,7 +389,8 @@ class UserAnnouncer:
         self.known_users.append(message.user.username)
 
         # We might have a special announcer for this user
-        ann = self.special_announcers.get(message.user.username, self.announcer)
+        ann = self.special_announcers.get(
+            message.user.username, self.announcer)
 
         # Our main announcer may be None
         if not ann:

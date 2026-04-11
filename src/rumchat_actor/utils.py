@@ -2,6 +2,15 @@
 """Utilities
 
 Various utility functions
+
+This file is part of Rumble Chat Actor.
+
+Rumble Chat Actor is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+Rumble Chat Actor is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with Rumble Chat Actor. If not, see <https://www.gnu.org/licenses/>.
+
 S.D.G."""
 
 import os
@@ -22,7 +31,7 @@ Returns:
     return True in [badge in user.badges for badge in static.Moderation.staff_badges]
 
 
-def get_safe_filename(clip_save_path, filename, extension = static.Clip.save_extension):
+def get_safe_filename(clip_save_path, filename, extension=static.Clip.save_extension):
     """Make a filename that will not overwrite other files
 
 Args:
@@ -58,7 +67,8 @@ def multiple_choice(title: str, options: Sequence[str]) -> str:
 
     # If there's just one option, choose it automatically
     if len(options) == 1:
-        print(f"Only one option for, \"{title}\", and that is \"{options[0]}\".")
+        print(
+            f"Only one option for, \"{title}\", and that is \"{options[0]}\".")
         return options[0]
 
     # Find the 'biggest' option by length, and then find out how long it is.

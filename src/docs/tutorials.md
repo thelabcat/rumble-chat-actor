@@ -83,4 +83,13 @@ actor.mainloop()
 
 This should run until you press Ctrl+C AND send one last message to stop it from waiting, or just kill the Python process somehow (closing the window for example), or send "!killswitch" in the chat to run the Killswitch command.
 
-S.D.G.
+<small>This file is part of Rumble Chat Actor.
+
+Rumble Chat Actor is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+Rumble Chat Actor is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with Rumble Chat Actor. If not, see <https://www.gnu.org/licenses/>.
+</small>
+
+**S.D.G.**

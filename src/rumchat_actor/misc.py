@@ -2,6 +2,15 @@
 """Miscellanious classes and functions
 
 Functions and classes that did not fit in another module
+
+This file is part of Rumble Chat Actor.
+
+Rumble Chat Actor is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+Rumble Chat Actor is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with Rumble Chat Actor. If not, see <https://www.gnu.org/licenses/>.
+
 S.D.G."""
 
 import queue
@@ -42,7 +51,8 @@ class ClipUploader():
         self.clips_to_upload = queue.Queue()
 
         # Thread to keep uploading clips as they arrive
-        self.clip_uploader_thread = threading.Thread(target=self.clip_upload_loop, daemon=True)
+        self.clip_uploader_thread = threading.Thread(
+            target=self.clip_upload_loop, daemon=True)
         self.clip_uploader_thread.start()
 
     def upload_clip(self, name, complete_path):
@@ -68,7 +78,7 @@ class ClipUploader():
             category2=static.Clip.Upload.category_2,
             channel_id=self.channel_id,
             visibility="unlisted",
-            )
+        )
 
         # Announce link
         self.actor.send_message("Clip uploaded to " + upload.url)

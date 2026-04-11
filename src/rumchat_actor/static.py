@@ -2,6 +2,15 @@
 """Static variables
 
 Absolute variable definitions not uinque to scripts.
+
+This file is part of Rumble Chat Actor.
+
+Rumble Chat Actor is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+Rumble Chat Actor is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with Rumble Chat Actor. If not, see <https://www.gnu.org/licenses/>.
+
 S.D.G.
 """
 
@@ -89,10 +98,10 @@ class Moderation:
 
     # Levels of mute to discipline a user with, keyed to their HTML menu button class names
     mute_levels = {
-        "5" : "cmi js-btn-mute-current-5",
-        "stream" : "cmi js-btn-mute-current",
-        "forever" : "cmi js-btn-mute-for-account",
-        }
+        "5": "cmi js-btn-mute-current-5",
+        "stream": "cmi js-btn-mute-current",
+        "forever": "cmi js-btn-mute-for-account",
+    }
 
     # Badges of staff chatters
     staff_badges = ["admin", "moderator"]
@@ -108,7 +117,7 @@ class Clip:
         """For downloading clips"""
 
         # Valid resolutions of a livestream and the bitrates they use / should be saved with
-        stream_qualities = {"360p" : "1.2M", "720p" : "2.8M", "1080p" : "4.5M"}
+        stream_qualities = {"360p": "1.2M", "720p": "2.8M", "1080p": "4.5M"}
 
         # The default save quality for clips from a local recording
         default_save_bitrate = stream_qualities["1080p"]
@@ -134,7 +143,8 @@ class Clip:
         # Must be moviepy loadable even if copied while being recorded to
         # In the format for Tkinter file picking
         input_options = (
-            ("Fragmented or hybrid video", " ".join("*." + container for container in ("mp4", "mov"))),
+            ("Fragmented or hybrid video", " ".join(
+                "*." + container for container in ("mp4", "mov"))),
             ("MPEG-TS stream video", "*.ts"),
             ("All files", "*.*"),
         )
