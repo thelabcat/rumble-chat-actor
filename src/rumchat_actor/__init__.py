@@ -51,7 +51,7 @@ class RumbleChatActor:
         password (str): The password to log in with.
             Defaults to manual entry.
         logout_on_exit (bool): Wether or not to log out when the actor quits.
-            Defaults to True.
+            Defaults to logging out a session we created, not logging out a provided session.
         channel (int | str): The channel to post messages as.
             Defaults to user posts messages, no channel.
         api_url (str): The Rumble Live Stream API URL with your key (or RumBot's passthrough).
@@ -265,7 +265,7 @@ class RumbleChatActor:
             f"Argument invalid_command_respond must be bool, not {type(self.invalid_command_respond)}"
 
         # Finally, get the logout setting
-        self.logout_on_exit = kwargs.get("logout_on_exit", True)
+        self.logout_on_exit = kwargs.get("logout_on_exit", not session)
 
     @property
     def streamer_username(self):
