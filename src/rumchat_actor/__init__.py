@@ -144,7 +144,10 @@ class RumbleChatActor:
 
         # Sign in to chat
         first_time = True
-        while first_time or not (self.username and self.password):
+        self.servicephp: ServicePHP | None = None
+        """Our ServicePHP instance"""
+
+        while first_time or not (self.servicephp and self.servicephp.session_cookie):
             # Ask user for credentials as needed
             if not self.username:
                 self.username = input("Actor username: ")
