@@ -56,14 +56,6 @@ class RumbleChatActor:
             Defaults to user posts messages, no channel.
         api_url (str): The Rumble Live Stream API URL with your key (or RumBot's passthrough).
             Defaults to no Live Stream API access.
-        streamer_username (str): The username of the person streaming.
-            Defaults to Live Stream API username or manually requested if needed.
-        streamer_channel (str): The channel doing the livestream, if it is being streamed on a channel.
-            Defaults to Live Stream API channel or manually requested if needed.
-        is_channel_stream (bool): If the livestream is on a channel or not.
-            Defaults to automatic determination if possible.
-        streamer_main_page_url (str): The URL of the streamer's main page.
-            Defaults to automatic determination if possible.
         ignore_users (Sequence[str]): List of usernames to not act on (not a moderation feature).
             Defaults to static.KNOWN_BOTS
         invalid_command_respond (bool): Sets if we should post an error message if a command was invalid.
@@ -72,23 +64,6 @@ class RumbleChatActor:
             Defaults to static.Message.max_outbox_size
         max_inbox_age (int | float): How old messages in the chat can be before we start skipping them to catch up.
             Defaults to static.Message.max_inbox_age"""
-
-        # The info of the person streaming
-        self.__streamer_username = kwargs.get("streamer_username")
-        assert isinstance(self.__streamer_username, str) or self.__streamer_username is None, \
-            f"Streamer username must be str or None, not {type(self.__streamer_username)}"
-
-        self.__streamer_channel = kwargs.get("streamer_channel")
-        assert isinstance(self.__streamer_channel, str) or self.__streamer_channel is None, \
-            f"Streamer channel name must be str or None, not {type(self.__streamer_channel)}"
-
-        self.__is_channel_stream = kwargs.get("is_channel_stream")
-        assert isinstance(self.__is_channel_stream, bool) or self.__is_channel_stream is None, \
-            f"Argument is_channel_stream must be bool or None, not {type(self.__is_channel_stream)}"
-
-        self.__streamer_main_page_url = kwargs.get("streamer_main_page_url")
-        assert isinstance(self.__streamer_main_page_url, str) or self.__streamer_main_page_url is None, \
-            f"Argument streamer_main_page_url must be str or None, not {type(self.__is_channel_stream)}"
 
         # Get Live Stream API
         self.rum_api = RumbleAPI(
@@ -144,7 +119,7 @@ class RumbleChatActor:
 
         # Sign in to chat
         first_time = True
-        self.servicephp: ServicePHP | None = None
+        self.servicephp: servicephp.ServicePHP | None = None
         """Our ServicePHP instance"""
 
         while first_time or not (self.servicephp and self.servicephp.session_cookie):
@@ -269,84 +244,6 @@ class RumbleChatActor:
 
         # Finally, get the logout setting
         self.logout_on_exit = kwargs.get("logout_on_exit", not session)
-
-    @property
-    def streamer_username(self):
-        """The username of the streamer"""
-        if not self.__streamer_username:
-            # We are the ones streaming
-            if self.api_stream:
-                self.__streamer_username = self.rum_api.username
-            else:
-                self.__streamer_username = input(
-                    "Enter the username of the person streaming: ")
-
-        return self.__streamer_username
-
-    @property
-    def streamer_channel(self):
-        """The channel of the streamer"""
-        # We don't yet have the streamer channel, and this is a channel stream
-        if not self.__streamer_channel and self.is_channel_stream:
-            # We are the ones streaming, and the API URL is under the channel
-            if self.api_stream and self.rum_api.channel_name:
-                self.__streamer_channel = self.rum_api.channel_name
-
-            # We are not the ones streaming,
-            # or the API URL was not under our channel,
-            # and we are sure this is a channel stream
-            else:
-                self.__streamer_channel = input(
-                    "Enter the channel of the person streaming: ")
-
-        return self.__streamer_channel
-
-    @property
-    def is_channel_stream(self):
-        """Is the stream under a channel?"""
-        # We do not know yet
-        if self.__is_channel_stream is None:
-            # We know that this is a channel stream because it showed up in the channel-specific API
-            if self.api_stream and self.rum_api.channel_name:
-                self.__is_channel_stream = True
-
-            # We will ask the user
-            else:
-                self.__is_channel_stream = "y" in input(
-                    "Is this a channel stream? y/[N]:").lower()
-
-        return self.__is_channel_stream
-
-    @property
-    def streamer_main_page_url(self):
-        """The URL of the main page of the streamer"""
-        # We do not yet know the URL
-        if not self.__streamer_main_page_url:
-            if self.is_channel_stream:
-                # This stream is on the API
-                if self.api_stream:
-                    # We know our channel ID from the API
-                    if self.rum_api.channel_id:
-                        self.__streamer_main_page_url = static.URI.channel_page.format(
-                            channel_name=f"c-{self.rum_api.channel_id}")
-
-                    # Is a channel stream and on the API but API is not for channel, use the user page instead
-                    else:
-                        self.__streamer_main_page_url = static.URI.user_page.format(
-                            username=self.streamer_username)
-
-                # Is not an API stream and we don't know the username
-                elif not self.__streamer_username:
-                    while not (specified := input("Enter streamer main page URL: ")).startswith(static.URI.rumble_base):
-                        print("ERROR: Must be a Rumble URL.")
-                    self.__streamer_main_page_url = specified
-
-            # Not a channel stream, go by username
-            else:
-                self.__streamer_main_page_url = static.URI.user_page.format(
-                    username=self.streamer_username)
-
-        return self.__streamer_main_page_url
 
     def handle_2fa(self, twofa: servicephp.TwoFacAuth):
         """Handle 2FA login
