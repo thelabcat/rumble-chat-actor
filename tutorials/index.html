@@ -624,17 +624,13 @@
 <h1 id="tutorials">Tutorials</h1>
 <h2 id="a-demo-setup-with-an-educational-message-action-and-commands">A demo setup with an educational message action and commands</h2>
 <p>The first thing to do is import the base module.</p>
-<pre><code>import rumchat_actor
+<pre><code class="language-python">import rumchat_actor
 </code></pre>
 <p>You can also import submodules, but I have <code>rumchat_actor</code> import all of them at current, so it's not necessary.
-Next, we create the actor. You can pass it a few different combinations things to give it what it needs,which I explain below, or you can just skip to the code if you want to do the recommended way:</p>
-<ul>
-<li>It needs to know the numeric ID of the livestream it's going to act on. You can either pass that manually after obtaining it from the end of a pop-out chat URL, or just pass the actor your Rumble Live Stream API URL as obtained from <a href="https://rumble.com/account/livestream-api">the Live Stream API key management page on Rumble.com</a>. With the API URL, the actor will just automatically load the ID of the latest livestream and use that. Note, this can be either base 10 or 36, but if you make it base 10, please also make it an integer instead of a string. Base 36 can look like base 10 if it's just the right number so that only base 10 numerals are included, and there's no way for the actor to tell the difference, so it assumes base 36 for strings.</li>
-<li>It needs to be able to sign in to Rumble with a verified account to send chat messages. Since the credentials are sent directly to Rumble with no middleman service, they are as secure as the computer you're running this script on (assuming no module in this chain of support got a malicious update, only God can protect you ultimately). You can either pass it a Rumble username (NOT the email) and a password, or pass it a username and a session token (you would do that for saving logins), or pass it nothing and it will ask you to log in manually. A note about that, when you type the password, if you are in a terminal that Python can control directly, the characters will not be shown. Like, at all. Not even a dot or an asterisk, the cursor will not move. This is normal behavior, and is a security feature called "no echo" from the old teletype days. Now, if you run this script in Python's IDLE shell, the typed password WILL be shown CLEARLY VISIBLE, so don't use manual password entry and IDLE together if there is any chance that IDLE will be shown on stream. I personally recommend having the password loaded from a text file, or you can use an environment variable if you know how to do that, but never put your credentials directly into your code.</li>
-</ul>
-<p>There are other things you can specify that some commands need, but most of them are automatically obtained from the Rumble Live Stream API if it is passed. You can find all of the arguments in the reference documentation. Here is the base recommended setup:</p>
-<pre><code>actor = rumchat_actor.RumbleChatActor(api_url = RUMBLE_API_URL, username = USERNAME, password = PASSWORD)
+Next, we create the actor. You can pass it a few different combinations things to give it what it needs, but the simplest way for now is to just pass it your username.</p>
+<pre><code class="language-python">actor = rumchat_actor.RumbleChatActor(username = USERNAME)
 </code></pre>
+<p>With this, it will ask for your password (and potentially a 2FA code), and automatically get the Live Stream API URL for this account. It assumes that the account it is using is also the account you are streaming on, and that it should connect to the latest stream it finds in the Live Stream API. However, you can specify a different stream, or even a different account's Live Stream API URL if you want. You can also save your login by passing it a session token instead.</p>
 <p>Once the actor is initialized, we can start registering message actions, and chat commands.
 - A message action runs on every message, and returns a dict of any new <a href="../action_properties/">action properties</a> from its run. Message actions are good for automatic moderation, for example.
 - A chat command only runs when triggered, and returns nothing.</p>
@@ -643,7 +639,7 @@ Next, we create the actor. You can pass it a few different combinations things t
 2. The action properties of that message from all the combined (previous) actions that ran on it, and
 3. The Rumble Chat Actor instance itself.</p>
 <p>Here is an example of a message action function, and registering it. This message action scans the message for the word "cheese" in its text, and if it's in there, it sends a message back to the user.</p>
-<pre><code>def eat_some_cheese(message, act_props, actor):
+<pre><code class="language-python">def eat_some_cheese(message, act_props, actor):
     &quot;&quot;&quot;If a message mentions cheese, eat some cheese
 
     Args:
@@ -662,7 +658,7 @@ actor.register_message_action(eat_some_cheese)
 </code></pre>
 <p>A warning about this, though: The actor must wait to send messages to avoid rate limits by Rumble, so it has a built-in queue and auto-sending loop. If it is queuing to send messages faster than it is actually able to send them, to the point where the outbox is full (specified by the  <code>max_outbox_size</code> keyword upon actor init), it will start discarding the oldest messages. If you have an extremely active chat, bear this in mind. Also, if the actor is not able to process all message actions before the next message arrives, to the point where the messages it is processing are older than the max age (specified by the  <code>max_inbox_age</code> keyword upon actor init), it will skip them too. As long as, on average, the actor can work faster than the chat, everything should be fine.</p>
 <p>And now, creating and registering a basic chat command. We must specify the name of the command, and the callable to be run. Again, it is passed the message, the action properties, and the actor. But this time, it does not return anything: Nothing else runs on a message after a command, so there's no need for it.</p>
-<pre><code>def say_hi(message, act_props, actor):
+<pre><code class="language-python">def say_hi(message, act_props, actor):
         &quot;&quot;&quot;Say hi to the user who ran this command
 
     Args:
@@ -675,13 +671,13 @@ actor.register_message_action(eat_some_cheese)
 actor.register_command(name = &quot;hi&quot;, command = say_hi)
 </code></pre>
 <p>But what about commonly used commands, especially ones with complex code? Well, I've included some pre-builts in the <code>rumchat_actor.commands</code> module. Let's register one I always think is a good idea, the Killswitch command. This command is available to staff only, and shuts down the actor immediately when it is processed. I actually use this as my usual shutdown method. Using a pre-built command is simple. We instance it, then pass it to the actor's <code>register_command()</code> method. In some cases, we also pass it to something like a <a href="../modules_ref/misc/#rumchat_actor.misc.ClipUploader">stream clip auto uploader</a>, which should be mentioned in the command's documentation, such as <a href="../modules_ref/commands/#rumchat_actor.commands.ClipReplayBufferCommand">here</a>.</p>
-<pre><code>ks_command = rumchat_actor.commands.KillswitchCommand(actor = actor)
+<pre><code class="language-python">ks_command = rumchat_actor.commands.KillswitchCommand(actor = actor)
 actor.register_command(ks_command)
 </code></pre>
 <p>Once everything is registered, we can start the actor:</p>
-<pre><code>actor.mainloop()
+<pre><code class="language-python">actor.mainloop()
 </code></pre>
-<p>This should run until you press Ctrl+C AND send one last message to stop it from waiting, or just kill the Python process somehow (closing the window for example), or send "!killswitch" in the chat to run the Killswitch command.</p>
+<p>This should run until you press <kbd>Ctrl</kbd>+<kbd>C</kbd> AND send one last message to stop it from waiting, or just kill the Python process somehow (closing the window for example), or send "!killswitch" in the chat to run the Killswitch command.</p>
 <p><small>This file is part of Rumble Chat Actor.</p>
 <p>Rumble Chat Actor is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.</p>
 <p>Rumble Chat Actor is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</p>

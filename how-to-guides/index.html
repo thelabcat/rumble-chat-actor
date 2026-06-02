@@ -282,6 +282,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#saving-and-reusing-login" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Saving and reusing login
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -604,6 +615,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#saving-and-reusing-login" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Saving and reusing login
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -623,12 +645,13 @@
 
 <h1 id="how-to-guides">How-To Guides</h1>
 <h2 id="my-own-personal-setup">My own personal setup</h2>
-<pre><code>#!/usr/bin/env/python3
+<pre><code class="language-python">#!/usr/bin/env/python3
 &quot;&quot;&quot;TheLabCat's Rumchat Actor setup
 
 My RumChat Actor live stream configuration.
 S.D.G&quot;&quot;&quot;
 
+from getpass import getpass
 import glob
 import os.path as op
 import subprocess
@@ -636,17 +659,12 @@ import rumchat_actor
 import pyaudio  # For Piper TTS
 from pygame import mixer  # For a sound-making command I have
 
-with open(&quot;../../rumble_thelabcat_api_url_wkey.txt&quot;) as f:
-    API_URL = f.read().strip()
-with open(&quot;../../rumble_thelabcat_credentials.txt&quot;) as f:
-    USERNAME, PASSWORD = f.read().splitlines()[:2]
-
 # Timed messages to send
 TIMED_MESSAGES = [
     &quot;There are lots of buttons under the video. Press some of them if you haven't already. :-)&quot;,
     &quot;Want some subtitles for a video, but aren't satisfied with auto-generated? I sell handmade subtitles on Fiverr! https://www.fiverr.com/s/qDDKm9V&quot;,
     &quot;I have chat commands. Send \&quot;!help\&quot; to see them, send \&quot;!help commandName\&quot; for more information on that command.&quot;,
-    ]
+]
 
 # Piper TTS settings
 MODEL_PATH = &quot;/home/wilbur/bin/pipertts/voices/&quot;
@@ -654,21 +672,19 @@ PIPER_DEFAULT = &quot;troutt&quot;
 PIPER_MODELS = {
     f.split(&quot;-&quot;)[1]: f
     for f in glob.glob(&quot;*.onnx&quot;, root_dir=MODEL_PATH)
-    }
+}
 
 # Directory where my sound effects are
-SOUND_EFFECTS_DIR = &quot;/run/media/wilbur/WJHDD1/Audio/sound_effects&quot;
+SOUND_EFFECTS_DIR = &quot;/media/wilbur/WJHDD1/Audio/sound_effects&quot;
 
 mixer.init()
 PA = pyaudio.PyAudio()
 
 print(&quot;Setting up actor...&quot;)
 actor = rumchat_actor.RumbleChatActor(
-    api_url=API_URL,
-    username=USERNAME,
-    password=PASSWORD,
-    channel=&quot;MarswideBGL&quot;
-    )
+    session=getpass(&quot;Enter session token: &quot;),
+    channel=&quot;MarswideBGL&quot;,
+)
 
 # The Sisyphus command
 sisyphus_music = mixer.Sound(op.join(SOUND_EFFECTS_DIR, &quot;sisyphus_short.mp3&quot;))
@@ -684,7 +700,8 @@ def sisyphus(message, act_props, actor):
         actor (RumbleChatActor): The chat actor.&quot;&quot;&quot;
 
     sisyphus_music.play()
-    actor.send_message(f&quot;@{message.user.username} One must imagine a gamer happy.&quot;)
+    actor.send_message(
+        f&quot;@{message.user.username} One must imagine a gamer happy.&quot;)
 
 
 actor.register_command(
@@ -693,8 +710,8 @@ actor.register_command(
         actor=actor,
         cooldown=120,
         target=sisyphus
-        )
     )
+)
 
 
 # TTS command
@@ -705,23 +722,25 @@ def piper_tts(text, voice=PIPER_DEFAULT):
     # format for unsigned 16-bit (i.e. 2 byte, hence the 2).
     stream = PA.open(
         format=PA.get_format_from_width(2), channels=1, rate=22050, output=True
-        )
+    )
     try:
         # Run Piper TTS via a command
         cp = subprocess.run(
             [
+                &quot;pyenv&quot;,
+                &quot;exec&quot;,
                 &quot;piper&quot;,
                 &quot;--model&quot;,
                 op.join(MODEL_PATH, PIPER_MODELS[voice]),
                 &quot;--output-raw&quot;
-                ],
+            ],
 
             # Send Piper the text to speak
             input=text.encode(),
 
             # Grab the output raw sound data
             capture_output=True
-            )
+        )
 
         # Play the sound data
         stream.write(cp.stdout)
@@ -736,8 +755,8 @@ tts_command = rumchat_actor.commands.TTSCommand(
     voices={
         voice: eval(f&quot;lambda text: piper_tts(text, \&quot;{voice}\&quot;)&quot;)
         for voice in PIPER_MODELS
-        }
-    )
+    }
+)
 
 tts_command.voices[&quot;default&quot;] = lambda text: piper_tts(text, PIPER_DEFAULT)
 
@@ -751,21 +770,21 @@ actor.register_command(rumchat_actor.commands.MessageCommand(
     actor=actor,
     name=&quot;lurk&quot;,
     text=&quot;@{} is lurking in the chat&quot;,
-    ))
+))
 
 # Clip command
 clip_command = rumchat_actor.commands.ClipRecordingCommand(
     actor=actor,
     recording_load_path=&quot;/home/wilbur/Videos/&quot;,
     clip_save_path=&quot;/home/wilbur/Videos/stream_clips/&quot;,
-    )
+)
 
 # Auto-upload clips to my clips channel on Rumble
 clip_uploader = rumchat_actor.misc.ClipUploader(
     actor,
     clip_command,
     channel_id=6350778,  # Marswide BGL Clips
-    )
+)
 
 actor.register_command(clip_command)
 
@@ -775,7 +794,7 @@ actor.register_command(rumchat_actor.commands.HelpCommand(actor=actor))
 # Send timed messages
 tmm = rumchat_actor.actions.TimedMessagesManager(
     actor, messages=TIMED_MESSAGES, delay=300, in_between=5
-    )
+)
 actor.register_message_action(tmm.action)
 
 # Follower / subscriber / etc. thanking system
@@ -785,7 +804,7 @@ actor.register_message_action(thanker)
 # Message blipper
 actor.register_message_action(
     rumchat_actor.actions.ChatBlipper(op.join(SOUND_EFFECTS_DIR, &quot;pop.wav&quot;))
-    )
+)
 
 
 # User announcer
@@ -811,16 +830,46 @@ def announce_izsak(message, act_props, actor):
 announcer = rumchat_actor.actions.UserAnnouncer(
     special_announcers={
         &quot;Jorash&quot;: announce_izsak,
-        }
-    )
+    }
+)
 
 
 actor.register_message_action(announcer)
 
-# Run the bot continuously
+# Run the actor continuously
 print(&quot;Starting mainloop...&quot;)
 actor.mainloop()
 PA.terminate()
+</code></pre>
+<h2 id="saving-and-reusing-login">Saving and reusing login</h2>
+<p>In short, we need to tell the actor not to log out its session token on exit, and then we need to capture it. Next time the actor starts, we can pass the token to it</p>
+<pre><code class="language-python">import os.path as op
+import rumchat_actor
+
+# Where the token is kept.
+# WARNING: THE TOKEN IN THIS FILE IS A KEY TO YOUR RUMBLE ACCOUNT. DO NOT EXPOSE IT TO THE PUBLIC!!!
+TOKEN_FILEPATH = &quot;saved_token.txt&quot;
+
+# Load the saved token from last time we ran the bot, if there is one
+if op.exists(TOKEN_FILEPATH):
+    with open(TOKEN_FILEPATH) as f:
+        PREVIOUS_TOKEN = f.read().strip()
+else:
+    PREVIOUS_TOKEN = None
+
+# The session argument already defaults to None, so this is safe.
+# The actor will just ask for login.
+actor = rumchat_actor.RumbleChatActor(session=PREVIOUS_TOKEN, logout_on_exit=False)
+
+# Now that the actor is logged in, it's internal ServicePHP wrapper has a session token.
+# If we didn't before, we should save it.
+if not PREVIOUS_TOKEN:
+    with open(TOKEN_FILEPATH, &quot;w&quot;) as f:
+        f.write(actor.servicephp.session_token)
+
+#... And that's it. Set up the actor as you normally would from here on out.
+
+actor.mainloop()
 </code></pre>
 <p><small>This file is part of Rumble Chat Actor.</p>
 <p>Rumble Chat Actor is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.</p>
