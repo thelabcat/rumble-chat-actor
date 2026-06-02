@@ -41,15 +41,15 @@ class RumbleChatActor:
 
     Args:
         stream_id (int | str): The stream ID you want to connect to.
-            Defaults to latest livestream.
+            Defaults to latest livestream shown in the Live Stream API.
         init_message (str): What to say when the actor starts up.
             Defaults to "Hello, Rumble!"
         session (str | dict[str, str): A saved session token we are already logged in with.
             Defaults to None, we must perform login now.
         username (str): The username to log in with.
-            Defaults to manual entry.
+            Defaults to detection from session, Live Stream API, or manual entry.
         password (str): The password to log in with.
-            Defaults to manual entry.
+            Defaults to manual entry if no session is provided.
         logout_on_exit (bool): Wether or not to log out when the actor quits.
             Defaults to logging out a session we created, not logging out a provided session.
         channel (int | str): The channel to post messages as.
