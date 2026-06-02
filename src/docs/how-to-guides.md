@@ -1,4 +1,4 @@
-#How-To Guides
+# How-To Guides
 
 ## My own personal setup
 ```python
@@ -193,11 +193,46 @@ announcer = rumchat_actor.actions.UserAnnouncer(
 
 actor.register_message_action(announcer)
 
-# Run the bot continuously
+# Run the actor continuously
 print("Starting mainloop...")
 actor.mainloop()
 PA.terminate()
 ```
+
+## Saving and reusing login
+
+In short, we need to tell the actor not to log out its session token on exit, and then we need to capture it. Next time the actor starts, we can pass the token to it
+
+```python
+import os.path as op
+import rumchat_actor
+
+# Where the token is kept.
+# WARNING: THE TOKEN IN THIS FILE IS A KEY TO YOUR RUMBLE ACCOUNT. DO NOT EXPOSE IT TO THE PUBLIC!!!
+TOKEN_FILEPATH = "saved_token.txt"
+
+# Load the saved token from last time we ran the bot, if there is one
+if op.exists(TOKEN_FILEPATH):
+    with open(TOKEN_FILEPATH) as f:
+        PREVIOUS_TOKEN = f.read().strip()
+else:
+    PREVIOUS_TOKEN = None
+
+# The session argument already defaults to None, so this is safe.
+# The actor will just ask for login.
+actor = rumchat_actor.RumbleChatActor(session=PREVIOUS_TOKEN, logout_on_exit=False)
+
+# Now that the actor is logged in, it's internal ServicePHP wrapper has a session token.
+# If we didn't before, we should save it.
+if not PREVIOUS_TOKEN:
+    with open(TOKEN_FILEPATH, "w") as f:
+        f.write(actor.servicephp.session_token)
+
+#... And that's it. Set up the actor as you normally would from here on out.
+
+actor.mainloop()
+```
+
 
 <small>This file is part of Rumble Chat Actor.
 
