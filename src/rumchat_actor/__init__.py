@@ -27,7 +27,7 @@ import textwrap
 import threading
 import time
 from typing import Sequence
-from cocorum import RumbleAPI, servicephp, scraping
+from cocorum import RumbleAPI, Livestream, servicephp, scraping
 from cocorum.chatapi import ChatAPI
 from . import actions, commands, misc, utils, static
 
@@ -54,8 +54,8 @@ class RumbleChatActor:
             Defaults to logging out a session we created, not logging out a provided session.
         channel (int | str): The channel to post messages as.
             Defaults to user posts messages, no channel.
-        api_url (str): The Rumble Live Stream API URL with your key (or RumBot's passthrough).
-            Defaults to no Live Stream API access.
+        api_url (str): The Rumble Live Stream API URL with the streamer's key (or RumBot's passthrough).
+            Defaults to acquiring key from the account the bot signs in to.
         ignore_users (Sequence[str]): List of usernames to not act on (not a moderation feature).
             Defaults to static.KNOWN_BOTS
         invalid_command_respond (bool): Sets if we should post an error message if a command was invalid.
@@ -66,14 +66,126 @@ class RumbleChatActor:
             Defaults to static.Message.max_inbox_age"""
 
         # Get Live Stream API
-        self.rum_api = RumbleAPI(
-            kwargs["api_url"]) if "api_url" in kwargs else None
-        """A Rumble Live Stream API wrapper instance, if we have a URL"""
+
+        channel = kwargs.get("channel")
+        password = kwargs.get("password")
+        session = kwargs.get("session")
+        api_url = kwargs.get("api_url")
+        stream_id = kwargs.get("stream_id")
+
+        self.servicephp: servicephp.ServicePHP | None = servicephp.ServicePHP(
+            kwargs.get("username"), session)
+        """Cocorum Service.PHP API wrapper, for most account operations"""
+
+        self.username: str = None
+        """The username we are chatting as, once we figure that out"""
+
+        self.rum_api: RumbleAPI = None
+        """Cocorum Live Stream API wrapper, if the bot is acting on its own account's behalf"""
+
+        self.api_stream: Livestream = None
+        """Cocorum wrapper for livestream data, if we have Live Stream API for the streamer"""
+
+        # Don't try to use logged-in operations until ServicePHP is logged in!
+        self.scraper = scraping.Scraper(self.servicephp)
+        """Cocorum data scraper for misc"""
+
+        # We have a good session
+        if self.servicephp.session_cookie:
+            print("Session token provided - already logged in.")
+
+        # We must log in ourselves
+        else:
+            if api_url:
+                print("Live Stream API URL provided.")
+                self.rum_api = RumbleAPI(api_url)
+                if self.servicephp.username and self.rum_api.username != self.servicephp.username:
+                    print(
+                        "Note: This is someone else's Live Stream API. We are acting on behalf of another user.")
+                    assert not stream_id or stream_id in self.rum_api.livestreams, "Stream ID was manually specified, but is not present in provided Live Stream API data"
+
+                elif not self.servicephp.username:
+                    print(
+                        "Assuming this is our API URL. Starting login as `{self.rum_api.username}`...")
+                    # We're not using the local `username` variable anymore
+                    self.servicephp.username = self.rum_api.username
+
+            # Keep trying to log in until we succeed
+            while not self.servicephp.session_cookie:
+                # Get credentials, or let the user know we have them
+                if not self.servicephp.username:
+                    self.servicephp.username = input("Username: ")
+                else:
+                    print("Username:", self.servicephp.username)
+                if not password:
+                    password = getpass("Password (no echo): ")
+                else:
+                    print("Password: [specified]")
+
+                try:
+                    twofa = self.servicephp.login_basic(password)
+                    if twofa:
+                        self.handle_2fa(twofa)
+                except AssertionError as e:
+                    print("Login failed with the following exception:", e)
+                    self.servicephp.username = None
+                    password = None
+
+        # We don't know our username, or it is an email (cannot use)
+        if not self.servicephp.username or "@" in self.servicephp.username:
+            print("Don't know our in-chat username. Discovering...")
+            self.scraper.validate_username()
+            print(f"Username is `{self.servicephp.username}`.")
+
+        # Now that we are logged in, get some other data and endpoints
+
+        self.channel: scraping.HTMLChannel = self._find_appear_channel_info(
+            channel) if channel else None
+        """Cocorum wrapper for information on the channel we should chat as, if any"""
+
+        # Once we are logged in, see if we should get an API wrapper
+        if not api_url:
+            print("No Live Stream API URL provided.")
+
+            if stream_id:
+                print(
+                    "Stream ID manually specified. Assuming this bot is acting on behalf of another user.")
+            else:
+                print("Auto-obtaining API URL...")
+                key_infos = self.scraper.get_rls_api_keys()
+                ki = key_infos[0]
+
+                # Main user account does not have key associated
+                if not ki.url_with_key:
+                    print("Main user account does not have a pre-generated key.")
+                    # User specified a channel, maybe that has a key
+                    if self.channel:
+                        # Find the matching key info
+                        ki = None
+                        for ki in key_infos:
+                            if ki.channel_id == self.channel:
+                                break
+                        assert ki is not None, f"Somehow Cocorum Scraper did not return any matching key infos for channel `{self.channel}`, even though it exists. Report this issue to Cocorum devs."
+
+                        # Specific channel does not have key either
+                        if not ki.url_with_key:
+                            print(
+                                "Specified channel does not have a pre-generated key.")
+
+                # We still need key info
+                if not ki.url_with_key:
+                    print("Generating new key for user...")
+                    key_infos[0].reset_key()
+                    key_infos = self.scraper.get_rls_api_keys()
+                    ki = key_infos[0]
+
+                # We definitely have key info now
+                self.rum_api = RumbleAPI(ki)
 
         # A stream ID was passed
-        if "stream_id" in kwargs:
+        if stream_id:
             self.stream_id, self.stream_id_b10 = utils.base_36_and_10(
-                kwargs["stream_id"])
+                stream_id)
 
             # It is not our livestream or we have no Live Stream API,
             # so LS API functions are not available
@@ -95,104 +207,13 @@ class RumbleChatActor:
             self.stream_id = self.api_stream.stream_id
             self.stream_id_b10 = utils.base_36_to_10(self.stream_id)
 
-        # Get the login credentials from arguments, or None if they were not passed
-        self.username = kwargs.get("username")
-        self.password = kwargs.get("password")
-        session = kwargs.get("session")
-
-        # Username must not be an email
-        if "@" in self.username:
-            print("Username cannot be provided as email.")
-            self.username = None
-
-        # We can get the username from the Rumble Live Stream API
-        if self.rum_api:
-            # ...and we need to
-            if not self.username:
-                self.username = self.rum_api.username
-                print("Actor username obtained from Live Stream API:", self.username)
-
-            # ...and it matches what we were given, right?
-            else:
-                assert self.rum_api.username == self.username, \
-                    f"Rumble Live Stream API username is `{self.rum_api.username}` but provided userame is `{self.username}`"
-
-        # Sign in to chat
-        first_time = True
-        self.servicephp: servicephp.ServicePHP | None = None
-        """Our ServicePHP instance"""
-
-        while first_time or not (self.servicephp and self.servicephp.session_cookie):
-            # Ask user for credentials as needed
-            if not self.username:
-                self.username = input("Actor username: ")
-            else:
-                print("Actor username:", self.username)
-            if not (self.password or session):
-                self.password = getpass("Actor password: ")
-
-            try:
-                # If session is None, this will not cause an error
-                # If session is invalid, this will raise AssertionError
-                self.servicephp = servicephp.ServicePHP(
-                    self.username, session=session)
-
-                # We did not receive a session token, so we must log in
-                if not session:
-                    twofa = self.servicephp.login_basic(self.password)
-                    if twofa:
-                        self.handle_2fa(twofa)
-
-            # Login failed
-            except AssertionError as e:
-                print("Error. Login failed with provided credentials:", e)
-
-                # We haven't vetted this username via the RLS API, so reset it
-                if not self.rum_api:
-                    self.username = None
-
-                self.password = None
-                session = None
-
-            first_time = False
-
+        # Connect to chat
         self.chat = ChatAPI(self.stream_id, self.servicephp)
         self.chat.clear_mailbox()
 
         # The maximum age of a message before we will not process it
         self.max_inbox_age = kwargs.get(
             "max_inbox_age", static.Message.max_inbox_age)
-
-        # Scraper for getting some info
-        self.scraper = scraping.Scraper(self.servicephp)
-
-        # Get channels and verify the one we are using
-        self.channel = kwargs.get("channel", None)
-
-        assert isinstance(self.channel, (str, int)) or self.channel is None, \
-            f"Argument 'channel' must be str or int, not {type(self.channel)}"
-
-        # A channel was specified
-        if self.channel:
-            print(
-                f"Channel to post messages under specified as {self.channel}. Searching for a matching slug or ID...")
-            # Get all real channels we can use
-            postable_channels = self.scraper.get_channels()
-
-            # Have we found a match?
-            found = False
-
-            # Check through all the real channels to see if one matches the choice
-            for channel in postable_channels:
-                if channel == self.channel:
-                    # Make our channel choice specifically the numeric ID, even if it already was
-                    self.channel = channel.channel_id_b10
-                    print(
-                        f"Found message posting channel match: '{channel.title}', slug '{channel.slug}', numeric ID {channel.channel_id_b10}.")
-                    found = True
-                    break
-
-            assert found, "Argument 'channel' must be a valid ID or slug, but did not find a match"
 
         # Ignore these users when processing messages
         self.ignore_users = ignore_users
@@ -244,6 +265,28 @@ class RumbleChatActor:
 
         # Finally, get the logout setting
         self.logout_on_exit = kwargs.get("logout_on_exit", not session)
+
+    def _find_appear_channel_info(self, ident: int | str):
+        """
+        Find all channel data based on one piece of information
+
+        Args:
+            ident (int |str): The channel numeric ID, name, or slug.
+
+        Returns:
+            channel (scraping.HTMLChannel): Matching channel information.
+        """
+
+        # Get all real channels we can use
+        postable_channels = self.scraper.get_channels()
+
+        # Check through all the real channels to see if one matches the choice
+        for channel in postable_channels:
+            if ident == channel:
+                return channel
+
+        # We went through all of them and never returned out of the method
+        raise ValueError(f"Did not find any matching channels for `{ident}`")
 
     def handle_2fa(self, twofa: servicephp.TwoFacAuth):
         """Handle 2FA login
