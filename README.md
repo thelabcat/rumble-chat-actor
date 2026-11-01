@@ -1,6 +1,8 @@
 # Rumble Chat Actor
 Automatically interact with your Rumble livestream chats.
 
+Read the [Rumble Terms of Service status](#rumble-terms-of-service-status) before you install or run this.
+
 This project is currently just a Python module. It is fully functional, but you have to install the [Python Programming Language](https://python.org) and write your own little script to inport and use it.
 
 This project requires the following python libraries:
@@ -20,6 +22,23 @@ This is basically meant to be a FOSS local implementation of The Rumble Bot, and
 Note that the actor currently does not exit on its own when a livestream ends. It may also exit on its own if chat is inactive for a very long time.
 
 Hope this helps!
+
+## Rumble Terms of Service status
+
+This project has no affiliation with Rumble. Wilbur Jaywright and Marswide BGL have no official association with Rumble Corp. beyond that of a normal user and/or channel on the Rumble Video platform. This project is not officially endorsed by Rumble Corp. or its subsidiaries.
+
+[Rumble's Terms of Service](https://rumble.com/s/terms) prohibit "any form of automated software to interact with or access the Rumble Site ... without the prior written permission of Rumble." They also prohibit systematic retrieval of data or Content from the Rumble Service without prior written permission, and harvesting or collecting information about users of the Forum. Those terms define the Forum to include live chat.
+
+Rumble's [Live Stream API help page](https://rumble.support/help/how-to-use-rumble-s-live-stream-api) gives "full reign" on using and implementing the official Live Stream API. This project also logs in, posts and moderates chat, uploads clips, and reads chat through [Cocorum](https://pypi.org/project/cocorum/)'s undocumented internal endpoints. That help page does not cover those endpoints.
+
+The author has asked Rumble for written permission. There is no answer yet.
+
+If you run Rumble Chat Actor:
+
+- Use it only on your own channel, or on streams you moderate.
+- The actor already honors Rumble's 3-second chat send limit. Leave that wait in place.
+- Keep the bot prefix (`🤖: `) and the killswitch enabled.
+- Stop if Rumble asks you to stop.
 
 ## Legal
 

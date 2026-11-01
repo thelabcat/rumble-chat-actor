@@ -1,5 +1,7 @@
 # How-To Guides
 
+Read the [Rumble Terms of Service status](index.md#rumble-terms-of-service-status) before you run an actor. Use it only on your own channel or on streams you moderate, keep the bot prefix and the killswitch enabled, and stop if Rumble asks you to stop.
+
 ## My own personal setup
 ```python
 #!/usr/bin/env/python3

@@ -1,5 +1,22 @@
 # Explanation
 
+## Rumble Terms of Service status
+
+This project has no affiliation with Rumble. Wilbur Jaywright and Marswide BGL have no official association with Rumble Corp. beyond that of a normal user and/or channel on the Rumble Video platform. This project is not officially endorsed by Rumble Corp. or its subsidiaries.
+
+[Rumble's Terms of Service](https://rumble.com/s/terms) prohibit "any form of automated software to interact with or access the Rumble Site ... without the prior written permission of Rumble." They also prohibit systematic retrieval of data or Content from the Rumble Service without prior written permission, and harvesting or collecting information about users of the Forum. Those terms define the Forum to include live chat.
+
+Rumble's [Live Stream API help page](https://rumble.support/help/how-to-use-rumble-s-live-stream-api) gives "full reign" on using and implementing the official Live Stream API. This project also logs in, posts and moderates chat, uploads clips, and reads chat through [Cocorum](https://pypi.org/project/cocorum/)'s undocumented internal endpoints. That help page does not cover those endpoints.
+
+The author has asked Rumble for written permission. There is no answer yet.
+
+If you run Rumble Chat Actor:
+
+- Use it only on your own channel, or on streams you moderate.
+- The actor already honors Rumble's 3-second chat send limit. Leave that wait in place.
+- Keep the bot prefix (`🤖: `) and the killswitch enabled.
+- Stop if Rumble asks you to stop.
+
 ## Why I created this library
 This started off as a substitute to The Rumble Bot by Henry. I don't remember exactly why I wanted this, other than that I don't like using online services when I can help it. Not that they're inherently bad or anything, I just like not relying on the internet or a third party, since I grew up without it. I learned the stark difference between having to connect to an outside service, even a free one, and being able to do things on your own machine with no service charge or ads. I also like understanding how something works, and The Rumble Bot is proprietary, so my tinkering dissasemble-the-toy-and-put-it-back-together desire played a part. Right now, it seems like most of the things Rumble Chat Actor can do, other services can do more simply (RumBot, StreamBot, etc), but they remain proprietary, strictly online, or both. I mainly build it for my own sake; to learn how to make this stuff almost more than to use it.
 
