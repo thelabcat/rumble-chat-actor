@@ -5,7 +5,14 @@ theme:
 #  logo: assets/cocorum_icon.png
 
 plugins:
-  - mkdocstrings
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            # Many classes document their **kwargs as Args, which griffe
+            # would otherwise warn about (and --strict would fail on).
+            docstring_options:
+              warn_unknown_params: false
 
 nav:
   - Home: index.md
