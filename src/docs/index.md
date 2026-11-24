@@ -2,6 +2,17 @@
 
 A Python framework for setting up commands or other automated action for your Rumble livestream chat.
 
+## Rumble Terms of Service status
+
+[Rumble's Live Stream API help page](https://rumble.support/help/how-to-use-rumble-s-live-stream-api) says that, for now, users have "full reign" on using and implementing the Rumble Live Stream API however they want. However, [Rumble's Terms of Service](https://rumble.com/s/terms) prohibit "any form of automated software to interact with or access the Rumble Site ... without the prior written permission of Rumble." They prohibit "systematic retrieval of data or Content ... to create or compile ... a collection, compilation, library, database or directory." They also prohibit harvesting information about chat and forum users. Because Rumble Chat Actor logs in, posts and moderates chat, uploads clips, and reads chat through [Cocorum](https://pypi.org/project/cocorum/)'s undocumented internal endpoints, it fits this description. I have already asked Rumble for written permission and am waiting on a reply, and I will update this project according to their reply.
+
+### Even if Rumble says yes...
+
+- Use this library only on your own account or channel, or on streams you moderate.
+- Do not try to bypass any form of rate limits that Rumble may impose. This library is not intended to be used to harm Rumble or its users.
+- Do not use any of the features for bulk collection of data.
+- If Rumble asks you to stop, do.
+
 ## Table Of Contents
 
 1. [Tutorials](tutorials.md)
